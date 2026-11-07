@@ -1188,7 +1188,11 @@
             e.preventDefault(); 
             e.dataTransfer.dropEffect = 'move';
             const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
-            if (seatEl) {
+            // TỐI ƯU HÓA: Chỉ add class nếu chưa có để tránh trình duyệt render (reflow) liên tục gây lag
+            if (seatEl && !seatEl.classList.contains('drag-over')) {
+                document.querySelectorAll('.drag-over').forEach(el => {
+                    if (el !== seatEl) el.classList.remove('drag-over');
+                });
                 seatEl.classList.add('drag-over');
             }
         }
@@ -1553,7 +1557,8 @@
         function initDuckCanvas() {
             const canvas = document.getElementById('duckCanvas');
             const rect = canvas.parentElement.getBoundingClientRect();
-            const dpr = window.devicePixelRatio || 1;
+            // TỐI ƯU HÓA: Giới hạn DPR tối đa = 2 để tránh lag trên màn hình siêu nét (Retina/4K)
+            const dpr = Math.min(window.devicePixelRatio || 1, 2); 
 
             duckGame.logicalWidth = Math.max(600, rect.width);
             duckGame.logicalHeight = Math.max(380, rect.height);
@@ -1669,7 +1674,8 @@
             const waveStepX = 110;
             for (let wy = riverTop + 26; wy < h; wy += 42) {
                 ctx.beginPath();
-                for (let sx = -20; sx <= w + 20; sx += 25) {
+                // TỐI ƯU HÓA: Tăng khoảng cách sx (từ 25 lên 40) để giảm lượng tính toán vòng lặp vẽ
+                for (let sx = -20; sx <= w + 40; sx += 40) {
                     const worldX = sx + camX;
                     const waveY = wy + Math.sin(worldX * 0.025 + now * 0.004) * 3.5;
                     if (sx === -20) ctx.moveTo(sx, waveY);
@@ -1706,7 +1712,11 @@
             sortedDucks.forEach(d => {
                 const bobY = d.baseY + Math.sin(now * 0.008 + d.phase) * 2.5;
                 d.y = bobY;
-                drawSingleCartoonDuck(ctx, d, d.x - camX, bobY, scale, now);
+                // TỐI ƯU HÓA (CULLING): Chỉ vẽ những chú vịt đang xuất hiện trong khung hình Camera
+                const screenX = d.x - camX;
+                if (screenX > -250 && screenX < w + 200) {
+                    drawSingleCartoonDuck(ctx, d, screenX, bobY, scale, now);
+                }
             });
         }
 
@@ -2065,7 +2075,8 @@
         function initPlinkoCanvas() {
             const canvas = document.getElementById('plinkoCanvas');
             const rect = canvas.parentElement.getBoundingClientRect();
-            const dpr = window.devicePixelRatio || 1;
+            // TỐI ƯU HÓA: Giới hạn DPR tối đa = 2 để tránh lag đồ họa
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
             plinkoGame.logicalWidth = Math.max(520, rect.width);
             plinkoGame.logicalHeight = Math.max(380, rect.height);
