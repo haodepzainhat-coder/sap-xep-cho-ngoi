@@ -154,8 +154,17 @@
             /* Ẩn các thành phần không cần thiết */
             .classroom-bottom-bar, #perspectiveIndicator { display: none !important; }
             
-            .desk-box { padding: 4px !important; border-width: 1.5px !important; }
-            .seat-box { height: 42px !important; }
+            /* Đảo thứ tự 2 ghế trong từng bàn khi xuất PDF để bảo toàn vị trí góc/lối đi */
+            .desk-box { 
+                display: flex !important;
+                flex-direction: row-reverse !important;
+                padding: 4px !important; 
+                border-width: 1.5px !important; 
+            }
+            .seat-box { 
+                flex: 1 1 0% !important;
+                height: 42px !important; 
+            }
             
             .seat-occupied { 
                 background: #f1f5f9 !important; 
