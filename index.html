@@ -73,28 +73,23 @@
             }
             .no-print { display: none !important; }
             
-            /* Xoay 180 độ và ép vừa 1 trang */
             .print-area { 
                 width: 100% !important; 
                 height: 100% !important; 
                 max-width: none !important;
-                padding: 0 !important; 
+                padding: 5mm !important; 
                 margin: 0 !important;
                 border: none !important; 
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: center !important;
                 justify-content: center !important;
-                transform: rotate(180deg);
                 box-sizing: border-box;
             }
             
-            /* Lớp chuyên dụng để lật ngược chữ lại cho thuận mắt khi in */
-            .print-rotate {
-                transform: rotate(180deg) !important;
-            }
-            
             .classroom-card { 
+                display: flex !important;
+                flex-direction: column-reverse !important; /* Đảo ngược: Bảng xuống dưới cùng, Bàn lên trên */
                 box-shadow: none !important; 
                 border: none !important; 
                 width: 100% !important; 
@@ -102,14 +97,43 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 page-break-inside: avoid !important;
-                transform: scale(0.92); /* Thu nhỏ để chắc chắn vừa 1 trang */
-                transform-origin: center;
+                transform: scale(0.92);
+                transform-origin: bottom center;
             }
             
-            /* Tinh chỉnh khoảng cách để nhét vừa trang giấy ngang */
-            #classroomTopBoard { margin-bottom: 1rem !important; }
-            .classroom-bottom-bar { margin-top: 1rem !important; padding-top: 0.5rem !important; }
-            #classroomGrid { gap: 0.5rem !important; }
+            /* Đảo chiều thanh Bảng/Bàn GV/Cửa */
+            #classroomTopBoard { 
+                display: flex !important;
+                flex-direction: row-reverse !important; /* Bàn GV sang phải, Cửa sang trái */
+                justify-content: space-between !important;
+                margin-bottom: 0 !important; 
+                margin-top: 1rem !important;
+                width: 100% !important;
+            }
+            #classroomTopBoard > div { width: 32% !important; }
+            #classroomTopBoard > div:nth-child(2) { width: 36% !important; justify-content: center !important; }
+            #classroomTopBoard > div:nth-child(1) { justify-content: flex-end !important; } /* Bàn GV sang phải */
+            #classroomTopBoard > div:nth-child(3) { justify-content: flex-start !important; } /* Cửa sang trái */
+
+            /* Lưới Sơ đồ */
+            #classroomGrid { 
+                direction: rtl !important; /* Dãy 1 sang phải, Dãy 4 sang trái */
+                gap: 0.5rem !important; 
+                margin-bottom: 1rem !important;
+            }
+            #classroomGrid > div {
+                direction: ltr !important; /* Trả lại chữ viết thuận */
+                display: flex !important;
+                flex-direction: column-reverse !important; /* Bàn 1 ở dưới, Bàn 6 ở trên */
+            }
+            .desk-wrap {
+                display: flex !important;
+                flex-direction: column-reverse !important; /* Đưa chữ 'Bàn 1' xuống dưới ghế */
+            }
+
+            /* Ẩn các thành phần không cần thiết */
+            .classroom-bottom-bar, #perspectiveIndicator { display: none !important; }
+            
             .desk-box { padding: 4px !important; border-width: 1.5px !important; }
             .seat-box { height: 42px !important; }
             
@@ -384,7 +408,7 @@
                 <div id="classroomTopBoard" class="classroom-top-board mb-8 p-3 rounded-2xl bg-slate-50/80 border border-slate-200/90 grid grid-cols-12 gap-4 items-center">
                     <!-- Bên Trái: Bàn Giáo Viên (Phía trước Dãy 1) -->
                     <div class="col-span-3 flex items-center justify-start">
-                        <div class="w-full max-w-[190px] bg-gradient-to-br from-amber-100 via-amber-50 to-amber-200 border-2 border-amber-300 rounded-xl p-2.5 shadow-sm flex items-center gap-3 print-rotate">
+                        <div class="w-full max-w-[190px] bg-gradient-to-br from-amber-100 via-amber-50 to-amber-200 border-2 border-amber-300 rounded-xl p-2.5 shadow-sm flex items-center gap-3">
                             <div class="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center text-base shadow-sm shrink-0">
                                 <i class="fa-solid fa-chalkboard-user"></i>
                             </div>
@@ -397,7 +421,7 @@
 
                     <!-- Ở Giữa: Bục Giảng & Bảng Lớp (Bảng Đen/Xanh lớn) -->
                     <div class="col-span-6 flex flex-col items-center">
-                        <div class="w-full bg-[#1e4e38] border-4 border-[#854d0e] rounded-xl py-2.5 px-4 shadow-md flex items-center justify-center relative overflow-hidden print-rotate">
+                        <div class="w-full bg-[#1e4e38] border-4 border-[#854d0e] rounded-xl py-2.5 px-4 shadow-md flex items-center justify-center relative overflow-hidden">
                             <!-- Đường viền phấn & vân bảng -->
                             <div class="absolute inset-0 border border-emerald-400/20 rounded-lg pointer-events-none"></div>
                             <div class="flex items-center gap-2 text-white font-extrabold text-xs md:text-sm tracking-widest uppercase">
@@ -405,12 +429,12 @@
                                 <span>BẢNG LỚP HỌC</span>
                             </div>
                         </div>
-                        <div id="perspectiveIndicator" class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider print-rotate">▼ Góc nhìn Giáo Viên từ Bàn & Bục Giảng nhìn xuống lớp ▼</div>
+                        <div id="perspectiveIndicator" class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">▼ Góc nhìn Giáo Viên từ Bàn & Bục Giảng nhìn xuống lớp ▼</div>
                     </div>
 
                     <!-- Bên Phải: Cửa Vào Lớp (Phía trước/cạnh Dãy 4) -->
                     <div class="col-span-3 flex items-center justify-end">
-                        <div class="w-full max-w-[190px] bg-gradient-to-br from-indigo-50 via-sky-50 to-slate-100 border-2 border-dashed border-indigo-300 rounded-xl p-2.5 shadow-sm flex items-center justify-end gap-3 text-right print-rotate">
+                        <div class="w-full max-w-[190px] bg-gradient-to-br from-indigo-50 via-sky-50 to-slate-100 border-2 border-dashed border-indigo-300 rounded-xl p-2.5 shadow-sm flex items-center justify-end gap-3 text-right">
                             <div class="min-w-0">
                                 <div class="text-[9px] font-black uppercase tracking-wider text-indigo-600">Lối Ra Vào</div>
                                 <div class="text-xs font-black text-slate-800 leading-tight">Cửa Vào Lớp</div>
@@ -429,8 +453,8 @@
 
                 <!-- Chân trang sơ đồ -->
                 <div class="classroom-bottom-bar mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-400 font-semibold relative">
-                    <div id="printFooterClassInfo" class="print-rotate">Sơ đồ lớp học chuẩn: 4 Dãy × 6 Bàn (48 Chỗ ngồi)</div>
-                    <div class="text-slate-400 text-[11px] font-bold print-rotate">Cuối Lớp Học ▼</div>
+                    <div id="printFooterClassInfo">Sơ đồ lớp học chuẩn: 4 Dãy × 6 Bàn (48 Chỗ ngồi)</div>
+                    <div class="text-slate-400 text-[11px] font-bold">Cuối Lớp Học ▼</div>
 
                     <!-- NÚT Ổ KHÓA CƠ CẤU ẨN Ở TẬN CÙNG CHÂN TRANG (Chỉ hiện khi đã đăng nhập Admin) -->
                     <button id="secretRigBtn" onclick="openRigModal()" class="hidden absolute -bottom-6 -right-2 w-5 h-5 opacity-0 hover:opacity-25 items-center justify-center text-slate-800 transition-opacity cursor-pointer no-print" title="Cài đặt cơ cấu">
@@ -954,17 +978,17 @@
 
                 // Tiêu đề DÃY 1, DÃY 2, DÃY 3, DÃY 4
                 const colHeader = document.createElement('div');
-                colHeader.className = 'text-center font-extrabold text-slate-500 text-xs uppercase tracking-widest mb-1 print-rotate';
+                colHeader.className = 'text-center font-extrabold text-slate-500 text-xs uppercase tracking-widest mb-1';
                 colHeader.innerText = `DÃY ${c}`;
                 colDiv.appendChild(colHeader);
 
                 for (let r = 1; r <= ROWS_PER_COL; r++) {
                     const deskWrap = document.createElement('div');
-                    deskWrap.className = 'flex flex-col items-center gap-1';
+                    deskWrap.className = 'flex flex-col items-center gap-1 desk-wrap';
 
                     // Nhãn Bàn 1..6
                     const deskTitle = document.createElement('div');
-                    deskTitle.className = 'text-[10px] font-bold text-slate-400/80 print-rotate';
+                    deskTitle.className = 'text-[10px] font-bold text-slate-400/80';
                     deskTitle.innerText = `Bàn ${r}`;
                     deskWrap.appendChild(deskTitle);
 
@@ -982,7 +1006,7 @@
                         seatEl.id = `seat-${seatId}`;
 
                         if (occupant) {
-                            seatEl.className = `seat-box seat-occupied flex flex-col items-center justify-center p-1 relative group cursor-pointer ${isJustLanded ? 'seat-just-landed' : ''} print-rotate`;
+                            seatEl.className = `seat-box seat-occupied flex flex-col items-center justify-center p-1 relative group cursor-pointer ${isJustLanded ? 'seat-just-landed' : ''}`;
                             seatEl.title = `${occupant.name} (Bấm dấu X để gỡ khỏi ghế)`;
 
                             const nameSpan = document.createElement('span');
@@ -1001,7 +1025,7 @@
                             seatEl.appendChild(removeBtn);
                         } else {
                             const isRandomMode = currentFillOrder === 'random_any';
-                            seatEl.className = `seat-box seat-empty flex flex-col items-center justify-center cursor-pointer ${isTarget ? 'seat-target' : ''} print-rotate`;
+                            seatEl.className = `seat-box seat-empty flex flex-col items-center justify-center cursor-pointer ${isTarget ? 'seat-target' : ''}`;
                             seatEl.title = `Chọn ghế này: ${formatSeatLabel(seatId)}`;
                             
                             if (isTarget) {
