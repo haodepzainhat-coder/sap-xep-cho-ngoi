@@ -157,12 +157,20 @@
             /* Đảo thứ tự 2 ghế trong từng bàn khi xuất PDF để bảo toàn vị trí góc/lối đi */
             .desk-box { 
                 display: flex !important;
-                flex-direction: row-reverse !important;
+                flex-direction: row !important;
+                direction: ltr !important;
                 padding: 4px !important; 
                 border-width: 1.5px !important; 
             }
+            .desk-box > :first-child {
+                order: 2 !important;
+            }
+            .desk-box > :last-child {
+                order: 1 !important;
+            }
             .seat-box { 
                 flex: 1 1 0% !important;
+                width: 50% !important;
                 height: 42px !important; 
             }
             
