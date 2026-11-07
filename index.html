@@ -1373,6 +1373,8 @@
         // CÁC HÀM XỬ LÝ KÉO THẢ (DRAG & DROP)
         // ==========================================
         
+        let currentDragOverEl = null; // Biến nhớ tạm để tối ưu hóa hiệu suất di chuột
+
         function renderUnassignedPool() {
             const pool = document.getElementById('unassignedPool');
             if (!pool) return;
@@ -1405,6 +1407,11 @@
 
         function handleDragEnd(e) {
             e.target.style.opacity = '1';
+            if (currentDragOverEl) {
+                currentDragOverEl.classList.remove('drag-over');
+                currentDragOverEl = null;
+            }
+            // Fallback an toàn dọn dẹp class dư thừa
             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
         }
 
@@ -1412,26 +1419,29 @@
             e.preventDefault(); 
             e.dataTransfer.dropEffect = 'move';
             const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
-            // TỐI ƯU HÓA: Chỉ add class nếu chưa có để tránh trình duyệt render (reflow) liên tục gây lag
-            if (seatEl && !seatEl.classList.contains('drag-over')) {
-                document.querySelectorAll('.drag-over').forEach(el => {
-                    if (el !== seatEl) el.classList.remove('drag-over');
-                });
-                seatEl.classList.add('drag-over');
+            
+            // TỐI ƯU HÓA: Chỉ thao tác class khi thực sự chuyển sang đối tượng mới, chặn giật lag (Reflow)
+            if (seatEl !== currentDragOverEl) {
+                if (currentDragOverEl) currentDragOverEl.classList.remove('drag-over');
+                if (seatEl) seatEl.classList.add('drag-over');
+                currentDragOverEl = seatEl;
             }
         }
 
         function handleDragLeave(e) {
             const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
-            if (seatEl) {
+            if (seatEl && seatEl === currentDragOverEl) {
                 seatEl.classList.remove('drag-over');
+                currentDragOverEl = null;
             }
         }
 
         function handleDrop(e, targetId) {
             e.preventDefault();
-            const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
-            if (seatEl) seatEl.classList.remove('drag-over');
+            if (currentDragOverEl) {
+                currentDragOverEl.classList.remove('drag-over');
+                currentDragOverEl = null;
+            }
 
             try {
                 const data = JSON.parse(e.dataTransfer.getData('application/json'));
@@ -1852,7 +1862,8 @@
                     freq1: 2.5 + Math.random() * 2.5,
                     freq2: 5.0 + Math.random() * 3.5,
                     surgeCenter: 0.25 + Math.random() * 0.55,
-                    turboBurst: false
+                    turboBurst: false,
+                    labelWidth: null // Khởi tạo cache chiều dài text để tối ưu đồ họa
                 };
             });
             duckGame.cameraX = 0;
@@ -1886,11 +1897,22 @@
 
             ctx.clearRect(0, 0, w, h);
 
-            // 1. Bờ cỏ xanh tươi có đồi cây chuyển động Parallax
-            const skyGrad = ctx.createLinearGradient(0, 0, 0, riverTop);
-            skyGrad.addColorStop(0, '#16a34a');
-            skyGrad.addColorStop(1, '#22c55e');
-            ctx.fillStyle = skyGrad;
+            // 1. TỐI ƯU HÓA: Bờ cỏ xanh tươi có đồi cây (Sử dụng Cache Gradient thay vì tạo mới 60 lần/giây)
+            if (!duckGame.skyGrad || duckGame.lastW !== w || duckGame.lastH !== h) {
+                duckGame.skyGrad = ctx.createLinearGradient(0, 0, 0, riverTop);
+                duckGame.skyGrad.addColorStop(0, '#16a34a');
+                duckGame.skyGrad.addColorStop(1, '#22c55e');
+
+                duckGame.waterGrad = ctx.createLinearGradient(0, riverTop, 0, h);
+                duckGame.waterGrad.addColorStop(0, '#0ea5e9');
+                duckGame.waterGrad.addColorStop(0.5, '#0284c7');
+                duckGame.waterGrad.addColorStop(1, '#0369a1');
+
+                duckGame.lastW = w;
+                duckGame.lastH = h;
+            }
+
+            ctx.fillStyle = duckGame.skyGrad;
             ctx.fillRect(0, 0, w, riverTop);
 
             // Vẽ các bụi cây & cọc gỗ ven sông trôi theo camera
@@ -1912,12 +1934,8 @@
             ctx.fillStyle = '#a16207';
             ctx.fillRect(0, riverTop - 6, w, 4);
 
-            // 2. Dòng sông xanh biếc có chiều sâu
-            const waterGrad = ctx.createLinearGradient(0, riverTop, 0, h);
-            waterGrad.addColorStop(0, '#0ea5e9');
-            waterGrad.addColorStop(0.5, '#0284c7');
-            waterGrad.addColorStop(1, '#0369a1');
-            ctx.fillStyle = waterGrad;
+            // 2. Dòng sông xanh biếc có chiều sâu (Sử dụng Cache Gradient)
+            ctx.fillStyle = duckGame.waterGrad;
             ctx.fillRect(0, riverTop, w, h - riverTop);
 
             // Sóng nước trôi ngược khi vịt bơi (làm dịu để đỡ mỏi mắt)
@@ -2119,7 +2137,13 @@
             // Bóng thoại Comic hiển thị Tên Học Sinh bên trái chú vịt
             ctx.font = '900 20px "Nunito"'; // Font chữ to rõ ràng cho máy chiếu
             const label = duck.student.shortName;
-            const textW = ctx.measureText(label).width;
+            
+            // TỐI ƯU HÓA: Chỉ đo lường kích thước chữ 1 lần duy nhất thay vì mỗi khung hình
+            if (!duck.labelWidth) {
+                duck.labelWidth = ctx.measureText(label).width;
+            }
+            const textW = duck.labelWidth;
+            
             const boxW = textW + 20;
             const boxH = 32;
             const boxX = -boxW - 16;
