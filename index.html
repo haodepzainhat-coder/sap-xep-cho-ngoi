@@ -2822,10 +2822,11 @@
                 actionFunc();
             } else {
                 pendingAdminAction = actionFunc;
-                document.getElementById('secretPasswordInput').value = '';
+                const input = document.getElementById('secretPasswordInput');
+                if (input) input.value = '';
                 document.getElementById('passwordModal').classList.remove('hidden');
                 document.getElementById('passwordModal').classList.add('flex');
-                setTimeout(() => document.getElementById('secretPasswordInput').focus(), 100);
+                setTimeout(() => { if (input) input.focus(); }, 100);
             }
         }
 
@@ -2857,9 +2858,12 @@
             pendingAdminAction = null;
         }
 
+        const ADMIN_PASSWORD = "884043";
+
         function checkPassword() {
-            const pwd = document.getElementById('secretPasswordInput').value;
-            if (pwd === "884043") {
+            const input = document.getElementById('secretPasswordInput');
+            const pwd = input ? input.value.trim() : '';
+            if (pwd === ADMIN_PASSWORD) {
                 sessionStorage.setItem('isAdmin', 'true');
                 closePasswordModal();
                 updateAdminUI();
@@ -2867,8 +2871,13 @@
                     pendingAdminAction();
                     pendingAdminAction = null;
                 }
+                showToast("Đăng nhập Admin thành công!");
             } else {
-                showToast("Mật khẩu không hợp lệ!");
+                showToast("Mật khẩu không đúng! Hãy nhập mật khẩu 884043");
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
             }
         }
 
@@ -3303,6 +3312,9 @@
 
         // Khởi chạy ứng dụng khi tải trang
         window.addEventListener('DOMContentLoaded', () => {
+            // Xóa phiên đăng nhập cũ để buộc người dùng nhập mật khẩu mới 884043
+            sessionStorage.removeItem('isAdmin');
+
             let storedData = localStorage.getItem('classroom_data');
             if (storedData) {
                 classDataDict = JSON.parse(storedData);
