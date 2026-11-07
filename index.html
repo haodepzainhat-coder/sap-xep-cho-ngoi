@@ -661,10 +661,33 @@
                 <button onclick="clearRigRules()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition border border-rose-200">Xóa sạch quy tắc của mẫu này</button>
                 <div class="flex gap-2">
                     <button onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition border border-slate-300">Đăng xuất Admin</button>
-                    <button onclick="updateActivePreset(); closeRigModal()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5">
+                    <button onclick="if(updateActivePreset()) closeRigModal()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5">
                         <i class="fa-solid fa-check-double"></i> LƯU & ĐÓNG
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CẢNH BÁO XUNG ĐỘT LOGIC TRƯỚC KHI LƯU -->
+    <div id="validationWarningModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[90] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-rose-400 flex flex-col">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 text-xl shadow-sm">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-slate-900">Phát hiện Xung đột Quy tắc!</h3>
+                    <p class="text-xs text-rose-600 font-bold mt-0.5">Các điều kiện chỗ ngồi đang vi phạm lẫn nhau</p>
+                </div>
+            </div>
+            <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-3.5 mb-5 text-xs text-slate-700 leading-relaxed font-semibold shadow-inner" id="validationWarningText">
+                <!-- Nội dung thông báo lỗi cụ thể -->
+            </div>
+            <div class="flex justify-end">
+                <button onclick="closeValidationWarning()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-to-square"></i> Đã hiểu, để tôi sửa lại
+                </button>
             </div>
         </div>
     </div>
@@ -2953,6 +2976,249 @@
             });
         }
 
+        // ====== HỆ THỐNG KIỂM TRA & RÀ SOÁT XUNG ĐỘT LOGIC TRƯỚC KHI LƯU ======
+        function showValidationWarning(msg) {
+            const modal = document.getElementById('validationWarningModal');
+            const textEl = document.getElementById('validationWarningText');
+            if (modal && textEl) {
+                textEl.innerHTML = msg;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeValidationWarning() {
+            const modal = document.getElementById('validationWarningModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function validateRigRules(rules) {
+            if (!rules || rules.length === 0) return { valid: true };
+
+            // 1. Kiểm tra giới hạn khu vực rỗng
+            let allowedSeats = {};
+            for (let r of rules) {
+                if (r.type === 'area_only') {
+                    if (!allowedSeats[r.s1Id]) {
+                        allowedSeats[r.s1Id] = new Set(r.seats);
+                    } else {
+                        let prev = allowedSeats[r.s1Id];
+                        let next = new Set(r.seats);
+                        let inter = new Set([...prev].filter(x => next.has(x)));
+                        if (inter.size === 0) {
+                            return {
+                                valid: false,
+                                errorMsg: `Học sinh <b>"${getStudentName(r.s1Id)}"</b> có các luật chọn khu vực bị triệt tiêu lẫn nhau, dẫn đến không còn chiếc ghế nào hợp lệ!`
+                            };
+                        }
+                        allowedSeats[r.s1Id] = inter;
+                    }
+                }
+            }
+
+            // 2. Kiểm tra xung đột "together" (mỗi bàn chỉ có 2 ghế)
+            let togetherMap = {};
+            for (let r of rules) {
+                if (r.type === 'together') {
+                    if (!togetherMap[r.s1Id]) togetherMap[r.s1Id] = new Set();
+                    if (!togetherMap[r.targetVal]) togetherMap[r.targetVal] = new Set();
+                    togetherMap[r.s1Id].add(r.targetVal);
+                    togetherMap[r.targetVal].add(r.s1Id);
+
+                    if (togetherMap[r.s1Id].size > 1) {
+                        return {
+                            valid: false,
+                            errorMsg: `Học sinh <b>"${getStudentName(r.s1Id)}"</b> đang được chỉ định ngồi cùng bàn với nhiều hơn 1 bạn. Mỗi bàn học sinh chỉ có đúng 2 ghế ngồi!`
+                        };
+                    }
+                    if (togetherMap[r.targetVal].size > 1) {
+                        return {
+                            valid: false,
+                            errorMsg: `Học sinh <b>"${getStudentName(r.targetVal)}"</b> đang được chỉ định ngồi cùng bàn với nhiều hơn 1 bạn. Mỗi bàn học sinh chỉ có đúng 2 ghế ngồi!`
+                        };
+                    }
+                }
+            }
+
+            // 3. Kiểm tra mâu thuẫn trực tiếp giữa từng cặp học sinh
+            for (let i = 0; i < rules.length; i++) {
+                for (let j = i + 1; j < rules.length; j++) {
+                    let r1 = rules[i];
+                    let r2 = rules[j];
+
+                    let isSamePair = (r1.s1Id === r2.s1Id && r1.targetVal === r2.targetVal) ||
+                                     (r1.s1Id === r2.targetVal && r1.targetVal === r2.s1Id);
+
+                    if (isSamePair) {
+                        if ((r1.type === 'together' && r2.type === 'separate') || (r1.type === 'separate' && r2.type === 'together')) {
+                            return {
+                                valid: false,
+                                errorMsg: `Mâu thuẫn đối nghịch: <b>"${getStudentName(r1.s1Id)}"</b> và <b>"${getStudentName(r1.targetVal)}"</b> vừa có quy tắc <i>Bắt buộc cùng bàn</i> vừa có quy tắc <i>Không được cùng bàn</i>!`
+                            };
+                        }
+                        if ((r1.type === 'together' && r2.type === 'surround_not') || (r1.type === 'surround_not' && r2.type === 'together')) {
+                            return {
+                                valid: false,
+                                errorMsg: `Mâu thuẫn vị trí: <b>"${getStudentName(r1.s1Id)}"</b> và <b>"${getStudentName(r1.targetVal)}"</b> đã ngồi cùng bàn thì luôn ở cạnh nhau, không thể áp dụng quy tắc <i>Không được ở xung quanh</i>!`
+                            };
+                        }
+                        if ((r1.type === 'surround_must' && r2.type === 'surround_not') || (r1.type === 'surround_not' && r2.type === 'surround_must')) {
+                            return {
+                                valid: false,
+                                errorMsg: `Mâu thuẫn đối nghịch: <b>"${getStudentName(r1.s1Id)}"</b> và <b>"${getStudentName(r1.targetVal)}"</b> vừa bắt buộc phải ở xung quanh vừa bị cấm ở xung quanh!`
+                            };
+                        }
+                    }
+                }
+            }
+
+            // 4. Kiểm tra A & B "together" nhưng bàn hợp lệ không giao nhau
+            for (let r of rules) {
+                if (r.type === 'together') {
+                    let s1Seats = allowedSeats[r.s1Id];
+                    let s2Seats = allowedSeats[r.targetVal];
+                    if (s1Seats || s2Seats) {
+                        let hasCommonDesk = false;
+                        for (let c = 1; c <= COLS; c++) {
+                            for (let row = 1; row <= ROWS_PER_COL; row++) {
+                                let L = `D${c}_B${row}_L`;
+                                let R = `D${c}_B${row}_R`;
+                                let s1CanL = !s1Seats || s1Seats.has(L);
+                                let s2CanR = !s2Seats || s2Seats.has(R);
+                                let s1CanR = !s1Seats || s1Seats.has(R);
+                                let s2CanL = !s2Seats || s2Seats.has(L);
+                                if ((s1CanL && s2CanR) || (s1CanR && s2CanL)) {
+                                    hasCommonDesk = true;
+                                    break;
+                                }
+                            }
+                            if (hasCommonDesk) break;
+                        }
+                        if (!hasCommonDesk) {
+                            return {
+                                valid: false,
+                                errorMsg: `<b>"${getStudentName(r.s1Id)}"</b> và <b>"${getStudentName(r.targetVal)}"</b> bắt buộc ngồi cùng bàn, nhưng khu vực khoanh vùng của hai bạn không có bất kỳ bàn học nào chung!`
+                            };
+                        }
+                    }
+                }
+            }
+
+            // 5. Kiểm tra tính khả thi thực tế bằng bộ giải thử nghiệm (Simulation)
+            const testResult = testSolveArrangement(rules);
+            if (!testResult.success) {
+                return {
+                    valid: false,
+                    errorMsg: `Không tìm được sơ đồ chỗ ngồi thỏa mãn: Các điều kiện ràng buộc hiện tại đang chặn hết các vị trí hợp lệ của lớp. Vui lòng kiểm tra lại hoặc giảm bớt một số quy tắc quá chặt!`
+                };
+            }
+
+            return { valid: true };
+        }
+
+        // Mô phỏng nhanh thuật toán xếp chỗ để thẩm định tính khả thi 100%
+        function testSolveArrangement(testRules) {
+            let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
+            testRules.forEach(r => { if (rules[r.type]) rules[r.type].push(r); });
+
+            let allowedSeatsPerStudent = {};
+            for (let r of rules.area_only) {
+                if (!allowedSeatsPerStudent[r.s1Id]) {
+                    allowedSeatsPerStudent[r.s1Id] = new Set(r.seats);
+                } else {
+                    let current = allowedSeatsPerStudent[r.s1Id];
+                    let next = new Set(r.seats);
+                    allowedSeatsPerStudent[r.s1Id] = new Set([...current].filter(x => next.has(x)));
+                }
+            }
+
+            let allSeats = generateSeatOrderList('random_any');
+            let testPlacement = {};
+
+            function isValid(layout) {
+                let rev = {};
+                for (let seat in layout) rev[layout[seat]] = seat;
+
+                for (let r of rules.separate) {
+                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
+                    if (s1 && s2 && s1.substring(0, s1.lastIndexOf('_')) === s2.substring(0, s2.lastIndexOf('_'))) return false;
+                }
+                for (let r of rules.together) {
+                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
+                    if (s1 && s2 && s1.substring(0, s1.lastIndexOf('_')) !== s2.substring(0, s2.lastIndexOf('_'))) return false;
+                }
+                for (let r of rules.surround_must) {
+                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
+                    if (s1 && s2 && !isSurrounding(s1, s2)) return false;
+                }
+                for (let r of rules.surround_not) {
+                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
+                    if (s1 && s2 && isSurrounding(s1, s2)) return false;
+                }
+                return true;
+            }
+
+            // Thử nghiệm sắp xếp
+            let studentsInvolved = new Set();
+            testRules.forEach(r => {
+                if (r.s1Id) studentsInvolved.add(r.s1Id);
+                if (r.targetVal) studentsInvolved.add(r.targetVal);
+            });
+            let listStudents = Array.from(studentsInvolved);
+            if (listStudents.length === 0) return { success: true };
+
+            const MAX_TRIES = 350;
+            for (let t = 0; t < MAX_TRIES; t++) {
+                testPlacement = {};
+                let seatsCopy = [...allSeats].sort(() => Math.random() - 0.5);
+
+                let failed = false;
+                for (let r of rules.together) {
+                    let desks = [];
+                    for (let c = 1; c <= COLS; c++) {
+                        for (let row = 1; row <= ROWS_PER_COL; row++) {
+                            let L = `D${c}_B${row}_L`, R = `D${c}_B${row}_R`;
+                            if (!testPlacement[L] && !testPlacement[R]) {
+                                let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
+                                let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
+                                if (s1L && s2R) desks.push({ L, R, s1: r.s1Id, s2: r.targetVal });
+                            }
+                        }
+                    }
+                    if (desks.length === 0) { failed = true; break; }
+                    let d = desks[Math.floor(Math.random() * desks.length)];
+                    testPlacement[d.L] = d.s1;
+                    testPlacement[d.R] = d.s2;
+                }
+                if (failed) continue;
+
+                let remaining = listStudents.filter(id => !Object.values(testPlacement).includes(id));
+                function solve(idx) {
+                    if (idx === remaining.length) return true;
+                    let st = remaining[idx];
+                    let validSeats = seatsCopy.filter(s => !testPlacement[s]);
+                    if (allowedSeatsPerStudent[st]) {
+                        validSeats = validSeats.filter(s => allowedSeatsPerStudent[st].has(s));
+                    }
+                    for (let s of validSeats) {
+                        testPlacement[s] = st;
+                        if (isValid(testPlacement)) {
+                            if (solve(idx + 1)) return true;
+                        }
+                        delete testPlacement[s];
+                    }
+                    return false;
+                }
+
+                if (solve(0)) return { success: true };
+            }
+
+            return { success: false };
+        }
+
         function onSelectRigPreset() {
             const select = document.getElementById('rigPresetSelect');
             activePresetIndex = parseInt(select.value);
@@ -2968,6 +3234,12 @@
         }
 
         function promptNewPresetName() {
+            const check = validateRigRules(rigRulesList);
+            if (!check.valid) {
+                showValidationWarning(check.errorMsg);
+                return;
+            }
+
             const defaultName = `Mẫu ${classDataDict[currentClassName].rigPresets.length + 1}`;
             openPrompt("Lưu thành mẫu cơ cấu mới", defaultName, (name) => {
                 if (name.trim() !== "") {
@@ -2985,9 +3257,16 @@
         }
 
         function updateActivePreset() {
+            const check = validateRigRules(rigRulesList);
+            if (!check.valid) {
+                showValidationWarning(check.errorMsg);
+                return false;
+            }
+
             classDataDict[currentClassName].rigPresets[activePresetIndex].rules = JSON.parse(JSON.stringify(rigRulesList));
             saveClassData();
             showToast("Đã lưu đè lên mẫu cơ cấu hiện tại!");
+            return true;
         }
 
         function deleteActivePreset() {
