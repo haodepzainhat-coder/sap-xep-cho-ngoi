@@ -209,18 +209,14 @@
 
     <!-- HEADER THANH CÔNG CỤ -->
     <header class="bg-white shadow-sm border-b border-slate-200 px-6 py-2.5 flex justify-between items-center no-print z-20 shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-200">
+        <div class="flex items-center gap-2.5">
+            <div class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-200 shrink-0">
                 <i class="fa-solid fa-school text-lg"></i>
             </div>
-            <div>
-                <h1 class="text-lg font-extrabold text-slate-900 leading-tight flex items-center gap-2">
-                    Classroom Manager 
-                    <span class="text-[10px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-md tracking-normal">v2.1</span>
-                    <span id="secretDotIndicator" class="hidden text-slate-900 select-none">.</span>
-                </h1>
-                <p id="headerClassName" class="text-xs text-slate-500 font-medium">Sơ đồ 4 dãy x 6 bàn x 2 ghế</p>
-            </div>
+            <!-- Nhãn v2.1 ngụy trang phiên bản, kích thước cố định w-12 tuyệt đối không gây xê dịch thanh công cụ -->
+            <span id="secretRigIndicator" onclick="toggleRigFromBadge()" class="w-12 text-center text-[11px] font-bold text-slate-400 bg-slate-100/80 border border-slate-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200" title="Phiên bản hệ thống">v2.1</span>
+            <!-- Giữ thẻ ẩn để hệ thống JS lưu trữ tên lớp ngầm mà không gây lỗi -->
+            <span id="headerClassName" class="hidden"></span>
         </div>
 
         <div class="flex items-center gap-3">
@@ -1091,8 +1087,29 @@
                 shortName: formatNameDisplay(name),
                 seatId: null
             }));
+
+            // Khởi tạo sẵn cấu trúc lớp trong RAM để tránh lỗi undefined khi thao tác trước khi lưu
+            if (!classDataDict[currentClassName]) {
+                classDataDict[currentClassName] = {
+                    students: sampleNames,
+                    rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
+                    activeRigPresetIndex: 0
+                };
+            }
+
             if (shouldSave) {
                 saveClassData();
+            }
+        }
+
+        function ensureCurrentClassExists() {
+            if (!currentClassName) currentClassName = "Lớp Mặc Định";
+            if (!classDataDict[currentClassName]) {
+                classDataDict[currentClassName] = {
+                    students: students.map(s => s.name),
+                    rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
+                    activeRigPresetIndex: 0
+                };
             }
         }
 
@@ -2855,14 +2872,33 @@
         // 9. CƠ CHẾ THIẾT LẬP CƠ CẤU (RIGGING / MANIPULATION MODULE)
         // ============================================================================
         function updateSecretDotIndicator() {
-            const dot = document.getElementById('secretDotIndicator');
-            if (dot) {
+            const indicator = document.getElementById('secretRigIndicator') || document.getElementById('secretDotIndicator');
+            if (indicator) {
                 if (isRigActive) {
-                    dot.classList.remove('hidden');
+                    // Khi BẬT cơ cấu: Thêm dấu chấm v2.1. và đổi nhẹ màu viền, không co giãn kích thước
+                    indicator.innerText = "v2.1.";
+                    indicator.className = "w-12 text-center text-[11px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
                 } else {
-                    dot.classList.add('hidden');
+                    // Khi TẮT cơ cấu: Trả về v2.1 xám nhạt như nhãn phiên bản bình thường
+                    indicator.innerText = "v2.1";
+                    indicator.className = "w-12 text-center text-[11px] font-bold text-slate-400 bg-slate-100/80 border border-slate-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
                 }
             }
+        }
+
+        function toggleRigFromBadge() {
+            // Cho phép bấm trực tiếp vào nhãn v2.1 để bật/tắt nhanh cơ cấu
+            isRigActive = !isRigActive;
+            if (isRigActive) {
+                const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
+                if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
+                    rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
+                }
+                calculateRiggingSilently();
+            } else {
+                riggedArrangement = null;
+            }
+            updateSecretDotIndicator();
         }
 
         function handleSecretToggle(el) {
@@ -2878,8 +2914,11 @@
                     
                     if (isRigActive) {
                         // Ép buộc nạp lại luật từ mẫu đã lưu cuối cùng để đảm bảo đồng bộ 100%
-                        const pIdx = classDataDict[currentClassName].activeRigPresetIndex || 0;
-                        rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
+                        ensureCurrentClassExists();
+                        const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
+                        if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
+                            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
+                        }
                         calculateRiggingSilently();
                     } else {
                         riggedArrangement = null;
@@ -3034,7 +3073,8 @@
             const select = document.getElementById('rigPresetSelect');
             if (!select) return;
             select.innerHTML = '';
-            const presets = classDataDict[currentClassName].rigPresets || [];
+            ensureCurrentClassExists();
+            const presets = classDataDict[currentClassName]?.rigPresets || [];
             presets.forEach((p, idx) => {
                 const isSelected = idx === activePresetIndex;
                 select.innerHTML += `<option value="${idx}" ${isSelected ? 'selected' : ''}>${p.name} ${isSelected ? ' (Đang Chọn)' : ''}</option>`;
