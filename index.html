@@ -146,12 +146,14 @@
                 print-color-adjust: exact;
             }
 
-            /* Ẩn dấu + và chữ Mục tiêu ở các ghế trống khi in */
-            .seat-empty * { display: none !important; }
+            /* Ẩn hoàn toàn các ô trống và ô mục tiêu khi in (tàng hình) */
             .seat-empty, .seat-target {
-                border: 1.5px dashed #cbd5e1 !important;
-                background-color: #ffffff !important;
+                border: none !important;
+                background: transparent !important;
                 box-shadow: none !important;
+            }
+            .seat-empty *, .seat-target * { 
+                display: none !important; 
             }
             
             @page { size: landscape; margin: 5mm; }
