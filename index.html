@@ -292,6 +292,17 @@
                 <i class="fa-solid fa-users-gear text-indigo-600"></i> Danh Sách Lớp (<span id="totalStudentBadge">48</span>)
             </button>
 
+            <!-- Nút Gửi Admin (Chỉ hiện khi ở chế độ Send) -->
+            <button id="submitToAdminBtn" onclick="submitLayoutToAdmin()" class="hidden bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-bold text-xs transition border border-indigo-200 items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-paper-plane"></i> Gửi Sơ Đồ
+            </button>
+
+            <!-- Nút Xem Bài Gửi (Chỉ hiện khi là Admin) -->
+            <button id="viewSubmissionsBtn" onclick="openSubmissionsModal()" class="hidden bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg font-bold text-xs transition border border-emerald-200 items-center gap-1.5 shadow-sm relative">
+                <i class="fa-solid fa-inbox"></i> Nhận Cấu Hình 
+                <span id="submissionCountBadge" class="bg-emerald-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] absolute -top-2 -right-2 shadow">0</span>
+            </button>
+
             <button onclick="resetAllSeats()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-lg font-bold text-xs transition border border-rose-200" title="Làm trống lại toàn bộ bàn ghế">
                 <i class="fa-solid fa-rotate-left"></i>
             </button>
@@ -581,14 +592,29 @@
     <!-- MODAL CƠ CẤU (RIGGING) -->
     <div id="rigModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] hidden items-center justify-center p-4 no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-[1000px] w-full p-6 border border-slate-200 flex flex-col max-h-[95vh]">
-            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 flex-wrap gap-3">
                 <div>
-                    <h3 class="text-lg font-extrabold text-indigo-900"><i class="fa-solid fa-user-secret mr-2"></i>Thiết Lập Cơ Cấu Chỗ Ngồi</h3>
+                    <h3 class="text-lg font-extrabold text-indigo-900 flex items-center gap-2">
+                        <i class="fa-solid fa-user-secret text-indigo-600"></i> Thiết Lập Cơ Cấu Chỗ Ngồi
+                    </h3>
                     <p class="text-xs text-slate-500">Mẹo: Bạn có thể thêm <b>nhiều luật cho cùng 1 người</b>. Dữ liệu cơ cấu được lưu riêng biệt cho từng lớp học!</p>
                 </div>
-                <button onclick="closeRigModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
+
+                <!-- CÔNG TẮC TỔNG BẬT/TẮT CƠ CẤU (CHỈ ADMIN QUẢN LÝ) -->
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-2.5 bg-slate-100 hover:bg-slate-200/80 px-3.5 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Khi tắt công tắc này, bên ngoài trang web hoàn toàn không thể kích hoạt cơ cấu">
+                        <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-halved text-indigo-600"></i> Quyền Cơ Cấu:
+                        </span>
+                        <input type="checkbox" id="masterRigToggle" onchange="toggleMasterRigSwitch(this.checked)" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 relative"></div>
+                        <span id="masterRigStatusBadge" class="text-xs font-black min-w-[70px] text-center px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200">ĐÃ KHÓA</span>
+                    </label>
+
+                    <button onclick="closeRigModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- THANH QUẢN LÝ MẪU CƠ CẤU -->
@@ -736,6 +762,60 @@
         </div>
     </div>
 
+    <!-- MODAL CHỌN CHẾ ĐỘ BAN ĐẦU (WELCOME) -->
+    <div id="welcomeModeModal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-slate-200 flex flex-col items-center text-center transform transition-all">
+            <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-4xl mb-4 shadow-inner">
+                <i class="fa-solid fa-school-flag"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 mb-2">Chào mừng đến với Lớp Học!</h2>
+            <p class="text-sm text-slate-500 mb-8 font-medium">Vui lòng chọn mục đích sử dụng của bạn hôm nay:</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <button onclick="selectWelcomeMode('test')" class="group flex flex-col items-center justify-center p-5 bg-slate-50 hover:bg-slate-100 border-2 border-slate-200 hover:border-slate-300 rounded-2xl transition-all h-full">
+                    <i class="fa-solid fa-flask text-3xl text-slate-400 group-hover:text-slate-600 mb-3 transition-colors"></i>
+                    <span class="font-extrabold text-slate-700 text-sm mb-1">Chơi thử nghiệm</span>
+                    <span class="text-[11px] text-slate-500 font-medium">Ngẫu nhiên 100%, không gửi kết quả</span>
+                </button>
+                
+                <button onclick="selectWelcomeMode('submit')" class="group flex flex-col items-center justify-center p-5 bg-indigo-50 hover:bg-indigo-100 border-2 border-indigo-200 hover:border-indigo-400 rounded-2xl transition-all h-full relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg shadow">CHÍNH THỨC</div>
+                    <i class="fa-solid fa-paper-plane text-3xl text-indigo-400 group-hover:text-indigo-600 mb-3 transition-colors"></i>
+                    <span class="font-extrabold text-indigo-800 text-sm mb-1">Sắp xếp & Gửi Admin</span>
+                    <span class="text-[11px] text-indigo-600/80 font-medium">Lưu cấu hình sau khi hoàn thành</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL QUẢN LÝ SƠ ĐỒ GỬI VỀ (DÀNH CHO ADMIN) -->
+    <div id="submissionsModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[85] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-200 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-inbox"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-extrabold text-slate-900">Hộp Thư Nhận Cấu Hình</h3>
+                        <p class="text-xs text-slate-500">Danh sách các sơ đồ do người dùng gửi về lớp <b id="subModalClassName" class="text-indigo-600"></b></p>
+                    </div>
+                </div>
+                <button onclick="closeSubmissionsModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div id="submissionsList" class="flex-1 overflow-y-auto flex flex-col gap-3 pr-2 min-h-[200px]">
+                <!-- Danh sách thư được render qua JS -->
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button onclick="clearAllSubmissions()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition border border-rose-200 shadow-sm">Xóa tất cả thư</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==========================================
         // CẤU HÌNH DATABASE GOOGLE SHEETS
@@ -862,6 +942,7 @@
         let classDataDict = {};
         let currentClassName = "Lớp Mặc Định";
         let isRigActive = false;
+        let isRigMasterEnabled = true; // Quyền cơ cấu tổng do Admin cấp
         let toggleOffOnce = false;
 
         let rigRulesList = []; 
@@ -1027,15 +1108,30 @@
             activePresetIndex = data.activeRigPresetIndex || 0;
             if (activePresetIndex >= data.rigPresets.length) activePresetIndex = 0;
 
+            // Nạp quyền cơ cấu tổng (mặc định bật nếu chưa thiết lập)
+            if (data.rigMasterEnabled !== undefined) {
+                isRigMasterEnabled = !!data.rigMasterEnabled;
+            } else {
+                const storedMaster = localStorage.getItem('classroom_rig_master');
+                isRigMasterEnabled = storedMaster !== null ? storedMaster === 'true' : true;
+            }
+
             // Nạp luật từ mẫu đang kích hoạt vào bộ nhớ tạm để chỉnh sửa
             rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
             riggedArrangement = null;
             
-            // Reset secret toggle state logically
-            isRigActive = false; 
+            // Xử lý nạp chế độ Gửi Admin nếu đang được Bật (Khởi tạo lại trạng thái cơ cấu cho chuẩn)
+            if (sessionMode === 'submit' && isRigMasterEnabled) {
+                isRigActive = true;
+                calculateRiggingSilently();
+            } else {
+                isRigActive = false; 
+            }
+
             toggleOffOnce = false;
-            document.getElementById('instantFillToggle').checked = true;
+            document.getElementById('instantFillToggle').checked = !isRigActive;
             updateSecretDotIndicator();
+            updateSubmissionBadge(); // Cập nhật số lượng thư chờ trong hộp
 
             currentTargetSeatId = findNextEmptySeatId();
             lastAssignedSeatId = null;
@@ -1053,9 +1149,11 @@
 
             classDataDict[currentClassName].students = students.map(s => s.name);
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
+            classDataDict[currentClassName].rigMasterEnabled = isRigMasterEnabled;
             
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
+            localStorage.setItem('classroom_rig_master', isRigMasterEnabled ? 'true' : 'false');
 
             // Tự động đẩy lên Google Sheet (chỉ khi đã đồng bộ ban đầu xong và không phải đang nạp từ mây)
             if (!window.isSyncingFromCloud && hasInitialCloudSyncDone) {
@@ -1089,7 +1187,8 @@
                 classDataDict[currentClassName] = {
                     students: sampleNames,
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
-                    activeRigPresetIndex: 0
+                    activeRigPresetIndex: 0,
+                    rigMasterEnabled: true
                 };
             }
 
@@ -1104,7 +1203,8 @@
                 classDataDict[currentClassName] = {
                     students: students.map(s => s.name),
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
-                    activeRigPresetIndex: 0
+                    activeRigPresetIndex: 0,
+                    rigMasterEnabled: isRigMasterEnabled
                 };
             }
         }
@@ -2898,7 +2998,7 @@
         function updateSecretDotIndicator() {
             const indicator = document.getElementById('secretRigIndicator') || document.getElementById('secretDotIndicator');
             if (indicator) {
-                if (isRigActive) {
+                if (isRigActive && isRigMasterEnabled) {
                     // Khi BẬT cơ cấu: Thêm dấu chấm v2.1. và đổi nhẹ màu viền, không co giãn kích thước
                     indicator.innerText = "v2.1.";
                     indicator.className = "w-12 text-center text-[11px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
@@ -2910,7 +3010,45 @@
             }
         }
 
+        function updateMasterRigUI() {
+            const toggle = document.getElementById('masterRigToggle');
+            const badge = document.getElementById('masterRigStatusBadge');
+            if (toggle) toggle.checked = isRigMasterEnabled;
+            if (badge) {
+                if (isRigMasterEnabled) {
+                    badge.innerText = "ĐANG BẬT";
+                    badge.className = "text-xs font-black min-w-[70px] text-center px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200";
+                } else {
+                    badge.innerText = "ĐÃ KHÓA";
+                    badge.className = "text-xs font-black min-w-[70px] text-center px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200";
+                }
+            }
+        }
+
+        function toggleMasterRigSwitch(checked) {
+            isRigMasterEnabled = checked;
+            ensureCurrentClassExists();
+            classDataDict[currentClassName].rigMasterEnabled = isRigMasterEnabled;
+            saveClassData();
+            updateMasterRigUI();
+
+            if (!isRigMasterEnabled) {
+                // Tắt ngay cơ cấu đang chạy ngoài web nếu Admin vừa khóa
+                isRigActive = false;
+                riggedArrangement = null;
+                updateSecretDotIndicator();
+                showToast("🔒 Đã KHÓA quyền cơ cấu! Bên ngoài hoàn toàn không thể kích hoạt.");
+            } else {
+                showToast("🔓 Đã MỞ quyền cơ cấu! Bạn có thể kích hoạt ngầm từ bên ngoài.");
+            }
+        }
+
         function toggleRigFromBadge() {
+            // Kiểm tra: Nếu Admin đã tắt quyền cơ cấu trong bảng thì bên ngoài hoàn toàn vô tác dụng!
+            if (!isRigMasterEnabled) {
+                return;
+            }
+
             // Cho phép bấm trực tiếp vào nhãn v2.1 để bật/tắt nhanh cơ cấu
             isRigActive = !isRigActive;
             if (isRigActive) {
@@ -2933,6 +3071,12 @@
                 // Khi bật lại công tắc sau khi đã tắt
                 if (toggleOffOnce) {
                     toggleOffOnce = false;
+
+                    // Kiểm tra: Nếu Admin đã khóa quyền cơ cấu thì bỏ qua, không kích hoạt
+                    if (!isRigMasterEnabled) {
+                        return;
+                    }
+
                     // Đảo trạng thái cơ cấu (Bật -> Tắt, hoặc Tắt -> Bật)
                     isRigActive = !isRigActive;
                     
@@ -2957,6 +3101,7 @@
             const rigBtn = document.getElementById('secretRigBtn');
             const authIcon = document.getElementById('adminAuthIcon');
             const authBtn = document.getElementById('adminAuthBtn');
+            const viewSubBtn = document.getElementById('viewSubmissionsBtn');
 
             if (isAdmin) {
                 rigBtn.classList.remove('hidden');
@@ -2965,6 +3110,11 @@
                 authIcon.className = "fa-solid fa-unlock-keyhole text-emerald-600";
                 authBtn.classList.add('bg-emerald-50', 'border-emerald-200');
                 authBtn.classList.remove('bg-slate-100', 'border-slate-200');
+
+                if(viewSubBtn) {
+                    viewSubBtn.classList.remove('hidden');
+                    viewSubBtn.classList.add('flex');
+                }
             } else {
                 rigBtn.classList.add('hidden');
                 rigBtn.classList.remove('flex');
@@ -2972,6 +3122,11 @@
                 authIcon.className = "fa-solid fa-user-shield text-slate-500";
                 authBtn.classList.remove('bg-emerald-50', 'border-emerald-200');
                 authBtn.classList.add('bg-slate-100', 'border-slate-200');
+
+                if(viewSubBtn) {
+                    viewSubBtn.classList.add('hidden');
+                    viewSubBtn.classList.remove('flex');
+                }
             }
         }
 
@@ -3002,6 +3157,7 @@
             if (sessionStorage.getItem('isAdmin') === 'true') {
                 populateRigStudentSelects();
                 updateRigPresetUI();
+                updateMasterRigUI();
                 onRigRuleTypeChange();
                 renderRigRuleList();
                 renderMiniClassroom();
@@ -3091,6 +3247,180 @@
             if(confirmCallback) confirmCallback();
             closeConfirm();
         };
+
+        // ====== HỆ THỐNG GỬI & NHẬN CẤU HÌNH (GMAIL CHO ADMIN) ======
+        let sessionMode = 'none'; // 'test' hoặc 'submit'
+
+        function selectWelcomeMode(mode) {
+            sessionMode = mode;
+            document.getElementById('welcomeModeModal').classList.add('hidden');
+            document.getElementById('welcomeModeModal').classList.remove('flex');
+            
+            const submitBtn = document.getElementById('submitToAdminBtn');
+            
+            if (mode === 'submit') {
+                if (isRigMasterEnabled) {
+                    isRigActive = true;
+                    const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
+                    if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
+                        rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
+                    }
+                    calculateRiggingSilently();
+                    document.getElementById('instantFillToggle').checked = false; // Nhả công tắc điền
+                }
+                // Dù có cơ cấu hay Admin đã khóa, vẫn hiện nút Gửi về Admin để nộp bài
+                if (submitBtn) {
+                    submitBtn.classList.remove('hidden');
+                    submitBtn.classList.add('flex');
+                }
+                showToast("Đã vào chế độ Sắp Xếp Chính Thức!");
+            } else {
+                isRigActive = false;
+                riggedArrangement = null;
+                document.getElementById('instantFillToggle').checked = true; // Bật công tắc điền tự động
+                if (submitBtn) {
+                    submitBtn.classList.add('hidden');
+                    submitBtn.classList.remove('flex');
+                }
+                showToast("Đã vào chế độ Chơi Thử Nghiệm!");
+            }
+            updateSecretDotIndicator();
+        }
+
+        function submitLayoutToAdmin() {
+            let layout = {};
+            let count = 0;
+            students.forEach(s => {
+                if (s.seatId) {
+                    layout[s.id] = s.seatId;
+                    count++;
+                }
+            });
+            if (count === 0) return showToast("⚠️ Sơ đồ trống! Hãy xếp chỗ cho học sinh trước khi gửi.");
+
+            openPrompt("Gửi sơ đồ cho Admin", "Nhập tên/lớp của bạn...", (senderName) => {
+                if (!senderName || senderName.trim() === "") senderName = "Người dùng ẩn danh";
+                
+                ensureCurrentClassExists();
+                if (!classDataDict[currentClassName].submissions) {
+                    classDataDict[currentClassName].submissions = [];
+                }
+                
+                classDataDict[currentClassName].submissions.push({
+                    id: 'sub_' + Date.now(),
+                    sender: senderName.trim(),
+                    time: new Date().toLocaleString('vi-VN'),
+                    layout: layout,
+                    count: count
+                });
+                
+                saveClassData(); // Lưu lên Cloud ngay lập tức
+                showToast("🚀 Đã gửi cấu hình thành công cho Admin!");
+                updateSubmissionBadge();
+            });
+        }
+
+        function updateSubmissionBadge() {
+            const badge = document.getElementById('submissionCountBadge');
+            if (badge && classDataDict[currentClassName]) {
+                const subs = classDataDict[currentClassName].submissions || [];
+                badge.innerText = subs.length;
+                if (subs.length > 0) {
+                    badge.classList.add('animate-pulse');
+                } else {
+                    badge.classList.remove('animate-pulse');
+                }
+            }
+        }
+
+        function openSubmissionsModal() {
+            const modal = document.getElementById('submissionsModal');
+            document.getElementById('subModalClassName').innerText = currentClassName;
+            renderSubmissionsList();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSubmissionsModal() {
+            document.getElementById('submissionsModal').classList.add('hidden');
+            document.getElementById('submissionsModal').classList.remove('flex');
+        }
+
+        function renderSubmissionsList() {
+            const list = document.getElementById('submissionsList');
+            ensureCurrentClassExists();
+            const subs = classDataDict[currentClassName].submissions || [];
+            
+            if (subs.length === 0) {
+                list.innerHTML = `<div class="text-center text-slate-400 py-8 italic font-medium">Chưa có sơ đồ nào được gửi về hộp thư lớp này.</div>`;
+                return;
+            }
+
+            list.innerHTML = subs.slice().reverse().map(sub => `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <div class="font-extrabold text-slate-800 text-sm mb-1">
+                            <i class="fa-solid fa-user-pen text-slate-400 mr-1.5"></i> Người gửi: <span class="text-indigo-700">${sub.sender}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 font-semibold flex items-center gap-4">
+                            <span><i class="fa-regular fa-clock mr-1"></i> ${sub.time}</span>
+                            <span><i class="fa-solid fa-chair mr-1"></i> Đã xếp: <b class="text-emerald-600">${sub.count}</b>/${students.length} chỗ</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="applySubmission('${sub.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-xs transition shadow-md flex items-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Áp dụng ngay
+                        </button>
+                        <button onclick="deleteSubmission('${sub.id}')" class="bg-rose-100 hover:bg-rose-200 text-rose-600 w-8 h-8 rounded-lg flex items-center justify-center transition shadow-sm">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function applySubmission(subId) {
+            const subs = classDataDict[currentClassName].submissions || [];
+            const sub = subs.find(s => s.id === subId);
+            if (!sub) return;
+
+            openConfirm("Xác nhận Áp dụng", `Bạn có chắc muốn đổ sơ đồ của "${sub.sender}" ra bản đồ? Dữ liệu ghế ngồi hiện tại sẽ bị xóa bỏ.`, () => {
+                // Xóa ghế cũ
+                students.forEach(s => s.seatId = null);
+                // Lắp ghế mới từ file gửi về
+                for (let studentId in sub.layout) {
+                    const st = students.find(s => s.id === studentId);
+                    if (st) st.seatId = sub.layout[studentId];
+                }
+                
+                currentTargetSeatId = findNextEmptySeatId();
+                lastAssignedSeatId = null;
+                renderGrid();
+                saveClassData();
+                closeSubmissionsModal();
+                showToast(`✨ Đã áp dụng hoàn tất cấu hình của "${sub.sender}"!`);
+            });
+        }
+
+        function deleteSubmission(subId) {
+            let subs = classDataDict[currentClassName].submissions || [];
+            classDataDict[currentClassName].submissions = subs.filter(s => s.id !== subId);
+            saveClassData();
+            renderSubmissionsList();
+            updateSubmissionBadge();
+        }
+
+        function clearAllSubmissions() {
+            let subs = classDataDict[currentClassName].submissions || [];
+            if(subs.length === 0) return;
+            openConfirm("Xóa toàn bộ hộp thư", "Bạn có chắc chắn muốn dọn sạch tất cả cấu hình gửi về của lớp này?", () => {
+                classDataDict[currentClassName].submissions = [];
+                saveClassData();
+                renderSubmissionsList();
+                updateSubmissionBadge();
+                showToast("Đã dọn sạch hộp thư thành công!");
+            });
+        }
 
         // ====== QUẢN LÝ MẪU CƠ CẤU (PRESETS) ======
         function updateRigPresetUI() {
@@ -3815,6 +4145,10 @@
                 hasInitialCloudSyncDone = true;
                 saveClassData();
             }
+
+            // Gọi Modal lựa chọn mục đích sử dụng (Chỉ tắt bằng cách bấm vào 1 trong 2 nút)
+            document.getElementById('welcomeModeModal').classList.remove('hidden');
+            document.getElementById('welcomeModeModal').classList.add('flex');
         });
     </script>
 </body>
