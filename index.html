@@ -145,6 +145,14 @@
                 -webkit-print-color-adjust: exact; 
                 print-color-adjust: exact;
             }
+
+            /* Ẩn dấu + và chữ Mục tiêu ở các ghế trống khi in */
+            .seat-empty * { display: none !important; }
+            .seat-empty, .seat-target {
+                border: 1.5px dashed #cbd5e1 !important;
+                background-color: #ffffff !important;
+                box-shadow: none !important;
+            }
             
             @page { size: landscape; margin: 5mm; }
         }
