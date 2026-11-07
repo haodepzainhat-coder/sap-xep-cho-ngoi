@@ -281,6 +281,9 @@
                 <select id="headerClassSelect" onchange="switchClassFromHeader(this.value)" class="bg-white text-slate-800 font-bold text-xs rounded-md px-2 py-1 border border-slate-300 outline-none cursor-pointer w-24 text-ellipsis">
                     <option value="">-- Chọn --</option>
                 </select>
+                <button onclick="manualSyncCloud()" class="ml-1 text-slate-500 hover:text-indigo-600 px-1.5 py-1 rounded transition" title="Tải lại dữ liệu từ Google Sheet">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                </button>
             </div>
 
             <!-- Nút Đăng nhập Admin -->
@@ -747,35 +750,79 @@
         // ==========================================
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDG-43DOhNXGRrQlRRCXczqDF2vzS205KQwr5RpaUeCeE2CeqrTB89dUoIrWEJ-td3/exec";
         
-        async function loadDataFromSheet() {
-            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "DÁN_LINK_GOOGLE_APPS_SCRIPT_VÀO_ĐÂY") return;
+        let hasInitialCloudSyncDone = false;
+        let isCloudLoading = false;
+
+        async function loadDataFromSheet(showNotification = false) {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("DÁN_LINK")) {
+                hasInitialCloudSyncDone = true;
+                return false;
+            }
+            isCloudLoading = true;
             try {
                 const res = await fetch(APPS_SCRIPT_URL);
                 const result = await res.json();
-                if (result && result.status === 'success' && result.data && Object.keys(result.data).length > 0) {
-                    window.isSyncingFromCloud = true;
+                
+                let fetchedData = result && result.data ? result.data : result;
+                if (typeof fetchedData === 'string') {
+                    try { fetchedData = JSON.parse(fetchedData); } catch (e) {}
+                }
+                
+                if (fetchedData && typeof fetchedData === 'object') {
+                    let classes = fetchedData.classes || fetchedData;
+                    let classKeys = Object.keys(classes).filter(k => k !== 'activeClass');
                     
-                    // Xử lý dữ liệu tương thích
-                    let fetchedData = result.data;
-                    classDataDict = fetchedData.classes || fetchedData;
-                    currentClassName = fetchedData.activeClass || Object.keys(classDataDict)[0];
-                    
-                    localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
-                    localStorage.setItem('classroom_current', currentClassName);
-                    
-                    loadClassData(currentClassName);
-                    updateClassDropdown();
-                    showToast("☁️ Đã đồng bộ dữ liệu từ Google Sheet!");
-                    
-                    setTimeout(() => { window.isSyncingFromCloud = false; }, 500);
+                    if (classKeys.length > 0) {
+                        window.isSyncingFromCloud = true;
+                        classDataDict = {};
+                        classKeys.forEach(k => {
+                            if (classes[k] && (classes[k].students || Array.isArray(classes[k]))) {
+                                classDataDict[k] = classes[k];
+                            }
+                        });
+
+                        if (Object.keys(classDataDict).length === 0) {
+                            classDataDict = classes;
+                        }
+
+                        let targetClass = fetchedData.activeClass || classKeys[0];
+                        if (!classDataDict[targetClass]) {
+                            targetClass = Object.keys(classDataDict)[0];
+                        }
+                        currentClassName = targetClass;
+                        
+                        localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
+                        localStorage.setItem('classroom_current', currentClassName);
+                        
+                        loadClassData(currentClassName);
+                        updateClassDropdown();
+                        hasInitialCloudSyncDone = true;
+                        window.isSyncingFromCloud = false;
+                        
+                        if (showNotification) {
+                            showToast(`☁️ Đã tải lớp "${currentClassName}" từ Google Sheet!`);
+                        }
+                        return true;
+                    }
                 }
             } catch (err) {
                 console.error("Lỗi đồng bộ Sheet:", err);
+            } finally {
+                isCloudLoading = false;
+                hasInitialCloudSyncDone = true;
             }
+            return false;
         }
 
-        async function saveDataToSheet() {
-            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "DÁN_LINK_GOOGLE_APPS_SCRIPT_VÀO_ĐÂY") return;
+        async function saveDataToSheet(manual = false) {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("DÁN_LINK")) {
+                if (manual) showToast("Chưa cấu hình URL Google Apps Script!");
+                return;
+            }
+            if (!hasInitialCloudSyncDone) {
+                console.warn("Chưa đồng bộ xong từ đám mây, tạm dừng lưu đè để bảo vệ dữ liệu!");
+                return;
+            }
             try {
                 const payload = { classes: classDataDict, activeClass: currentClassName };
                 await fetch(APPS_SCRIPT_URL, {
@@ -784,8 +831,23 @@
                     headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify(payload)
                 });
+                console.log("Đã gửi dữ liệu lưu lên Google Sheet:", payload);
+                if (manual) {
+                    showToast("☁️ Đã lưu toàn bộ dữ liệu lớp lên Google Sheet!");
+                }
             } catch (err) {
                 console.error("Lỗi lưu Sheet:", err);
+                if (manual) {
+                    showToast("❌ Lỗi khi lưu lên Google Sheet!");
+                }
+            }
+        }
+
+        async function manualSyncCloud() {
+            showToast("☁️ Đang kết nối tải từ Google Sheet...");
+            const ok = await loadDataFromSheet(true);
+            if (!ok) {
+                showToast("⚠️ Không tìm thấy dữ liệu mới trên Google Sheet!");
             }
         }
 
@@ -1003,13 +1065,13 @@
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
 
-            // Tự động đẩy lên Google Sheet (nếu không phải do tải từ mây về)
-            if (!window.isSyncingFromCloud) {
+            // Tự động đẩy lên Google Sheet (chỉ khi đã đồng bộ ban đầu xong và không phải đang nạp từ mây)
+            if (!window.isSyncingFromCloud && hasInitialCloudSyncDone) {
                 saveDataToSheet();
             }
         }
 
-        function initDefaultStudents() {
+        function initDefaultStudents(shouldSave = false) {
             const sampleNames = [
                 "Nguyễn Minh An", "Trần Bảo Anh", "Lê Đức Anh", "Phạm Phương Anh",
                 "Hoàng Tuấn Bình", "Vũ Ngọc Bích", "Đặng Quốc Bảo", "Bùi Thanh Châu",
@@ -1029,7 +1091,9 @@
                 shortName: formatNameDisplay(name),
                 seatId: null
             }));
-            saveClassData();
+            if (shouldSave) {
+                saveClassData();
+            }
         }
 
         function formatNameDisplay(fullName) {
@@ -2714,9 +2778,9 @@
         function updateClassDropdown() {
             const selectModal = document.getElementById('classSelectDropdown');
             const selectHeader = document.getElementById('headerClassSelect');
-            let html = '<option value="">-- Chọn lớp lưu sẵn --</option>';
+            let html = '<option value="">-- Chọn lớp --</option>';
             for (let cName in classDataDict) {
-                html += `<option value="${cName}">${cName}</option>`;
+                html += `<option value="${cName}" ${cName === currentClassName ? 'selected' : ''}>${cName}</option>`;
             }
             if (selectModal) selectModal.innerHTML = html;
             if (selectHeader) {
@@ -2732,6 +2796,7 @@
                 return showToast("Đang chạy trò chơi, không thể đổi lớp!");
             }
             loadClassData(cName);
+            saveClassData(); // Lưu lại lớp đang chọn lên Google Sheet để máy khác cũng mở đúng lớp này
             showToast(`Đã chuyển sang lớp: ${cName}`);
         }
 
@@ -2773,7 +2838,7 @@
             updateClassDropdown(); // Sync newly added class
             closeStudentModal();
             renderGrid();
-            showToast(`Đã lưu danh sách & áp dụng cho ${currentClassName}!`);
+            saveDataToSheet(true); // Gửi trực tiếp lên Sheet và hiện thông báo xác nhận
         }
 
         function showToast(msg) {
@@ -3601,26 +3666,32 @@
 
 
         // Khởi chạy ứng dụng khi tải trang
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             // Xóa phiên đăng nhập cũ để buộc người dùng nhập mật khẩu mới 884043
             sessionStorage.removeItem('isAdmin');
 
+            // 1. Tải trước từ LocalStorage nếu có để hiển thị ngay tức thì
             let storedData = localStorage.getItem('classroom_data');
             if (storedData) {
-                classDataDict = JSON.parse(storedData);
-                currentClassName = localStorage.getItem('classroom_current') || Object.keys(classDataDict)[0];
-                loadClassData(currentClassName);
+                try {
+                    classDataDict = JSON.parse(storedData);
+                    currentClassName = localStorage.getItem('classroom_current') || Object.keys(classDataDict)[0];
+                    loadClassData(currentClassName);
+                } catch (e) {
+                    initDefaultStudents(false);
+                }
             } else {
-                initDefaultStudents();
+                // Máy mới hoàn toàn: chỉ tạo tạm trong RAM, KHÔNG ghi đè lên Google Sheet
+                initDefaultStudents(false);
             }
 
-            updateClassDropdown(); // Tải danh sách lớp vào thanh chọn Header
+            updateClassDropdown();
             currentTargetSeatId = findNextEmptySeatId();
             renderGrid();
             initDuckCanvas();
             initPlinkoCanvas();
             initWheelCanvas();
-            updateAdminUI(); // Khởi tạo giao diện Admin đồng bộ
+            updateAdminUI();
             updateSecretDotIndicator();
 
             // IntersectionObserver: Ngăn chặn Canvas render ngầm gây lag khi lướt xem sơ đồ
@@ -3637,8 +3708,14 @@
                 if (activeGame === 'plinko' && !plinkoGame.isPlaying) initPlinkoCanvas();
             });
 
-            // Tải dữ liệu từ Google Sheets khi mở web
-            loadDataFromSheet();
+            // 2. Ưu tiên tải ngay dữ liệu từ Google Sheets
+            showToast("☁️ Đang kiểm tra dữ liệu từ Google Sheet...");
+            const cloudSuccess = await loadDataFromSheet(true);
+            if (!cloudSuccess && !storedData) {
+                // Nếu cả Cloud và Local đều chưa từng có dữ liệu, lúc này mới tạo bản mẫu đầu tiên
+                hasInitialCloudSyncDone = true;
+                saveClassData();
+            }
         });
     </script>
 </body>
