@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Classroom Manager - Sắp Chỗ & Mini-Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -211,7 +214,11 @@
                 <i class="fa-solid fa-school text-lg"></i>
             </div>
             <div>
-                <h1 class="text-lg font-extrabold text-slate-900 leading-tight">Classroom Manager<span id="secretDotIndicator" class="hidden text-slate-900 select-none">.</span></h1>
+                <h1 class="text-lg font-extrabold text-slate-900 leading-tight flex items-center gap-2">
+                    Classroom Manager 
+                    <span class="text-[10px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-md tracking-normal">v2.1</span>
+                    <span id="secretDotIndicator" class="hidden text-slate-900 select-none">.</span>
+                </h1>
                 <p id="headerClassName" class="text-xs text-slate-500 font-medium">Sơ đồ 4 dãy x 6 bàn x 2 ghế</p>
             </div>
         </div>
@@ -2873,7 +2880,11 @@
                 }
                 showToast("Đăng nhập Admin thành công!");
             } else {
-                showToast("Mật khẩu không đúng! Hãy nhập mật khẩu 884043");
+                if (pwd === "admin" || pwd === "123456") {
+                    showToast("Mật khẩu cũ đã bị hủy! Hãy nhập mật khẩu mới: 884043");
+                } else {
+                    showToast("Mật khẩu không đúng! Hãy nhập mật khẩu 884043");
+                }
                 if (input) {
                     input.value = '';
                     input.focus();
