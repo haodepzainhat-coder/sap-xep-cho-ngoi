@@ -64,23 +64,60 @@
 
         /* Chế độ In Ấn / Xuất PDF */
         @media print {
-            body { background: white !important; height: auto !important; overflow: visible !important; }
+            body, html { 
+                background: white !important; 
+                height: 100vh !important; 
+                overflow: hidden !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+            }
             .no-print { display: none !important; }
-            .print-area { width: 100% !important; max-width: 100% !important; overflow: visible !important; padding: 0 !important; border: none !important; }
-            .classroom-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; width: 100% !important; max-width: 100% !important; }
-            .seat-occupied { background: #f1f5f9 !important; color: #0f172a !important; border: 1.5px solid #334155 !important; box-shadow: none !important; -webkit-print-color-adjust: exact; }
-            @page { size: landscape; margin: 0.8cm; }
-
-            /* Định hướng thuận góc nhìn Giáo Viên khi in ấn */
-            .teacher-view-print .classroom-top-board {
-                order: 1; /* Đưa bục giảng/bàn giáo viên lên trên đỉnh của tờ giấy */
+            
+            /* Xoay 180 độ và ép vừa 1 trang */
+            .print-area { 
+                width: 100% !important; 
+                height: 100% !important; 
+                max-width: none !important;
+                padding: 0 !important; 
+                margin: 0 !important;
+                border: none !important; 
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                transform: rotate(180deg);
+                box-sizing: border-box;
             }
-            .teacher-view-print #classroomGrid {
-                order: 2;
+            
+            .classroom-card { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 100% !important; 
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                page-break-inside: avoid !important;
+                transform: scale(0.92); /* Thu nhỏ để chắc chắn vừa 1 trang */
+                transform-origin: center;
             }
-            .teacher-view-print .classroom-bottom-bar {
-                order: 3;
+            
+            /* Tinh chỉnh khoảng cách để nhét vừa trang giấy ngang */
+            #classroomTopBoard { margin-bottom: 1rem !important; }
+            .classroom-bottom-bar { margin-top: 1rem !important; padding-top: 0.5rem !important; }
+            #classroomGrid { gap: 0.5rem !important; }
+            .desk-box { padding: 4px !important; border-width: 1.5px !important; }
+            .seat-box { height: 42px !important; }
+            
+            .seat-occupied { 
+                background: #f1f5f9 !important; 
+                color: #0f172a !important; 
+                border: 1.5px solid #334155 !important; 
+                box-shadow: none !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
             }
+            
+            @page { size: landscape; margin: 5mm; }
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
