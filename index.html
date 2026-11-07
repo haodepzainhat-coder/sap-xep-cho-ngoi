@@ -1,0 +1,3060 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Manager - Sắp Chỗ & Mini-Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; user-select: none; }
+        .game-font { font-family: 'Nunito', sans-serif; }
+        
+        /* Hiệu ứng ghế ngồi chuẩn theo hình mẫu */
+        .desk-box {
+            background-color: #fffbeb;
+            border: 2px solid #fde68a;
+            border-radius: 12px;
+            padding: 8px;
+            transition: all 0.2s ease;
+        }
+        .seat-box {
+            height: 54px;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .seat-empty {
+            background-color: #ffffff;
+            border: 1.5px dashed #cbd5e1;
+            color: #94a3b8;
+        }
+        .seat-empty:hover {
+            border-color: #6366f1;
+            background-color: #eef2ff;
+            color: #4f46e5;
+            transform: translateY(-1px);
+        }
+        /* Ghế đang được nhắm mục tiêu để chuẩn bị đón người thắng */
+        .seat-target {
+            background-color: #eef2ff !important;
+            border: 2px solid #4f46e5 !important;
+            color: #4f46e5 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+            animation: pulse-target 1.8s infinite;
+        }
+        @keyframes pulse-target {
+            0%, 100% { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25); }
+            50% { box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.45); }
+        }
+        .seat-occupied {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            border: none;
+            color: white;
+            box-shadow: 0 3px 8px -2px rgba(79, 70, 229, 0.4);
+        }
+        .seat-just-landed {
+            animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.4); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Chế độ In Ấn / Xuất PDF */
+        @media print {
+            body { background: white !important; height: auto !important; overflow: visible !important; }
+            .no-print { display: none !important; }
+            .print-area { width: 100% !important; max-width: 100% !important; overflow: visible !important; padding: 0 !important; border: none !important; }
+            .classroom-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; width: 100% !important; max-width: 100% !important; }
+            .seat-occupied { background: #f1f5f9 !important; color: #0f172a !important; border: 1.5px solid #334155 !important; box-shadow: none !important; -webkit-print-color-adjust: exact; }
+            @page { size: landscape; margin: 0.8cm; }
+
+            /* Định hướng thuận góc nhìn Giáo Viên khi in ấn */
+            .teacher-view-print .classroom-top-board {
+                order: 1; /* Đưa bục giảng/bàn giáo viên lên trên đỉnh của tờ giấy */
+            }
+            .teacher-view-print #classroomGrid {
+                order: 2;
+            }
+            .teacher-view-print .classroom-bottom-bar {
+                order: 3;
+            }
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER THANH CÔNG CỤ -->
+    <header class="bg-white shadow-sm border-b border-slate-200 px-6 py-2.5 flex justify-between items-center no-print z-20 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shadow-indigo-200">
+                <i class="fa-solid fa-school text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-extrabold text-slate-900 leading-tight">Classroom Manager<span id="secretDotIndicator" class="hidden text-slate-900 select-none">.</span></h1>
+                <p id="headerClassName" class="text-xs text-slate-500 font-medium">Sơ đồ 4 dãy x 6 bàn x 2 ghế</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Bật / Tắt điền thẳng không hiện bảng cản trở -->
+            <label class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-200/70 transition" title="Tự động điền thẳng vào chỗ ngồi ngay khi thắng mà không cần bấm đóng thông báo">
+                <input type="checkbox" id="instantFillToggle" checked onchange="handleSecretToggle(this)" class="accent-indigo-600 w-4 h-4 rounded cursor-pointer">
+                <span class="text-xs font-bold text-slate-700">Điền thẳng tự động</span>
+            </label>
+
+            <!-- Tùy chọn Hướng / Quy luật xếp ghế -->
+            <div class="bg-slate-100 p-1 rounded-lg flex items-center border border-slate-200" title="Chọn quy luật tự động nhảy sang ghế kế tiếp">
+                <span class="text-[11px] font-bold text-slate-500 px-2 flex items-center gap-1">
+                    <i class="fa-solid fa-arrows-split-up-and-left text-indigo-500"></i> HƯỚNG XẾP:
+                </span>
+                <select id="seatFillOrderSelect" onchange="changeFillOrder(this.value)" class="bg-white text-slate-800 font-bold text-xs rounded-md px-2 py-1 border border-slate-300 outline-none cursor-pointer">
+                    <optgroup label="Theo Hàng Ngang (Từng Bàn)">
+                        <option value="row_top_down_ltr" selected>Trên xuống ➔ Trái sang Phải (Bàn 1➔6, Dãy 1➔4)</option>
+                        <option value="row_top_down_rtl">Trên xuống ➔ Phải sang Trái (Bàn 1➔6, Dãy 4➔1)</option>
+                        <option value="row_bottom_up_ltr">Dưới lên ➔ Trái sang Phải (Bàn 6➔1, Dãy 1➔4)</option>
+                        <option value="row_bottom_up_rtl">Dưới lên ➔ Phải sang Trái (Bàn 6➔1, Dãy 4➔1)</option>
+                        <option value="row_snake_top">Zíc-zắc Ngang từ Trên xuống</option>
+                        <option value="row_snake_bottom">Zíc-zắc Ngang từ Dưới lên</option>
+                    </optgroup>
+                    <optgroup label="Theo Cột Dọc (Từng Dãy)">
+                        <option value="col_ltr_top_down">Hết từng Dãy: Trái ➔ Phải (Trên xuống)</option>
+                        <option value="col_ltr_bottom_up">Hết từng Dãy: Trái ➔ Phải (Dưới lên)</option>
+                        <option value="col_rtl_top_down">Hết từng Dãy: Phải ➔ Trái (Trên xuống)</option>
+                        <option value="col_rtl_bottom_up">Hết từng Dãy: Phải ➔ Trái (Dưới lên)</option>
+                        <option value="col_snake_ltr">Zíc-zắc Dọc (Dãy 1 xuống ➔ Dãy 2 lên...)</option>
+                        <option value="col_snake_rtl">Zíc-zắc Dọc (Dãy 4 xuống ➔ Dãy 3 lên...)</option>
+                    </optgroup>
+                    <optgroup label="Ngẫu Nhiên">
+                        <option value="random_any">Ngẫu nhiên bất kỳ ghế trống</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Chọn thời gian chạy Game linh hoạt 5s đến 15s -->
+            <div class="bg-slate-100 p-1 rounded-lg flex items-center border border-slate-200">
+                <span class="text-[11px] font-bold text-slate-500 px-2">THỜI GIAN:</span>
+                <input type="number" id="gameDurationInput" value="5" min="5" max="15" onchange="setTimeMode(this.value)" class="w-12 bg-white text-slate-800 font-bold text-xs rounded-md px-1 py-1 border border-slate-300 outline-none text-center shadow-sm">
+                <span class="text-[11px] font-bold text-slate-500 px-1.5">giây</span>
+            </div>
+
+            <!-- Chọn Lớp Học (Người dùng thường cũng dùng được) -->
+            <div class="bg-slate-100 p-1 rounded-lg flex items-center border border-slate-200">
+                <span class="text-[11px] font-bold text-slate-500 px-2">LỚP:</span>
+                <select id="headerClassSelect" onchange="switchClassFromHeader(this.value)" class="bg-white text-slate-800 font-bold text-xs rounded-md px-2 py-1 border border-slate-300 outline-none cursor-pointer w-24 text-ellipsis">
+                    <option value="">-- Chọn --</option>
+                </select>
+            </div>
+
+            <!-- Nút Đăng nhập Admin -->
+            <button id="adminAuthBtn" onclick="toggleAdminAuth()" class="bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-2 rounded-lg font-bold text-xs transition border border-slate-200 flex items-center gap-1.5" title="Quyền Quản Trị">
+                <i class="fa-solid fa-user-shield" id="adminAuthIcon"></i>
+            </button>
+
+            <!-- Nút Quản lý Danh sách Lớp -->
+            <button onclick="requireAdmin(openStudentModal)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition border border-slate-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-users-gear text-indigo-600"></i> Danh Sách Lớp (<span id="totalStudentBadge">48</span>)
+            </button>
+
+            <button onclick="autoAssignAll()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-lg font-bold text-xs transition border border-indigo-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Xếp Nhanh Cả Lớp
+            </button>
+
+            <button onclick="resetAllSeats()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-lg font-bold text-xs transition border border-rose-200" title="Làm trống lại toàn bộ bàn ghế">
+                <i class="fa-solid fa-rotate-left"></i>
+            </button>
+
+            <button onclick="printSeatingChart()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs transition shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-file-pdf"></i> Xuất PDF
+            </button>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH: CHIA LÀM 2 TẦNG (TRÊN: TRÒ CHƠI - DƯỚI: SƠ ĐỒ CHỖ NGỒI) -->
+    <main class="flex-1 flex flex-col overflow-y-auto scroll-smooth">
+        
+        <!-- PHẦN 1: KHU VỰC 3 TRÒ CHƠI XỊN & MƯỢT (CHIẾM TRỌN 100% CHIỀU CAO MÀN HÌNH VIEWPORT) -->
+        <div id="gameContainer" class="w-full h-[calc(100vh-61px)] shrink-0 flex flex-col bg-[#0f172a] text-white no-print relative select-none border-b-4 border-slate-800 shadow-2xl z-10">
+            
+            <!-- Thanh chọn 3 Trò Chơi & Mục Tiêu Ghế -->
+            <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 z-20 shrink-0">
+                <!-- 3 Nút Chuyển Game -->
+                <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/80 gap-1">
+                    <button onclick="switchGame('duck')" id="tab-duck" class=" px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow flex items-center gap-1.5 transition">
+                        <span>🦆</span> Đua Vịt
+                    </button>
+                    <button onclick="switchGame('plinko')" id="tab-plinko" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+                        <span>🔮</span> Thả Bi Plinko
+                    </button>
+                    <button onclick="switchGame('wheel')" id="tab-wheel" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+                        <span>🎡</span> Vòng Quay
+                    </button>
+                </div>
+
+                <!-- Hộp thông tin Ghế Đang Nhắm Tới & Nút Cuộn Nhanh Xuống Sơ Đồ -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
+                        <span class="text-[11px] text-slate-400 font-semibold">Xếp vào:</span>
+                        <select id="targetSeatSelect" onchange="onManualSelectTarget(this.value)" class="bg-indigo-950 text-indigo-300 font-bold text-xs rounded-lg px-2 py-1 border border-indigo-500/40 outline-none cursor-pointer">
+                            <!-- Tự động cập nhật -->
+                        </select>
+                        <span class="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">
+                            Còn <span id="unassignedCount">48</span> bạn
+                        </span>
+                    </div>
+
+                    <button onclick="scrollToClassroom()" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5" title="Cuộn xuống xem sơ đồ bàn ghế">
+                        <i class="fa-solid fa-arrow-down"></i> Sơ đồ bàn ghế
+                    </button>
+                </div>
+            </div>
+
+            <!-- KHUNG CANVAS CHỨA 3 TRÒ CHƠI -->
+            <div class="flex-1 relative overflow-hidden flex flex-col items-center justify-center p-3">
+                
+                <!-- ========================================== -->
+                <!-- TRÒ 1: ĐUA VỊT (DUCK RACE 60FPS CÓ CAMERA) -->
+                <!-- ========================================== -->
+                <div id="game-duck" class="w-full h-full flex flex-col">
+                    <div class="relative flex-1 w-full rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl bg-[#0284c7]">
+                        
+                        <!-- HUD Đồng hồ & Xếp hạng Trực tiếp -->
+                        <div class="absolute top-3 left-3 right-3 flex justify-between items-start z-10 pointer-events-none">
+                            <!-- Bảng Top 3 Dẫn Đầu -->
+                            <div class="bg-slate-900/80 backdrop-blur-md border border-white/15 px-3.5 py-2 rounded-xl shadow-lg min-w-[175px]">
+                                <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-trophy"></i> Dẫn đầu đường đua
+                                </div>
+                                <div id="duckLeaderboard" class="text-xs font-bold space-y-0.5 text-white">
+                                    <div class="text-slate-400 text-[11px]">Sẵn sàng xuất phát...</div>
+                                </div>
+                            </div>
+
+                            <!-- Đồng hồ bấm giờ chuẩn Online-Stopwatch -->
+                            <div class="bg-white/95 text-slate-900 border-4 border-slate-800 px-5 py-1 rounded-2xl shadow-xl">
+                                <span id="duckTimerText" class="font-mono font-black text-3xl tracking-wider">00:05.0</span>
+                            </div>
+                        </div>
+
+                        <canvas id="duckCanvas" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <div class="mt-2.5 flex justify-center items-center gap-3 shrink-0">
+                        <button id="btnStartDuck" onclick="startDuckRace()" class="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black rounded-xl shadow-lg shadow-emerald-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
+                            <i class="fa-solid fa-flag-checkered"></i> BẮT ĐẦU ĐUA VỊT (XẾP CHỖ NGAY)
+                        </button>
+                        <button onclick="shuffleDucks()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Đổi màu mũ & vị trí làn bơi">
+                            <i class="fa-solid fa-shuffle"></i> Đổi Làn
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- TRÒ 2: THẢ BI PLINKO (GALTON BOARD VẬT LÝ) -->
+                <!-- ========================================== -->
+                <div id="game-plinko" class="w-full h-full flex flex-col hidden">
+                    <div class="relative flex-1 w-full rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl bg-[#090d16]">
+                        <!-- HUD Thông tin Bi đang rơi -->
+                        <div class="absolute top-3 left-3 right-3 flex justify-between items-center z-10 pointer-events-none">
+                            <div class="bg-slate-900/85 backdrop-blur border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-300">
+                                <i class="fa-solid fa-circle-nodes mr-1"></i> Tháp Plinko 14 Tầng • Tự động dò camera
+                            </div>
+                            <div id="plinkoStatusBadge" class="bg-amber-500/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-xl text-xs font-extrabold">
+                                Sẵn sàng thả bi
+                            </div>
+                        </div>
+
+                        <canvas id="plinkoCanvas" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <div class="mt-2.5 flex justify-center items-center gap-3 shrink-0">
+                        <button id="btnStartPlinko" onclick="startPlinko()" class="px-8 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black rounded-xl shadow-lg shadow-indigo-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
+                            <i class="fa-solid fa-bowling-ball"></i> THẢ BI MAY MẮN (XẾP CHỖ NGAY)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- TRÒ 3: VÒNG QUAY MAY MẮN (CASINO WHEEL)    -->
+                <!-- ========================================== -->
+                <div id="game-wheel" class="w-full h-full flex flex-col items-center justify-between hidden">
+                    <div class="relative flex-1 w-full flex items-center justify-center overflow-hidden">
+                        <div class="relative flex items-center justify-center">
+                            <canvas id="wheelCanvas" width="720" height="720" class="max-w-full max-h-[640px] drop-shadow-[0_15px_35px_rgba(0,0,0,0.6)]"></canvas>
+                            
+                            <!-- Kim chỉ Vòng Quay ở Góc Phải (0 độ) có hiệu ứng bật nảy -->
+                            <div id="wheelPointer" class="absolute -right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none transition-transform duration-75" style="transform-origin: right center;">
+                                <svg width="60" height="48" viewBox="0 0 46 36" fill="none">
+                                    <path d="M4 18L42 3L36 18L42 33L4 18Z" fill="#F43F5E" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+                                    <circle cx="36" cy="18" r="4" fill="#FFE4E6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 flex flex-col items-center gap-2 shrink-0">
+                        <!-- Ô báo tên học sinh đang lướt qua kim -->
+                        <div class="bg-slate-800/90 border border-slate-700 px-5 py-1 rounded-full text-xs font-bold text-amber-300">
+                            Đang trỏ vào: <span id="wheelCurrentHover" class="text-white font-extrabold">---</span>
+                        </div>
+                        <button id="btnStartWheel" onclick="startWheel()" class="px-8 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-black rounded-xl shadow-lg shadow-rose-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
+                            <i class="fa-solid fa-dharmachakra"></i> QUAY VÒNG QUAY (XẾP CHỖ NGAY)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BANNER THÔNG BÁO NHANH KHI ĐIỀN THẲNG VÀO BÀN -->
+                <div id="quickWinBanner" class="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 z-40 transform -translate-y-10 opacity-0 transition-all duration-300">
+                    <div class="bg-slate-900/95 backdrop-blur-md border-2 border-emerald-400 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-2xl">
+                            🎉
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Đã xếp vào chỗ ngồi!</div>
+                            <div class="text-lg font-black text-white game-font" id="quickWinText">Nguyễn Văn A → Dãy 1 - Bàn 1</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PHẦN 2: SƠ ĐỒ BÀN GHẾ LỚP HỌC (NẰM DƯỚI, CUỘN XUỐNG KHI MUỐN XEM) -->
+        <div id="classroomSection" class="w-full bg-slate-50/70 p-8 flex flex-col items-center print-area pb-24 relative teacher-view-print">
+            
+            <div class="classroom-card bg-white p-6 rounded-2xl shadow-sm border border-slate-200/90 w-full max-w-5xl flex flex-col">
+                <!-- Thanh trạng thái hướng dẫn chọn bàn -->
+                <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100 no-print">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <span class="inline-block w-3 h-3 rounded-full bg-indigo-600 animate-ping"></span>
+                        <span>Ghế đang nhấp nháy là <b>chỗ ngồi mục tiêu</b> cho lượt chơi tiếp theo (Bấm vào ghế trống bất kỳ để đổi)</span>
+                    </div>
+                </div>
+
+                <!-- KHU VỰC PHÍA TRÊN LỚP HỌC: BÀN GIÁO VIÊN (TRÁI) - BẢNG ĐEN / BỤC GIẢNG (GIỮA) - CỬA VÀO (PHẢI) -->
+                <div id="classroomTopBoard" class="classroom-top-board mb-8 p-3 rounded-2xl bg-slate-50/80 border border-slate-200/90 grid grid-cols-12 gap-4 items-center">
+                    <!-- Bên Trái: Bàn Giáo Viên (Phía trước Dãy 1) -->
+                    <div class="col-span-3 flex items-center justify-start">
+                        <div class="w-full max-w-[190px] bg-gradient-to-br from-amber-100 via-amber-50 to-amber-200 border-2 border-amber-300 rounded-xl p-2.5 shadow-sm flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center text-base shadow-sm shrink-0">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[9px] font-black uppercase tracking-wider text-amber-700">Vị trí</div>
+                                <div class="text-xs font-black text-slate-800 leading-tight">Bàn Giáo Viên</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ở Giữa: Bục Giảng & Bảng Lớp (Bảng Đen/Xanh lớn) -->
+                    <div class="col-span-6 flex flex-col items-center">
+                        <div class="w-full bg-[#1e4e38] border-4 border-[#854d0e] rounded-xl py-2.5 px-4 shadow-md flex items-center justify-center relative overflow-hidden">
+                            <!-- Đường viền phấn & vân bảng -->
+                            <div class="absolute inset-0 border border-emerald-400/20 rounded-lg pointer-events-none"></div>
+                            <div class="flex items-center gap-2 text-white font-extrabold text-xs md:text-sm tracking-widest uppercase">
+                                <i class="fa-solid fa-pen-ruler text-emerald-300"></i>
+                                <span>BẢNG LỚP HỌC</span>
+                            </div>
+                        </div>
+                        <div id="perspectiveIndicator" class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">▼ Góc nhìn Giáo Viên từ Bàn & Bục Giảng nhìn xuống lớp ▼</div>
+                    </div>
+
+                    <!-- Bên Phải: Cửa Vào Lớp (Phía trước/cạnh Dãy 4) -->
+                    <div class="col-span-3 flex items-center justify-end">
+                        <div class="w-full max-w-[190px] bg-gradient-to-br from-indigo-50 via-sky-50 to-slate-100 border-2 border-dashed border-indigo-300 rounded-xl p-2.5 shadow-sm flex items-center justify-end gap-3 text-right">
+                            <div class="min-w-0">
+                                <div class="text-[9px] font-black uppercase tracking-wider text-indigo-600">Lối Ra Vào</div>
+                                <div class="text-xs font-black text-slate-800 leading-tight">Cửa Vào Lớp</div>
+                            </div>
+                            <div class="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-base shadow-sm shrink-0">
+                                <i class="fa-solid fa-door-open"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 DÃY x 6 BÀN x 2 GHẾ -->
+                <div class="grid grid-cols-4 gap-6" id="classroomGrid">
+                    <!-- Được vẽ tự động bằng JS -->
+                </div>
+
+                <!-- Chân trang sơ đồ -->
+                <div class="classroom-bottom-bar mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-400 font-semibold relative">
+                    <div id="printFooterClassInfo">Sơ đồ lớp học chuẩn: 4 Dãy × 6 Bàn (48 Chỗ ngồi)</div>
+                    <div class="text-slate-400 text-[11px] font-bold">Cuối Lớp Học ▼</div>
+
+                    <!-- NÚT Ổ KHÓA CƠ CẤU ẨN Ở TẬN CÙNG CHÂN TRANG (Chỉ hiện khi đã đăng nhập Admin) -->
+                    <button id="secretRigBtn" onclick="openRigModal()" class="hidden absolute -bottom-6 -right-2 w-5 h-5 opacity-0 hover:opacity-25 items-center justify-center text-slate-800 transition-opacity cursor-pointer no-print" title="Cài đặt cơ cấu">
+                        <i class="fa-solid fa-lock text-[9px]"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL NHẬP / CHỈNH SỬA DANH SÁCH HỌC SINH -->
+    <div id="studentModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-900">Danh Sách Học Sinh Lớp Học</h3>
+                    <p class="text-xs text-slate-500">Mỗi dòng 1 tên học sinh (Tối đa 48 ghế ngồi)</p>
+                </div>
+                <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 mb-1 flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-700 w-16">Tên Lớp:</span>
+                <input type="text" id="classNameInput" class="p-2 border border-slate-300 rounded-lg text-sm font-bold flex-1 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ví dụ: Lớp 10A1...">
+                <select id="classSelectDropdown" class="p-2 border border-slate-300 rounded-lg text-sm cursor-pointer outline-none bg-slate-50 font-medium" onchange="loadClassProfile(this.value)">
+                    <option value="">-- Chọn lớp đã lưu --</option>
+                </select>
+            </div>
+
+            <div class="mb-4 flex-1 overflow-hidden flex flex-col">
+                <textarea id="studentListInput" rows="12" class="w-full flex-1 p-3 rounded-xl border border-slate-300 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none" placeholder="Nhập danh sách tên học sinh, mỗi bạn 1 dòng..."></textarea>
+                <div class="flex justify-between items-center mt-2 text-xs text-slate-500">
+                    <span>Mẹo: Bạn có thể copy từ Excel / Word dán thẳng vào đây.</span>
+                    <button onclick="fillSampleNames()" class="text-indigo-600 font-bold hover:underline">Điền 48 tên mẫu</button>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button onclick="closeStudentModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Hủy</button>
+                <button onclick="saveStudentList()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm">Lưu & Cập Nhật Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NHỎ GÓC DƯỚI -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl font-semibold text-xs transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMsg">Thông báo</span>
+    </div>
+
+    <!-- MODAL CƠ CẤU (RIGGING) -->
+    <div id="rigModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-[1000px] w-full p-6 border border-slate-200 flex flex-col max-h-[95vh]">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="text-lg font-extrabold text-indigo-900"><i class="fa-solid fa-user-secret mr-2"></i>Thiết Lập Cơ Cấu Chỗ Ngồi</h3>
+                    <p class="text-xs text-slate-500">Mẹo: Bạn có thể thêm <b>nhiều luật cho cùng 1 người</b>. Dữ liệu cơ cấu được lưu riêng biệt cho từng lớp học!</p>
+                </div>
+                <button onclick="closeRigModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- THANH QUẢN LÝ MẪU CƠ CẤU -->
+            <div class="mt-4 mb-2 bg-indigo-50 rounded-xl p-3 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 shadow-sm shrink-0">
+                <div class="flex items-center gap-2 font-bold text-indigo-900 text-xs">
+                    <i class="fa-solid fa-folder-open text-indigo-500 text-sm"></i>
+                    <span>MẪU ÁP DỤNG:</span>
+                    <select id="rigPresetSelect" onchange="onSelectRigPreset()" class="ml-1 bg-white text-indigo-700 font-extrabold px-3 py-1.5 rounded-lg border border-indigo-300 outline-none shadow-sm cursor-pointer min-w-[200px]">
+                        <!-- JS tự động điền -->
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="promptNewPresetName()" class="bg-white hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg font-bold text-xs border border-indigo-200 transition shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-file-circle-plus"></i> Tạo mới</button>
+                    <button onclick="updateActivePreset()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-floppy-disk"></i> Lưu đè (Cập nhật)</button>
+                    <button onclick="deleteActivePreset()" class="bg-white hover:bg-rose-50 text-rose-500 px-3 py-1.5 rounded-lg font-bold text-xs border border-rose-200 transition shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-trash-can"></i> Xóa</button>
+                </div>
+            </div>
+
+            <div class="my-2 flex-1 overflow-hidden flex flex-col lg:flex-row gap-6">
+                <!-- Cột trái: Form thêm luật -->
+                <div class="w-full lg:w-[45%] flex flex-col gap-4 overflow-y-auto pr-2">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3">Tạo quy tắc mới</h4>
+                        <div class="flex flex-col gap-3 mb-3">
+                            <select id="rigRuleType" onchange="onRigRuleTypeChange()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-bold text-slate-700 outline-none shadow-sm cursor-pointer">
+                                <option value="together">🤝 BẮT BUỘC ngồi cùng bàn với</option>
+                                <option value="separate">🚫 KHÔNG ĐƯỢC ngồi cùng bàn với</option>
+                                <option value="area_only">📍 BẮT BUỘC ngồi trong Khu vực chọn (Bấm vào bản đồ)</option>
+                                <option value="surround_must">🔄 Xung quanh PHẢI CÓ người này</option>
+                                <option value="surround_not">⛔ Xung quanh KHÔNG ĐƯỢC CÓ người này</option>
+                            </select>
+                            <select id="rigStudent1" class="text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">
+                                <!-- Options added dynamically -->
+                            </select>
+                            <div id="rigTargetContainer" class="flex gap-2 w-full">
+                                <!-- Container cho Chọn người thứ 2 / Hoặc Chọn ghế & Xác suất -->
+                            </div>
+                        </div>
+                        <button id="addRigRuleBtn" onclick="addRigRule()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition w-full shadow-md flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> THÊM VÀO CƠ CẤU
+                        </button>
+                    </div>
+
+                    <!-- Danh sách luật -->
+                    <div class="flex-1 flex flex-col min-h-[150px]">
+                        <h4 class="text-sm font-bold text-slate-700 mb-2">Quy tắc hiện tại (<span id="rigRuleCount">0</span>):</h4>
+                        <div id="rigRuleList" class="flex flex-col gap-2 text-xs overflow-y-auto pr-1 flex-1 pb-4">
+                            <!-- Danh sách hiển thị -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Mini Map sơ đồ lớp -->
+                <div class="w-full lg:w-[55%] bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col h-[400px] lg:h-auto shadow-inner">
+                    <h4 class="text-sm font-bold text-slate-700 mb-4 text-center flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-indigo-500"></i> Bấm vào ghế dưới đây để gài người ngay lập tức
+                    </h4>
+                    <div id="miniClassroomGrid" class="grid grid-cols-4 gap-3 flex-1 overflow-y-auto pr-1 content-start">
+                        <!-- Render via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100 mt-auto shrink-0">
+                <button onclick="clearRigRules()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition border border-rose-200">Xóa sạch quy tắc của mẫu này</button>
+                <div class="flex gap-2">
+                    <button onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition border border-slate-300">Đăng xuất Admin</button>
+                    <button onclick="updateActivePreset(); closeRigModal()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-check-double"></i> LƯU & ĐÓNG
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NHẬP MẬT KHẨU CƠ CẤU -->
+    <div id="passwordModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[70] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 flex flex-col">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                    <i class="fa-solid fa-lock text-lg"></i>
+                </div>
+                <h3 class="text-lg font-extrabold text-slate-900">Yêu cầu xác thực</h3>
+            </div>
+            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Vui lòng nhập mật khẩu quản trị để truy cập tính năng thiết lập cơ cấu ngầm:</p>
+            
+            <input type="password" id="secretPasswordInput" class="w-full p-3 rounded-xl border border-slate-300 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-5" placeholder="Nhập mật khẩu..." onkeypress="if(event.key === 'Enter') checkPassword()">
+            
+            <div class="flex justify-end gap-2">
+                <button onclick="closePasswordModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">Hủy</button>
+                <button onclick="checkPassword()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PROMPT TÙY CHỈNH (NHẬP TÊN MẪU) -->
+    <div id="promptModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[80] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 border border-slate-200 flex flex-col">
+            <h3 id="promptTitle" class="text-base font-extrabold text-slate-900 mb-3">Nhập tên</h3>
+            <input type="text" id="promptInput" class="w-full p-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-5">
+            <div class="flex justify-end gap-2">
+                <button onclick="closePrompt()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">Hủy</button>
+                <button id="promptConfirmBtn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRM TÙY CHỈNH (XÁC NHẬN XÓA) -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[80] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 border border-slate-200 flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                </div>
+                <h3 id="confirmTitle" class="text-base font-extrabold text-slate-900">Xác nhận</h3>
+            </div>
+            <p id="confirmMessage" class="text-sm text-slate-600 mb-5 font-medium leading-relaxed"></p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeConfirm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">Hủy</button>
+                <button id="confirmBtn" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CẤU HÌNH DATABASE GOOGLE SHEETS
+        // ==========================================
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDG-43DOhNXGRrQlRRCXczqDF2vzS205KQwr5RpaUeCeE2CeqrTB89dUoIrWEJ-td3/exec";
+        
+        async function loadDataFromSheet() {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "DÁN_LINK_GOOGLE_APPS_SCRIPT_VÀO_ĐÂY") return;
+            try {
+                const res = await fetch(APPS_SCRIPT_URL);
+                const result = await res.json();
+                if (result && result.status === 'success' && result.data && Object.keys(result.data).length > 0) {
+                    window.isSyncingFromCloud = true;
+                    
+                    // Xử lý dữ liệu tương thích
+                    let fetchedData = result.data;
+                    classDataDict = fetchedData.classes || fetchedData;
+                    currentClassName = fetchedData.activeClass || Object.keys(classDataDict)[0];
+                    
+                    localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
+                    localStorage.setItem('classroom_current', currentClassName);
+                    
+                    loadClassData(currentClassName);
+                    updateClassDropdown();
+                    showToast("☁️ Đã đồng bộ dữ liệu từ Google Sheet!");
+                    
+                    setTimeout(() => { window.isSyncingFromCloud = false; }, 500);
+                }
+            } catch (err) {
+                console.error("Lỗi đồng bộ Sheet:", err);
+            }
+        }
+
+        async function saveDataToSheet() {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "DÁN_LINK_GOOGLE_APPS_SCRIPT_VÀO_ĐÂY") return;
+            try {
+                const payload = { classes: classDataDict, activeClass: currentClassName };
+                await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error("Lỗi lưu Sheet:", err);
+            }
+        }
+
+        // ============================================================================
+        // 1. CẤU HÌNH SƠ ĐỒ LỚP HỌC (4 DÃY x 6 BÀN x 2 GHẾ = 48 CHỖ)
+        // ============================================================================
+        const COLS = 4;
+        const ROWS_PER_COL = 6;
+        const TOTAL_SEATS = COLS * ROWS_PER_COL * 2; // 48
+
+        let gameDuration = 5; // Mặc định 5 giây
+        let activeGame = 'duck';
+        let currentFillOrder = 'row_top_down_ltr'; // Quy luật xếp chỗ mặc định
+        let currentTargetSeatId = 'D1_B1_L';
+        let lastAssignedSeatId = null;
+        let isGameVisible = true; // Biến kiểm soát hiển thị để chống lag
+        let currentPerspective = 'teacher'; // 'teacher' hoặc 'student'
+
+        // LƯU TRỮ LỚP HỌC & CƠ CẤU (Class Management & Rigging State)
+        let classDataDict = {};
+        let currentClassName = "Lớp Mặc Định";
+        let isRigActive = false;
+        let toggleOffOnce = false;
+
+        let rigRulesList = []; 
+        let activePresetIndex = 0; // Lưu vị trí mẫu cơ cấu đang chọn
+        let riggedArrangement = null; // map ngầm: seatId -> studentId
+        let rigSelectedSeats = []; // Danh sách ghế được chọn cho rule "area_only"
+        
+        let pendingAdminAction = null; // Lưu hành động chờ xác thực Admin
+        window.isSyncingFromCloud = false;
+
+        function generateSeatOrderList(orderType) {
+            let rawList = [];
+            switch (orderType) {
+                case 'row_top_down_ltr':
+                    for (let r = 1; r <= ROWS_PER_COL; r++) {
+                        for (let c = 1; c <= COLS; c++) {
+                            rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        }
+                    }
+                    break;
+                case 'row_top_down_rtl':
+                    for (let r = 1; r <= ROWS_PER_COL; r++) {
+                        for (let c = COLS; c >= 1; c--) {
+                            rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'row_bottom_up_ltr':
+                    for (let r = ROWS_PER_COL; r >= 1; r--) {
+                        for (let c = 1; c <= COLS; c++) {
+                            rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        }
+                    }
+                    break;
+                case 'row_bottom_up_rtl':
+                    for (let r = ROWS_PER_COL; r >= 1; r--) {
+                        for (let c = COLS; c >= 1; c--) {
+                            rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'row_snake_top':
+                    for (let r = 1; r <= ROWS_PER_COL; r++) {
+                        if (r % 2 !== 0) {
+                            for (let c = 1; c <= COLS; c++) rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        } else {
+                            for (let c = COLS; c >= 1; c--) rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'row_snake_bottom':
+                    for (let r = ROWS_PER_COL; r >= 1; r--) {
+                        const stepFromBottom = ROWS_PER_COL - r;
+                        if (stepFromBottom % 2 === 0) {
+                            for (let c = 1; c <= COLS; c++) rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        } else {
+                            for (let c = COLS; c >= 1; c--) rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'col_ltr_top_down':
+                    for (let c = 1; c <= COLS; c++) {
+                        for (let r = 1; r <= ROWS_PER_COL; r++) {
+                            rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        }
+                    }
+                    break;
+                case 'col_ltr_bottom_up':
+                    for (let c = 1; c <= COLS; c++) {
+                        for (let r = ROWS_PER_COL; r >= 1; r--) {
+                            rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        }
+                    }
+                    break;
+                case 'col_rtl_top_down':
+                    for (let c = COLS; c >= 1; c--) {
+                        for (let r = 1; r <= ROWS_PER_COL; r++) {
+                            rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'col_rtl_bottom_up':
+                    for (let c = COLS; c >= 1; c--) {
+                        for (let r = ROWS_PER_COL; r >= 1; r--) {
+                            rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'col_snake_ltr':
+                    for (let c = 1; c <= COLS; c++) {
+                        if (c % 2 !== 0) {
+                            for (let r = 1; r <= ROWS_PER_COL; r++) rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        } else {
+                            for (let r = ROWS_PER_COL; r >= 1; r--) rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        }
+                    }
+                    break;
+                case 'col_snake_rtl':
+                    for (let c = COLS; c >= 1; c--) {
+                        const stepFromRight = COLS - c;
+                        if (stepFromRight % 2 === 0) {
+                            for (let r = 1; r <= ROWS_PER_COL; r++) rawList.push(`D${c}_B${r}_R`, `D${c}_B${r}_L`);
+                        } else {
+                            for (let r = ROWS_PER_COL; r >= 1; r--) rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        }
+                    }
+                    break;
+                case 'random_any':
+                default:
+                    for (let r = 1; r <= ROWS_PER_COL; r++) {
+                        for (let c = 1; c <= COLS; c++) {
+                            rawList.push(`D${c}_B${r}_L`, `D${c}_B${r}_R`);
+                        }
+                    }
+                    break;
+            }
+            
+            // Ép Bàn 6 (Tất cả dãy) xuống bét danh sách để luôn chừa lại cho học sinh cuối cùng
+            let normalSeats = rawList.filter(id => !id.includes('_B6_'));
+            let row6Seats = rawList.filter(id => id.includes('_B6_'));
+            return normalSeats.concat(row6Seats);
+        }
+
+        let ALL_SEAT_IDS = generateSeatOrderList(currentFillOrder);
+
+        function changeFillOrder(orderType) {
+            currentFillOrder = orderType;
+            ALL_SEAT_IDS = generateSeatOrderList(orderType);
+            currentTargetSeatId = findNextEmptySeatId();
+            renderGrid();
+            showToast(orderType === 'random_any' ? "Đã bật chế độ xếp Ngẫu nhiên bất kỳ!" : "Đã đổi quy luật thứ tự xếp chỗ!");
+        }
+
+        // Danh sách 48 học sinh ban đầu
+        let students = [];
+        
+        function loadClassData(className) {
+            if (!classDataDict[className]) return false;
+            currentClassName = className;
+            document.getElementById('headerClassName').innerText = `Lớp: ${className} • 4 dãy x 6 bàn`;
+            
+            let data = classDataDict[className];
+            
+            students = data.students.map((name, idx) => ({
+                id: `hs_${idx + 1}`,
+                name: name,
+                shortName: getShortName(name),
+                seatId: null
+            }));
+            
+            // Chuyển đổi dữ liệu cũ sang định dạng Mẫu Cơ Cấu (Presets)
+            if (data.rigRules && !data.rigPresets) {
+                data.rigPresets = [{ name: 'Mẫu cơ cấu 1', rules: data.rigRules }];
+                data.activeRigPresetIndex = 0;
+                delete data.rigRules;
+            }
+            if (!data.rigPresets || data.rigPresets.length === 0) {
+                data.rigPresets = [{ name: 'Mẫu cơ cấu 1', rules: [] }];
+                data.activeRigPresetIndex = 0;
+            }
+
+            activePresetIndex = data.activeRigPresetIndex || 0;
+            if (activePresetIndex >= data.rigPresets.length) activePresetIndex = 0;
+
+            // Nạp luật từ mẫu đang kích hoạt vào bộ nhớ tạm để chỉnh sửa
+            rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
+            riggedArrangement = null;
+            
+            // Reset secret toggle state logically
+            isRigActive = false; 
+            toggleOffOnce = false;
+            document.getElementById('instantFillToggle').checked = true;
+            updateSecretDotIndicator();
+
+            currentTargetSeatId = findNextEmptySeatId();
+            lastAssignedSeatId = null;
+            renderGrid();
+            return true;
+        }
+        
+        function saveClassData() {
+            if (!currentClassName) currentClassName = "Lớp Mặc Định";
+            if (!classDataDict[currentClassName]) classDataDict[currentClassName] = {};
+            
+            if (!classDataDict[currentClassName].rigPresets) {
+                classDataDict[currentClassName].rigPresets = [{ name: 'Mẫu cơ cấu 1', rules: [] }];
+            }
+
+            classDataDict[currentClassName].students = students.map(s => s.name);
+            classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
+            
+            localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
+            localStorage.setItem('classroom_current', currentClassName);
+
+            // Tự động đẩy lên Google Sheet (nếu không phải do tải từ mây về)
+            if (!window.isSyncingFromCloud) {
+                saveDataToSheet();
+            }
+        }
+
+        function initDefaultStudents() {
+            const sampleNames = [
+                "Nguyễn Minh An", "Trần Bảo Anh", "Lê Đức Anh", "Phạm Phương Anh",
+                "Hoàng Tuấn Bình", "Vũ Ngọc Bích", "Đặng Quốc Bảo", "Bùi Thanh Châu",
+                "Đỗ Minh Chiến", "Hồ Khánh Chi", "Ngô Quang Dũng", "Dương Thùy Dương",
+                "Lý Hải Đăng", "Nguyễn Trọng Đạt", "Trần Hương Giang", "Lê Minh Hà",
+                "Phạm Gia Hân", "Hoàng Đức Hiếu", "Vũ Trung Hiếu", "Đặng Minh Hoàng",
+                "Bùi Quang Huy", "Đỗ Ngọc Huyền", "Hồ Tuấn Hưng", "Ngô Mai Hương",
+                "Dương Bảo Khang", "Lý Minh Khoa", "Nguyễn Tuấn Kiệt", "Trần Phương Lan",
+                "Lê Khánh Linh", "Phạm Thùy Linh", "Hoàng Bảo Long", "Vũ Thành Luân",
+                "Đặng Ngọc Mai", "Bùi Nhật Minh", "Đỗ Trà My", "Hồ Hoài Nam",
+                "Ngô Bảo Ngọc", "Dương Thảo Nguyên", "Lý Yến Nhi", "Nguyễn Hoàng Phong",
+                "Hoàng Thanh Sơn", "Vũ Phương Thảo", "Đặng Anh Thư", "Bùi Bảo Trâm", "Đỗ Đức Trọng"
+            ];
+            students = sampleNames.map((name, i) => ({
+                id: `hs_${i + 1}`,
+                name: name,
+                shortName: getShortName(name),
+                seatId: null
+            }));
+            saveClassData();
+        }
+
+        function getShortName(fullName) {
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length <= 2) return fullName.trim();
+            return parts.slice(-2).join(' '); // Lấy Đệm + Tên cho rõ ràng (VD: "Minh An")
+        }
+
+        function formatSeatLabel(seatId) {
+            if (!seatId) return "Chưa chọn";
+            const [d, b, side] = seatId.split('_');
+            return `Dãy ${d.slice(1)} - Bàn ${b.slice(1)} (${side === 'L' ? 'Trái' : 'Phải'})`;
+        }
+
+        function printSeatingChart() {
+            // Cập nhật thông tin lớp học in dưới chân trang
+            const info = document.getElementById('printFooterClassInfo');
+            if (info) {
+                const dateStr = new Date().toLocaleDateString('vi-VN');
+                info.innerText = `Sơ đồ ${currentClassName} • Xuất ngày: ${dateStr} • Góc nhìn Giáo Viên`;
+            }
+            window.print();
+        }
+
+        // ============================================================================
+        // 2. HIỂN THỊ SƠ ĐỒ BÀN GHẾ (CHUẨN THEO HÌNH MẪU CỦA NGƯỜI DÙNG)
+        // ============================================================================
+        function renderGrid() {
+            const grid = document.getElementById('classroomGrid');
+            grid.innerHTML = '';
+
+            // Tự động đảm bảo currentTargetSeatId luôn trỏ vào một ghế còn trống
+            const isTargetOccupied = students.some(s => s.seatId === currentTargetSeatId);
+            if (!currentTargetSeatId || isTargetOccupied) {
+                currentTargetSeatId = findNextEmptySeatId();
+            }
+
+            // Với góc nhìn Giáo Viên ngồi tại bàn giáo viên nhìn xuống lớp:
+            // Dãy 1 ở gần Bàn Giáo Viên (bên trái GV), Dãy 4 ở phía cửa (bên phải GV).
+            // Bàn 1 là hàng đầu tiên ngay sát bục giảng, Bàn 6 ở xa nhất cuối lớp.
+            // Thứ tự Dãy và Bàn vẫn giữ chuẩn, chữ và tên học sinh được hiển thị xuôi mắt, chuẩn xác 100%.
+            for (let c = 1; c <= COLS; c++) {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'flex flex-col gap-4';
+
+                // Tiêu đề DÃY 1, DÃY 2, DÃY 3, DÃY 4
+                const colHeader = document.createElement('div');
+                colHeader.className = 'text-center font-extrabold text-slate-500 text-xs uppercase tracking-widest mb-1';
+                colHeader.innerText = `DÃY ${c}`;
+                colDiv.appendChild(colHeader);
+
+                for (let r = 1; r <= ROWS_PER_COL; r++) {
+                    const deskWrap = document.createElement('div');
+                    deskWrap.className = 'flex flex-col items-center gap-1';
+
+                    // Nhãn Bàn 1..6
+                    const deskTitle = document.createElement('div');
+                    deskTitle.className = 'text-[10px] font-bold text-slate-400/80';
+                    deskTitle.innerText = `Bàn ${r}`;
+                    deskWrap.appendChild(deskTitle);
+
+                    // Khung bàn màu vàng kem bo góc giống hệt hình mẫu
+                    const deskBox = document.createElement('div');
+                    deskBox.className = 'desk-box w-full grid grid-cols-2 gap-2 shadow-sm';
+
+                    ['L', 'R'].forEach(side => {
+                        const seatId = `D${c}_B${r}_${side}`;
+                        const occupant = students.find(s => s.seatId === seatId);
+                        const isTarget = (seatId === currentTargetSeatId) && !occupant;
+                        const isJustLanded = (seatId === lastAssignedSeatId);
+
+                        const seatEl = document.createElement('div');
+                        seatEl.id = `seat-${seatId}`;
+
+                        if (occupant) {
+                            seatEl.className = `seat-box seat-occupied flex flex-col items-center justify-center p-1 relative group cursor-pointer ${isJustLanded ? 'seat-just-landed' : ''}`;
+                            seatEl.title = `${occupant.name} (Bấm dấu X để gỡ khỏi ghế)`;
+
+                            const nameSpan = document.createElement('span');
+                            nameSpan.className = 'text-[11px] font-extrabold text-center leading-tight px-1 line-clamp-2 select-text';
+                            nameSpan.innerText = occupant.shortName;
+
+                            const removeBtn = document.createElement('button');
+                            removeBtn.className = 'absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] opacity-0 group-hover:opacity-100 transition shadow no-print';
+                            removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                            removeBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                removeStudentFromSeat(occupant.id, seatId);
+                            };
+
+                            seatEl.appendChild(nameSpan);
+                            seatEl.appendChild(removeBtn);
+                        } else {
+                            const isRandomMode = currentFillOrder === 'random_any';
+                            seatEl.className = `seat-box seat-empty flex flex-col items-center justify-center cursor-pointer ${isTarget ? 'seat-target' : ''}`;
+                            seatEl.title = `Chọn ghế này: ${formatSeatLabel(seatId)}`;
+                            
+                            if (isTarget) {
+                                if (isRandomMode) {
+                                    seatEl.innerHTML = `<i class="fa-solid fa-dice text-base text-indigo-500 animate-pulse"></i>`;
+                                } else {
+                                    seatEl.innerHTML = `<i class="fa-solid fa-bullseye text-xs mb-0.5"></i><span class="text-[9px] font-extrabold uppercase">Mục tiêu</span>`;
+                                }
+                            } else {
+                                seatEl.innerHTML = `<i class="fa-solid fa-plus text-sm"></i>`;
+                            }
+
+                            seatEl.onclick = () => {
+                                currentTargetSeatId = seatId;
+                                renderGrid();
+                                showToast(`Đã chọn: ${formatSeatLabel(seatId)}`);
+                            };
+                        }
+
+                        deskBox.appendChild(seatEl);
+                    });
+
+                    deskWrap.appendChild(deskBox);
+                    colDiv.appendChild(deskWrap);
+                }
+
+                grid.appendChild(colDiv);
+            }
+
+            syncHeaderAndDropdown();
+        }
+
+        function findNextEmptySeatId() {
+            const emptyList = ALL_SEAT_IDS.filter(seatId => !students.some(s => s.seatId === seatId));
+            if (emptyList.length === 0) return '';
+            
+            if (currentFillOrder === 'random_any') {
+                // Ưu tiên chọn ghế ngẫu nhiên ở Bàn 1->5 trước, chừa Bàn 6 lại cuối cùng
+                const normalEmpty = emptyList.filter(id => !id.includes('_B6_'));
+                if (normalEmpty.length > 0) {
+                    return normalEmpty[Math.floor(Math.random() * normalEmpty.length)];
+                } else {
+                    return emptyList[Math.floor(Math.random() * emptyList.length)];
+                }
+            }
+
+            for (const seatId of ALL_SEAT_IDS) {
+                if (!students.some(s => s.seatId === seatId)) {
+                    return seatId;
+                }
+            }
+            return '';
+        }
+
+        function syncHeaderAndDropdown() {
+            const select = document.getElementById('targetSeatSelect');
+            select.innerHTML = '';
+
+            let emptyCount = 0;
+            for (let c = 1; c <= COLS; c++) {
+                const group = document.createElement('optgroup');
+                group.label = `Dãy ${c}`;
+                for (let r = 1; r <= ROWS_PER_COL; r++) {
+                    ['L', 'R'].forEach(side => {
+                        const seatId = `D${c}_B${r}_${side}`;
+                        if (!students.some(s => s.seatId === seatId)) {
+                            emptyCount++;
+                            const opt = document.createElement('option');
+                            opt.value = seatId;
+                            opt.innerText = `Dãy ${c} - Bàn ${r} (${side === 'L' ? 'Trái' : 'Phải'})`;
+                            group.appendChild(opt);
+                        }
+                    });
+                }
+                if (group.children.length > 0) select.appendChild(group);
+            }
+
+            if (emptyCount === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.innerText = 'Đã kín hết ghế!';
+                select.appendChild(opt);
+            } else if (currentTargetSeatId) {
+                select.value = currentTargetSeatId;
+            }
+
+            const unassigned = students.filter(s => !s.seatId);
+            document.getElementById('unassignedCount').innerText = unassigned.length;
+            document.getElementById('totalStudentBadge').innerText = students.length;
+
+            // Làm mới dữ liệu ứng viên trong các game đang chờ
+            if (!isAnyGameRunning()) {
+                rebuildDuckCandidates();
+                rebuildPlinkoBoard();
+                drawWheelStatic();
+            }
+        }
+
+        function onManualSelectTarget(seatId) {
+            currentTargetSeatId = seatId;
+            renderGrid();
+        }
+
+        function removeStudentFromSeat(studentId, seatId) {
+            const st = students.find(s => s.id === studentId);
+            if (st) st.seatId = null;
+            currentTargetSeatId = seatId;
+            lastAssignedSeatId = null;
+            renderGrid();
+        }
+
+        function resetAllSeats() {
+            if (isAnyGameRunning()) return showToast("Đang trong lượt chơi, vui lòng đợi!");
+            students.forEach(s => s.seatId = null);
+            
+            // MỚI: Xóa sạch sơ đồ sẽ LUÔN TẮT CƠ CẤU (Reset hệ thống về bình thường)
+            isRigActive = false;
+            toggleOffOnce = false;
+            const toggleEl = document.getElementById('instantFillToggle');
+            if (toggleEl) toggleEl.checked = true; // Trạng thái Checked = Bật điền thẳng, Tắt Cơ cấu
+            riggedArrangement = null;
+            updateSecretDotIndicator(); // Tắt dấu chấm bí mật
+            
+            currentTargetSeatId = findNextEmptySeatId();
+            lastAssignedSeatId = null;
+            renderGrid();
+            showToast("Đã làm mới lại sơ đồ bàn ghế!");
+        }
+
+        function autoAssignAll() {
+            if (isAnyGameRunning()) return showToast("Đang trong lượt chơi, vui lòng đợi!");
+            const unassigned = students.filter(s => !s.seatId);
+            let emptySeats = ALL_SEAT_IDS.filter(id => !students.some(s => s.seatId === id));
+            if (unassigned.length === 0 || emptySeats.length === 0) {
+                return showToast("Tất cả học sinh hoặc ghế đã được xếp đầy đủ!");
+            }
+            
+            let count = 0;
+            if (riggedArrangement) {
+                // Áp dụng thẳng theo cơ cấu ngầm đã tạo
+                unassigned.forEach(u => {
+                    let seat = Object.keys(riggedArrangement).find(k => riggedArrangement[k] === u.id);
+                    if(seat && !students.some(s => s.seatId === seat)) {
+                        u.seatId = seat;
+                        lastAssignedSeatId = seat;
+                        count++;
+                    }
+                });
+            } else {
+                unassigned.sort(() => Math.random() - 0.5);
+                if (currentFillOrder === 'random_any') {
+                    // Trộn lại các ghế trống nhưng vẫn đẩy Bàn 6 xuống cuối
+                    let normalEmpty = emptySeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
+                    let row6Empty = emptySeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
+                    emptySeats = normalEmpty.concat(row6Empty);
+                }
+                count = Math.min(unassigned.length, emptySeats.length);
+                for (let i = 0; i < count; i++) {
+                    unassigned[i].seatId = emptySeats[i];
+                }
+                lastAssignedSeatId = emptySeats[count - 1];
+            }
+
+            currentTargetSeatId = findNextEmptySeatId();
+            renderGrid();
+            playWinFanfare();
+            showToast(`Đã xếp nhanh ${count} học sinh!`);
+        }
+
+        // ============================================================================
+        // 3. CƠ CHẾ XỬ LÝ NGƯỜI THẮNG -> ĐIỀN THẲNG VÀO BÀN LẬP TỨC
+        // ============================================================================
+        function assignWinnerToTargetSeat(winnerStudent, forcedSeatId = null) {
+            let seatToFill = forcedSeatId || currentTargetSeatId;
+            // Nếu ở chế độ ngẫu nhiên, mỗi lượt bốc luôn lấy 1 ghế trống bất kỳ hoàn toàn ngẫu nhiên
+            if (currentFillOrder === 'random_any' || !seatToFill || students.some(s => s.seatId === seatToFill)) {
+                seatToFill = findNextEmptySeatId();
+            }
+
+            if (!seatToFill) {
+                showToast("Không còn ghế trống nào trên sơ đồ!");
+                return;
+            }
+
+            // Gán học sinh vào ghế mục tiêu
+            winnerStudent.seatId = seatToFill;
+            lastAssignedSeatId = seatToFill;
+
+            // Tự động nhảy sang ghế trống ngẫu nhiên tiếp theo cho lượt sau
+            currentTargetSeatId = findNextEmptySeatId();
+
+            // Vẽ lại sơ đồ bàn ghế ngay lập tức (KHÔNG tự cuộn xuống màn hình để người dùng xem trọn vẹn màn đua)
+            renderGrid();
+            playWinFanfare();
+
+            // Hiển thị Banner thông báo chiến thắng nổi bật
+            const banner = document.getElementById('quickWinBanner');
+            const textEl = document.getElementById('quickWinText');
+            textEl.innerText = `${winnerStudent.name}  ➔  ${formatSeatLabel(seatToFill)}`;
+            banner.classList.remove('-translate-y-10', 'opacity-0');
+            banner.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(window._winBannerTimer);
+            window._winBannerTimer = setTimeout(() => {
+                banner.classList.add('-translate-y-10', 'opacity-0');
+                banner.classList.remove('translate-y-0', 'opacity-100');
+            }, 3200);
+        }
+
+        function scrollToClassroom() {
+            const sec = document.getElementById('classroomSection');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ============================================================================
+        // 4. HỆ THỐNG ÂM THANH WEB AUDIO API (SỐNG ĐỘNG, KHÔNG CẦN FILE NGOÀI)
+        // ============================================================================
+        let audioCtx = null;
+        function ensureAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playQuackSound() {
+            try {
+                ensureAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const filter = audioCtx.createBiquadFilter();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(340 + Math.random() * 80, now);
+                osc.frequency.exponentialRampToValueAtTime(190, now + 0.14);
+
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(950, now);
+                filter.Q.setValueAtTime(4, now);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.005, now + 0.15);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (e) {}
+        }
+
+        function playPegPing(pitchMultiplier = 1) {
+            try {
+                ensureAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520 * pitchMultiplier + Math.random() * 60, now);
+                gain.gain.setValueAtTime(0.07, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } catch (e) {}
+        }
+
+        function playWheelTick() {
+            try {
+                ensureAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1100, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.035);
+                gain.gain.setValueAtTime(0.09, now);
+                gain.gain.exponentialRampToValueAtTime(0.005, now + 0.035);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.04);
+            } catch (e) {}
+        }
+
+        function playWinFanfare() {
+            try {
+                ensureAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((freq, i) => {
+                    const now = audioCtx.currentTime + i * 0.08;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.35);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.36);
+                });
+            } catch (e) {}
+        }
+
+        // ============================================================================
+        // 5. TRÒ CHƠI 1: ĐUA VỊT (DUCK RACE 60FPS CHUẨN ONLINE-STOPWATCH XỊN)
+        // ============================================================================
+        const DUCK_THEMES = [
+            { body: '#facc15', wing: '#eab308', hat: 'crown' },
+            { body: '#38bdf8', wing: '#0284c7', hat: 'police' },
+            { body: '#fb7185', wing: '#e11d48', hat: 'santa' },
+            { body: '#4ade80', wing: '#16a34a', hat: 'cap' },
+            { body: '#c084fc', wing: '#9333ea', hat: 'wizard' },
+            { body: '#fb923c', wing: '#ea580c', hat: 'pirate' },
+            { body: '#f8fafc', wing: '#cbd5e1', hat: 'tophat' },
+            { body: '#f472b6', wing: '#db2777', hat: 'bow' }
+        ];
+
+        const duckGame = {
+            canvas: null,
+            ctx: null,
+            logicalWidth: 0,
+            logicalHeight: 0,
+            ducks: [],
+            particles: [],
+            isRacing: false,
+            cameraX: 0,
+            worldLength: 2600,
+            finishLineX: 2350,
+            idleAnimId: null
+        };
+
+        function initDuckCanvas() {
+            const canvas = document.getElementById('duckCanvas');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+
+            duckGame.logicalWidth = Math.max(600, rect.width);
+            duckGame.logicalHeight = Math.max(380, rect.height);
+            
+            canvas.width = duckGame.logicalWidth * dpr;
+            canvas.height = duckGame.logicalHeight * dpr;
+            canvas.style.width = duckGame.logicalWidth + 'px';
+            canvas.style.height = duckGame.logicalHeight + 'px';
+            
+            duckGame.canvas = canvas;
+            duckGame.ctx = canvas.getContext('2d');
+            duckGame.ctx.scale(dpr, dpr); // Tinh chỉnh sắc nét cho màn hình cao
+
+            rebuildDuckCandidates();
+            startDuckIdleLoop();
+        }
+
+        function rebuildDuckCandidates() {
+            if (!duckGame.canvas) return;
+            const unassigned = students.filter(s => !s.seatId);
+            const h = duckGame.logicalHeight;
+            const riverTop = 90;
+            const usableH = h - riverTop - 34;
+            const count = Math.max(1, unassigned.length);
+
+            duckGame.ducks = unassigned.map((st, idx) => {
+                const theme = DUCK_THEMES[idx % DUCK_THEMES.length];
+                const ratio = count === 1 ? 0.5 : idx / (count - 1);
+                // Xếp so le vị trí X xuất phát (hình zig-zag 4 bậc) giãn rộng hơn để bóng thoại không đè nhau
+                const staggerX = 120 + (idx % 4) * 45;
+                return {
+                    student: st,
+                    number: idx + 1,
+                    x: staggerX,
+                    y: riverTop + 20 + ratio * usableH,
+                    baseY: riverTop + 20 + ratio * usableH,
+                    theme: theme,
+                    phase: Math.random() * Math.PI * 2,
+                    freq1: 2.5 + Math.random() * 2.5,
+                    freq2: 5.0 + Math.random() * 3.5,
+                    surgeCenter: 0.25 + Math.random() * 0.55,
+                    turboBurst: false
+                };
+            });
+            duckGame.cameraX = 0;
+        }
+
+        function shuffleDucks() {
+            if (duckGame.isRacing) return;
+            students.sort(() => Math.random() - 0.5);
+            rebuildDuckCandidates();
+            showToast("Đã xáo trộn làn bơi của đàn vịt!");
+        }
+
+        function startDuckIdleLoop() {
+            if (duckGame.idleAnimId) cancelAnimationFrame(duckGame.idleAnimId);
+            function loop(now) {
+                if (!duckGame.isRacing && activeGame === 'duck' && isGameVisible) {
+                    renderDuckScene(now, 0);
+                }
+                duckGame.idleAnimId = requestAnimationFrame(loop);
+            }
+            duckGame.idleAnimId = requestAnimationFrame(loop);
+        }
+
+        function renderDuckScene(now, raceProgress) {
+            const ctx = duckGame.ctx;
+            if (!ctx) return;
+            const w = duckGame.logicalWidth;
+            const h = duckGame.logicalHeight;
+            const camX = duckGame.cameraX;
+            const riverTop = 82;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Bờ cỏ xanh tươi có đồi cây chuyển động Parallax
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, riverTop);
+            skyGrad.addColorStop(0, '#16a34a');
+            skyGrad.addColorStop(1, '#22c55e');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, riverTop);
+
+            // Vẽ các bụi cây & cọc gỗ ven sông trôi theo camera
+            const treeStep = 160;
+            const startTree = Math.floor((camX * 0.4) / treeStep) * treeStep; // Giảm tốc độ trôi để dịu mắt
+            for (let tx = startTree; tx < camX * 0.4 + w + treeStep; tx += treeStep) {
+                const screenX = tx - camX * 0.4;
+                ctx.fillStyle = '#15803d';
+                ctx.beginPath();
+                ctx.arc(screenX, 55, 18, 0, Math.PI * 2);
+                ctx.arc(screenX + 16, 50, 22, 0, Math.PI * 2);
+                ctx.arc(screenX + 32, 56, 16, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Viền đất nâu sát mép nước
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(0, riverTop - 6, w, 10);
+            ctx.fillStyle = '#a16207';
+            ctx.fillRect(0, riverTop - 6, w, 4);
+
+            // 2. Dòng sông xanh biếc có chiều sâu
+            const waterGrad = ctx.createLinearGradient(0, riverTop, 0, h);
+            waterGrad.addColorStop(0, '#0ea5e9');
+            waterGrad.addColorStop(0.5, '#0284c7');
+            waterGrad.addColorStop(1, '#0369a1');
+            ctx.fillStyle = waterGrad;
+            ctx.fillRect(0, riverTop, w, h - riverTop);
+
+            // Sóng nước trôi ngược khi vịt bơi (làm dịu để đỡ mỏi mắt)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = 2;
+            const waveStepX = 110;
+            for (let wy = riverTop + 26; wy < h; wy += 42) {
+                ctx.beginPath();
+                for (let sx = -20; sx <= w + 20; sx += 25) {
+                    const worldX = sx + camX;
+                    const waveY = wy + Math.sin(worldX * 0.025 + now * 0.004) * 3.5;
+                    if (sx === -20) ctx.moveTo(sx, waveY);
+                    else ctx.lineTo(sx, waveY);
+                }
+                ctx.stroke();
+            }
+
+            // 3. Vạch Caro Xuất Phát & Vạch Đích Nghiêng Đặc Trưng
+            drawCheckeredLine(ctx, 145 - camX, riverTop, h, false);
+            drawCheckeredLine(ctx, duckGame.finishLineX - camX, riverTop, h, true);
+
+            // 4. Vẽ hạt bọt nước
+            for (let i = duckGame.particles.length - 1; i >= 0; i--) {
+                const p = duckGame.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025;
+                if (p.alpha <= 0) {
+                    duckGame.particles.splice(i, 1);
+                    continue;
+                }
+                ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x - camX, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 5. Vẽ đàn vịt theo thứ tự Y để con gần che con xa tự nhiên
+            const sortedDucks = [...duckGame.ducks].sort((a, b) => a.y - b.y);
+            // Tỷ lệ hiển thị to rõ hơn cho máy chiếu
+            const scale = sortedDucks.length > 36 ? 0.75 : (sortedDucks.length > 24 ? 0.85 : (sortedDucks.length > 14 ? 0.95 : 1.1));
+
+            sortedDucks.forEach(d => {
+                const bobY = d.baseY + Math.sin(now * 0.008 + d.phase) * 2.5;
+                d.y = bobY;
+                drawSingleCartoonDuck(ctx, d, d.x - camX, bobY, scale, now);
+            });
+        }
+
+        function drawCheckeredLine(ctx, screenX, topY, bottomY, isFinish) {
+            if (screenX < -120 || screenX > duckGame.logicalWidth + 120) return;
+            ctx.save();
+            const skew = -42;
+            const width = isFinish ? 34 : 26;
+            const rows = 16;
+            const rowH = (bottomY - topY) / rows;
+
+            for (let i = 0; i < rows; i++) {
+                const t1 = i / rows;
+                const t2 = (i + 1) / rows;
+                const y1 = topY + i * rowH;
+                const y2 = y1 + rowH;
+                const x1 = screenX + skew * t1;
+                const x2 = screenX + skew * t2;
+
+                // Cột 1
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x1 + width / 2, y1);
+                ctx.lineTo(x2 + width / 2, y2);
+                ctx.lineTo(x2, y2);
+                ctx.closePath();
+                ctx.fillStyle = i % 2 === 0 ? '#0f172a' : '#ffffff';
+                ctx.fill();
+
+                // Cột 2
+                ctx.beginPath();
+                ctx.moveTo(x1 + width / 2, y1);
+                ctx.lineTo(x1 + width, y1);
+                ctx.lineTo(x2 + width, y2);
+                ctx.lineTo(x2 + width / 2, y2);
+                ctx.closePath();
+                ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#0f172a';
+                ctx.fill();
+            }
+
+            if (isFinish) {
+                // Cột cờ đích trên bờ cỏ
+                ctx.fillStyle = '#ef4444';
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(screenX - 24, 18, 68, 26, 6);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 12px "Nunito"';
+                ctx.textAlign = 'center';
+                ctx.fillText('FINISH', screenX + 10, 35);
+            }
+            ctx.restore();
+        }
+
+        function drawSingleCartoonDuck(ctx, duck, sx, sy, scale, now) {
+            if (sx < -150 || sx > duckGame.logicalWidth + 150) return;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.scale(scale, scale);
+
+            // Vệt sóng trắng dưới bụng vịt
+            ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(-2, 11, 20, 4, 0, 0, Math.PI);
+            ctx.stroke();
+
+            // Lửa tăng tốc nếu vịt đang bứt phá
+            if (duck.turboBurst) {
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.moveTo(-18, 4);
+                ctx.lineTo(-34 - Math.random() * 8, 0);
+                ctx.lineTo(-18, -4);
+                ctx.fill();
+            }
+
+            // Thân vịt
+            ctx.fillStyle = duck.theme.body;
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 18, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Đuôi cong lên
+            ctx.beginPath();
+            ctx.moveTo(-14, -2);
+            ctx.quadraticCurveTo(-23, -12, -11, -8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cánh vịt vỗ nhẹ
+            const wingAngle = Math.sin(now * 0.02 + duck.phase) * 0.15;
+            ctx.save();
+            ctx.rotate(wingAngle);
+            ctx.fillStyle = duck.theme.wing;
+            ctx.beginPath();
+            ctx.ellipse(-2, 3, 10, 6, -0.15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Huy hiệu số thứ tự trắng trước ngực giống hình mẫu
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(-6, 3, 6.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 8px "Inter"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(duck.number, -6, 3.5);
+
+            // Đầu vịt
+            ctx.fillStyle = duck.theme.body;
+            ctx.beginPath();
+            ctx.arc(11, -9, 10.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Mỏ vịt màu cam
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath();
+            ctx.ellipse(22, -7, 7, 3.8, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Mắt vịt tròn long lanh
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(14, -11, 3.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(15, -11, 1.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mũ / Phụ kiện trên đầu vịt
+            drawDuckHat(ctx, duck.theme.hat);
+
+            // Bóng thoại Comic hiển thị Tên Học Sinh bên trái chú vịt
+            ctx.font = '900 20px "Nunito"'; // Font chữ to rõ ràng cho máy chiếu
+            const label = duck.student.shortName;
+            const textW = ctx.measureText(label).width;
+            const boxW = textW + 20;
+            const boxH = 32;
+            const boxX = -boxW - 16;
+            const boxY = -34;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Mũi nhọn bóng thoại
+            ctx.beginPath();
+            ctx.moveTo(boxX + boxW, boxY + 16);
+            ctx.lineTo(boxX + boxW + 8, boxY + 22);
+            ctx.lineTo(boxX + boxW, boxY + 28);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, boxX + 10, boxY + boxH / 2 + 1);
+
+            ctx.restore();
+        }
+
+        function drawDuckHat(ctx, hatType) {
+            ctx.save();
+            ctx.lineWidth = 1.8;
+            ctx.strokeStyle = '#0f172a';
+            if (hatType === 'crown') {
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.moveTo(4, -17);
+                ctx.lineTo(6, -25);
+                ctx.lineTo(11, -20);
+                ctx.lineTo(15, -26);
+                ctx.lineTo(19, -17);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else if (hatType === 'police') {
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(11, -17, 8, Math.PI, 0);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillRect(3, -18, 18, 3);
+            } else if (hatType === 'santa') {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.moveTo(4, -17);
+                ctx.quadraticCurveTo(10, -28, 2, -24);
+                ctx.lineTo(18, -17);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(2, -24, 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (hatType === 'tophat') {
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(5, -27, 12, 10);
+                ctx.strokeRect(5, -27, 12, 10);
+                ctx.fillRect(2, -18, 18, 2.5);
+            }
+            ctx.restore();
+        }
+
+        function startDuckRace() {
+            if (duckGame.isRacing) return;
+            const unassigned = students.filter(s => !s.seatId);
+            if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
+            if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
+
+            rebuildDuckCandidates();
+            duckGame.isRacing = true;
+            const btn = document.getElementById('btnStartDuck');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            playQuackSound();
+
+            // LOGIC CƠ CẤU (RIGGING) CHO VỊT THẮNG
+            let targetSeatForThisTurn = currentTargetSeatId;
+            if (currentFillOrder === 'random_any' || !targetSeatForThisTurn || students.some(s => s.seatId === targetSeatForThisTurn)) {
+                targetSeatForThisTurn = findNextEmptySeatId();
+            }
+            duckGame.targetSeatForThisTurn = targetSeatForThisTurn; // Khóa mục tiêu để đảm bảo không sai lệch
+
+            let winnerIndex = -1;
+            if (riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
+                // Ép con vịt ứng với học sinh trong cơ cấu win 100%
+                let riggedStudentId = riggedArrangement[targetSeatForThisTurn];
+                winnerIndex = duckGame.ducks.findIndex(d => d.student.id === riggedStudentId);
+            }
+            if (winnerIndex === -1) {
+                winnerIndex = Math.floor(Math.random() * duckGame.ducks.length);
+            }
+            
+            const winnerDuck = duckGame.ducks[winnerIndex];
+
+            const startX = 95;
+            const finishX = duckGame.finishLineX;
+            const totalDist = finishX - startX;
+            const durationMs = gameDuration * 1000;
+            const startTime = performance.now();
+
+            function stepRace(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / durationMs, 1);
+                const remainSec = Math.max(0, (durationMs - elapsed) / 1000);
+                document.getElementById('duckTimerText').innerText = `00:${remainSec < 10 ? '0' + remainSec.toFixed(1) : remainSec.toFixed(1)}`.replace('00:010', '00:10');
+
+                if (Math.random() < 0.06) playQuackSound();
+
+                let maxDuckX = 0;
+                duckGame.ducks.forEach((d, idx) => {
+                    const wave = Math.sin(progress * Math.PI * d.freq1 + d.phase) * 0.045
+                               + Math.sin(progress * Math.PI * d.freq2) * 0.025;
+
+                    let targetNorm;
+                    if (idx === winnerIndex) {
+                        // Vịt thắng có pha nước rút bứt tốc ở chặng cuối (thay vì bị chậm lại)
+                        const lateBoost = progress > 0.6 ? Math.pow(progress - 0.6, 2) * 0.5 : 0;
+                        targetNorm = progress + wave * 0.5 + lateBoost;
+                        d.turboBurst = progress > 0.65;
+                        if (progress >= 1) targetNorm = 1.05;
+                    } else {
+                        // Các vịt khác đua bình thường, băng băng về đích với tốc độ ổn định chứ không dừng hẳn lại
+                        const midSurge = Math.exp(-Math.pow((progress - d.surgeCenter) / 0.2, 2)) * 0.05;
+                        const speedFactor = 0.85 + (idx % 10) * 0.01; // Các con về sau vạch đích 1 chút
+                        targetNorm = progress * speedFactor + wave * 0.5 + midSurge;
+                        d.turboBurst = midSurge > 0.04;
+                    }
+
+                    const newX = startX + Math.max(0, targetNorm) * totalDist;
+                    if (duckGame.isRacing && Math.random() < 0.35) {
+                        duckGame.particles.push({
+                            x: newX - 18,
+                            y: d.y + 8,
+                            vx: -1.5 - Math.random() * 2,
+                            vy: (Math.random() - 0.5) * 1.2,
+                            r: 1.5 + Math.random() * 2.5,
+                            alpha: 0.75
+                        });
+                    }
+                    d.x = newX;
+                    if (newX > maxDuckX) maxDuckX = newX;
+                });
+
+                // Camera bám mượt theo tốp vịt dẫn đầu
+                const targetCam = Math.max(0, Math.min(maxDuckX - duckGame.logicalWidth * 0.62, finishX - duckGame.logicalWidth + 130));
+                duckGame.cameraX += (targetCam - duckGame.cameraX) * 0.14;
+
+                // Cập nhật Bảng Xếp Hạng Top 3 trực tiếp
+                const top3 = [...duckGame.ducks].sort((a, b) => b.x - a.x).slice(0, 3);
+                document.getElementById('duckLeaderboard').innerHTML = top3.map((d, rank) => {
+                    const medal = rank === 0 ? '🥇' : (rank === 1 ? '🥈' : '🥉');
+                    return `<div class="flex justify-between gap-2"><span>${medal} #${d.number} ${d.student.shortName}</span></div>`;
+                }).join('');
+
+                renderDuckScene(now, progress);
+
+                if (progress < 1) {
+                    requestAnimationFrame(stepRace);
+                } else {
+                    duckGame.isRacing = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    document.getElementById('duckTimerText').innerText = `00:${gameDuration < 10 ? '0' + gameDuration : gameDuration}.0`;
+
+                    // Điền thẳng con vịt chiến thắng vào ghế ngồi đã khóa trên sơ đồ!
+                    assignWinnerToTargetSeat(winnerDuck.student, duckGame.targetSeatForThisTurn);
+                }
+            }
+
+            requestAnimationFrame(stepRace);
+        }
+
+        // ============================================================================
+        // 6. TRÒ CHƠI 2: THẢ BI PLINKO (GALTON BOARD VẬT LÝ MƯỢT + KHÔNG BAO GIỜ KẸT)
+        // ============================================================================
+        const plinkoGame = {
+            canvas: null,
+            ctx: null,
+            logicalWidth: 0,
+            logicalHeight: 0,
+            pegs: [],
+            slots: [],
+            ripples: [],
+            ball: null,
+            trail: [],
+            isPlaying: false,
+            cameraY: 0,
+            boardHeight: 1050,
+            idleId: null
+        };
+
+        function initPlinkoCanvas() {
+            const canvas = document.getElementById('plinkoCanvas');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+
+            plinkoGame.logicalWidth = Math.max(520, rect.width);
+            plinkoGame.logicalHeight = Math.max(380, rect.height);
+            
+            canvas.width = plinkoGame.logicalWidth * dpr;
+            canvas.height = plinkoGame.logicalHeight * dpr;
+            canvas.style.width = plinkoGame.logicalWidth + 'px';
+            canvas.style.height = plinkoGame.logicalHeight + 'px';
+
+            plinkoGame.canvas = canvas;
+            plinkoGame.ctx = canvas.getContext('2d');
+            plinkoGame.ctx.scale(dpr, dpr); // Tinh chỉnh sắc nét cho màn hình cao
+
+            rebuildPlinkoBoard();
+            startPlinkoIdleLoop();
+        }
+
+        function rebuildPlinkoBoard() {
+            if (!plinkoGame.canvas) return;
+            const w = plinkoGame.logicalWidth;
+            const unassigned = students.filter(s => !s.seatId);
+
+            // Xây dựng 14 hàng đinh ghim so le chuẩn Plinko
+            plinkoGame.pegs = [];
+            const rows = 14;
+            const startY = 100;
+            const rowGap = 64; // Khoảng cách giãn rộng hơn
+            const colGap = 56;
+
+            for (let r = 0; r < rows; r++) {
+                const cols = (r % 2 === 0) ? 9 : 10;
+                const rowWidth = (cols - 1) * colGap;
+                const startX = (w - rowWidth) / 2;
+                for (let c = 0; c < cols; c++) {
+                    plinkoGame.pegs.push({
+                        x: startX + c * colGap,
+                        y: startY + r * rowGap,
+                        r: 7, // Chốt đinh to hơn
+                        glow: 0
+                    });
+                }
+            }
+
+            // Các ô hứng ở đáy (Hiển thị 9 ô ứng viên đại diện trực quan ở đáy tháp)
+            const slotCount = Math.min(9, Math.max(1, unassigned.length));
+            const pool = [...unassigned].sort(() => Math.random() - 0.5).slice(0, slotCount);
+            const totalWallWidth = Math.min(w - 40, 9 * colGap);
+            const wallLeft = (w - totalWallWidth) / 2;
+            const slotW = totalWallWidth / slotCount;
+            const slotTopY = startY + rows * rowGap + 15;
+
+            const bucketColors = ['#f43f5e', '#f97316', '#eab308', '#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#ec4899'];
+
+            plinkoGame.slots = pool.map((st, i) => ({
+                student: st,
+                x: wallLeft + i * slotW,
+                y: slotTopY,
+                w: slotW,
+                h: 120, // Hộp tên cao hơn để chứa chữ to
+                color: bucketColors[i % bucketColors.length]
+            }));
+
+            plinkoGame.wallLeft = wallLeft;
+            plinkoGame.wallRight = wallLeft + totalWallWidth;
+            plinkoGame.slotTopY = slotTopY;
+            plinkoGame.boardHeight = slotTopY + 150;
+            plinkoGame.cameraY = 0;
+        }
+
+        function startPlinkoIdleLoop() {
+            if (plinkoGame.idleId) cancelAnimationFrame(plinkoGame.idleId);
+            function loop() {
+                if (!plinkoGame.isPlaying && activeGame === 'plinko' && isGameVisible) {
+                    renderPlinkoScene();
+                }
+                plinkoGame.idleId = requestAnimationFrame(loop);
+            }
+            plinkoGame.idleId = requestAnimationFrame(loop);
+        }
+
+        function renderPlinkoScene() {
+            const ctx = plinkoGame.ctx;
+            if (!ctx) return;
+            const w = plinkoGame.logicalWidth;
+            const h = plinkoGame.logicalHeight;
+            const camY = plinkoGame.cameraY;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.save();
+            ctx.translate(0, -camY);
+
+            // Hai vách năng lượng hai bên tháp Plinko
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(plinkoGame.wallLeft, 50);
+            ctx.lineTo(plinkoGame.wallLeft, plinkoGame.slotTopY + 120);
+            ctx.moveTo(plinkoGame.wallRight, 50);
+            ctx.lineTo(plinkoGame.wallRight, plinkoGame.slotTopY + 120);
+            ctx.stroke();
+
+            // Vòng sáng lan tỏa khi bi chạm đinh ghim
+            for (let i = plinkoGame.ripples.length - 1; i >= 0; i--) {
+                const rp = plinkoGame.ripples[i];
+                rp.r += 1.4;
+                rp.alpha -= 0.04;
+                if (rp.alpha <= 0) {
+                    plinkoGame.ripples.splice(i, 1);
+                    continue;
+                }
+                ctx.strokeStyle = `rgba(56, 189, 248, ${rp.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Vẽ các chốt đinh ghim (Pegs)
+            plinkoGame.pegs.forEach(p => {
+                if (p.glow > 0) p.glow = Math.max(0, p.glow - 0.05);
+                ctx.fillStyle = p.glow > 0 ? '#38bdf8' : '#e2e8f0';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r + p.glow * 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Vẽ các ô tên học sinh ở đáy tháp
+            plinkoGame.slots.forEach((s) => {
+                ctx.fillStyle = s.color + '28';
+                ctx.strokeStyle = s.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.roundRect(s.x + 2, s.y, s.w - 4, s.h, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 16px "Nunito"'; // Chữ to rõ cho máy chiếu
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Viết tên gọn trên 2 dòng trong từng ô
+                const words = s.student.shortName.split(' ');
+                if (words.length >= 2) {
+                    ctx.fillText(words[0], s.x + s.w / 2, s.y + 45);
+                    ctx.fillText(words.slice(1).join(' '), s.x + s.w / 2, s.y + 68);
+                } else {
+                    ctx.fillText(s.student.shortName, s.x + s.w / 2, s.y + 56);
+                }
+            });
+
+            // Vẽ đuôi sao băng của viên bi
+            if (plinkoGame.trail.length > 1) {
+                for (let i = 0; i < plinkoGame.trail.length; i++) {
+                    const pt = plinkoGame.trail[i];
+                    const ratio = (i + 1) / plinkoGame.trail.length;
+                    ctx.fillStyle = `rgba(251, 191, 36, ${ratio * 0.45})`;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 10 * ratio, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Vẽ viên bi vàng sáng bóng
+            if (plinkoGame.ball) {
+                const b = plinkoGame.ball;
+                const ballGrad = ctx.createRadialGradient(b.x - 3, b.y - 3, 2, b.x, b.y, b.r);
+                ballGrad.addColorStop(0, '#fef08a');
+                ballGrad.addColorStop(0.5, '#facc15');
+                ballGrad.addColorStop(1, '#ca8a04');
+                ctx.fillStyle = ballGrad;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function startPlinko() {
+            if (plinkoGame.isPlaying) return;
+            const unassigned = students.filter(s => !s.seatId);
+            if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
+            if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
+
+            // LOGIC CƠ CẤU (RIGGING) ĐỂ ĐẢM BẢO NGƯỜI ĐƯỢC CHỈ ĐỊNH LUÔN CÓ MẶT
+            let targetSeatForThisTurn = currentTargetSeatId;
+            if (currentFillOrder === 'random_any' || !targetSeatForThisTurn || students.some(s => s.seatId === targetSeatForThisTurn)) {
+                targetSeatForThisTurn = findNextEmptySeatId();
+            }
+            plinkoGame.targetSeatForThisTurn = targetSeatForThisTurn;
+            plinkoGame.riggedStudentId = riggedArrangement ? riggedArrangement[targetSeatForThisTurn] : null;
+
+            rebuildPlinkoBoard(); // reset các ô hứng
+
+            // Chèn ngầm người được cơ cấu vào ô giữa của Plinko để đảm bảo có mặt
+            if(plinkoGame.riggedStudentId) {
+                let hasRigged = plinkoGame.slots.find(s => s.student.id === plinkoGame.riggedStudentId);
+                if(!hasRigged) {
+                    plinkoGame.slots[Math.floor(plinkoGame.slots.length / 2)].student = students.find(s => s.id === plinkoGame.riggedStudentId);
+                }
+            }
+
+            plinkoGame.isPlaying = true;
+            plinkoGame.trail = [];
+            const btn = document.getElementById('btnStartPlinko');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            document.getElementById('plinkoStatusBadge').innerText = 'Đang rơi...';
+
+            const w = plinkoGame.logicalWidth;
+            plinkoGame.ball = {
+                x: w / 2 + (Math.random() - 0.5) * 24,
+                y: 36,
+                vx: (Math.random() - 0.5) * 45,
+                vy: 0,
+                r: 14 // Bi to rõ ràng hơn
+            };
+
+            const gravity = gameDuration === 5 ? 760 : 410; // Thay đổi tùy vào gameDuration
+            const bounce = 0.62;
+            let lastTime = performance.now();
+
+            function stepPlinko(now) {
+                const dt = Math.min(0.032, (now - lastTime) / 1000);
+                lastTime = now;
+                const b = plinkoGame.ball;
+
+                b.vy += gravity * dt;
+                b.x += b.vx * dt;
+                b.y += b.vy * dt;
+
+                // Lưu vệt đuôi bi
+                plinkoGame.trail.push({ x: b.x, y: b.y });
+                if (plinkoGame.trail.length > 14) plinkoGame.trail.shift();
+
+                // Va chạm với các chốt đinh ghim
+                plinkoGame.pegs.forEach(p => {
+                    const dx = b.x - p.x;
+                    const dy = b.y - p.y;
+                    const dist = Math.hypot(dx, dy);
+                    const minDist = b.r + p.r;
+                    if (dist < minDist) {
+                        const nx = dx / (dist || 1);
+                        const ny = dy / (dist || 1);
+                        // Đẩy bi ra khỏi đinh và luôn cộng một lực ngang nhỏ để không bao giờ kẹt thẳng đứng
+                        b.x = p.x + nx * (minDist + 0.8);
+                        b.y = p.y + ny * (minDist + 0.8);
+
+                        const speed = Math.hypot(b.vx, b.vy);
+                        b.vx = nx * speed * bounce + (Math.random() - 0.5) * 65;
+                        if (Math.abs(b.vx) < 25) b.vx = (Math.random() < 0.5 ? -1 : 1) * 40;
+                        b.vy = Math.max(-180, ny * speed * bounce);
+
+                        p.glow = 1;
+                        plinkoGame.ripples.push({ x: p.x, y: p.y, r: p.r, alpha: 0.85 });
+                        playPegPing(0.9 + (b.y / plinkoGame.slotTopY) * 0.5);
+                    }
+                });
+
+                // Hút bi rơi vào ô được thao túng (Nếu có cơ cấu)
+                if (plinkoGame.riggedStudentId && b.y > plinkoGame.logicalHeight * 0.4) {
+                    let targetSlot = plinkoGame.slots.find(s => s.student.id === plinkoGame.riggedStudentId);
+                    if(targetSlot) {
+                        let targetX = targetSlot.x + targetSlot.w / 2;
+                        let diffX = targetX - b.x;
+                        b.vx += diffX * 0.8 * dt; // Kéo nhẹ bi hướng về ô chỉ định
+                    }
+                }
+
+                // Va chạm 2 vách bên của tháp
+                if (b.x - b.r < plinkoGame.wallLeft) {
+                    b.x = plinkoGame.wallLeft + b.r;
+                    b.vx = Math.abs(b.vx) * 0.75;
+                    playPegPing(0.8);
+                } else if (b.x + b.r > plinkoGame.wallRight) {
+                    b.x = plinkoGame.wallRight - b.r;
+                    b.vx = -Math.abs(b.vx) * 0.75;
+                    playPegPing(0.8);
+                }
+
+                // Tự động trượt Camera dọc theo viên bi
+                const targetCamY = Math.max(0, Math.min(b.y - plinkoGame.logicalHeight * 0.45, plinkoGame.boardHeight - plinkoGame.logicalHeight));
+                plinkoGame.cameraY += (targetCamY - plinkoGame.cameraY) * 0.15;
+
+                renderPlinkoScene();
+
+                if (b.y < plinkoGame.slotTopY + 28) {
+                    requestAnimationFrame(stepPlinko);
+                } else {
+                    plinkoGame.isPlaying = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+
+                    // Xác định ô hứng viên bi rơi vào
+                    let hitSlot = plinkoGame.slots.find(s => b.x >= s.x && b.x <= s.x + s.w);
+                    if (!hitSlot) hitSlot = plinkoGame.slots[Math.floor(plinkoGame.slots.length / 2)];
+                    
+                    // Cơ cấu ép đổi thông tin vào phút chót nếu bi lỡ văng ra ngoài ô chỉ định
+                    if (plinkoGame.riggedStudentId) {
+                        hitSlot.student = students.find(s => s.id === plinkoGame.riggedStudentId);
+                    }
+
+                    document.getElementById('plinkoStatusBadge').innerText = `Trúng: ${hitSlot.student.shortName}`;
+                    assignWinnerToTargetSeat(hitSlot.student, plinkoGame.targetSeatForThisTurn);
+                }
+            }
+
+            requestAnimationFrame(stepPlinko);
+        }
+
+        // ============================================================================
+        // 7. TRÒ CHƠI 3: VÒNG QUAY MAY MẮN (CASINO WHEEL CÓ CHỐT GẠT KIM VẬT LÝ)
+        // ============================================================================
+        const WHEEL_PALETTE = [
+            '#ef4444', '#f97316', '#f59e0b', '#10b981',
+            '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+            '#d946ef', '#ec4899', '#14b8a6', '#84cc16'
+        ];
+
+        const wheelGame = {
+            canvas: null,
+            ctx: null,
+            angle: 0,
+            isSpinning: false
+        };
+
+        function initWheelCanvas() {
+            const canvas = document.getElementById('wheelCanvas');
+            wheelGame.canvas = canvas;
+            wheelGame.ctx = canvas.getContext('2d');
+            drawWheelStatic();
+        }
+
+        function getWheelWinnerAtAngle(angle, list) {
+            if (list.length === 0) return null;
+            const twoPi = Math.PI * 2;
+            const norm = ((twoPi - (angle % twoPi)) + twoPi) % twoPi;
+            const slice = twoPi / list.length;
+            const idx = Math.floor(norm / slice) % list.length;
+            return { index: idx, student: list[idx] };
+        }
+
+        function drawWheelStatic() {
+            const ctx = wheelGame.ctx;
+            if (!ctx) return;
+            const w = wheelGame.canvas.width;
+            const h = wheelGame.canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const outerR = w / 2 - 20; // Vòng quay to hơn
+            const innerR = outerR - 18;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const unassigned = students.filter(s => !s.seatId);
+            if (unassigned.length === 0) {
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '800 18px "Inter"';
+                ctx.textAlign = 'center';
+                ctx.fillText('Đã xếp hết chỗ!', cx, cy);
+                return;
+            }
+
+            const slice = (Math.PI * 2) / unassigned.length;
+            const currentPick = getWheelWinnerAtAngle(wheelGame.angle, unassigned);
+            if (currentPick) {
+                document.getElementById('wheelCurrentHover').innerText = currentPick.student.name;
+            }
+
+            // Vành kim loại ngoài cùng
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(wheelGame.angle);
+
+            unassigned.forEach((st, i) => {
+                const startA = i * slice;
+                const endA = startA + slice;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, innerR, startA, endA);
+                ctx.closePath();
+                ctx.fillStyle = WHEEL_PALETTE[i % WHEEL_PALETTE.length];
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Vẽ tên học sinh dọc theo nan quạt
+                ctx.save();
+                ctx.rotate(startA + slice / 2);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffffff';
+                const fontSize = unassigned.length > 32 ? 18 : (unassigned.length > 20 ? 22 : 28); // Tăng font to hơn
+                ctx.font = `900 ${fontSize}px "Nunito"`;
+                ctx.fillText(st.shortName, innerR - 25, 0);
+
+                // Đinh tán vàng ở mép mỗi ô
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.arc(innerR - 6, 0, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            ctx.restore();
+
+            // Tâm vòng quay sang trọng
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 38, 0, Math.PI * 2); // Tâm to hơn
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = '900 24px "Inter"'; // Ngôi sao to hơn
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('★', cx, cy + 2);
+        }
+
+        function startWheel() {
+            if (wheelGame.isSpinning) return;
+            const unassigned = students.filter(s => !s.seatId);
+            if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
+            if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
+
+            wheelGame.isSpinning = true;
+            const btn = document.getElementById('btnStartWheel');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            // LOGIC CƠ CẤU (RIGGING): TÍNH TOÁN GÓC DỪNG CHUẨN XÁC
+            let targetSeatForThisTurn = currentTargetSeatId;
+            if (currentFillOrder === 'random_any' || !targetSeatForThisTurn || students.some(s => s.seatId === targetSeatForThisTurn)) {
+                targetSeatForThisTurn = findNextEmptySeatId();
+            }
+            wheelGame.targetSeatForThisTurn = targetSeatForThisTurn;
+
+            let winnerIndex = -1;
+            if (riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
+                let riggedStudentId = riggedArrangement[targetSeatForThisTurn];
+                winnerIndex = unassigned.findIndex(s => s.id === riggedStudentId);
+            }
+            if (winnerIndex === -1) {
+                winnerIndex = Math.floor(Math.random() * unassigned.length);
+            }
+
+            const durationMs = gameDuration * 1000;
+            const startTime = performance.now();
+            const startAngle = wheelGame.angle;
+            
+            // Ép Vòng Quay kết thúc chính xác ở mũi kim trỏ vào winnerIndex
+            const slice = (Math.PI * 2) / unassigned.length;
+            let targetNorm = winnerIndex * slice + slice / 2; // Canh giữa nan quạt
+            let targetMod = Math.PI * 2 - targetNorm;
+            let currentMod = startAngle % (Math.PI * 2);
+            let neededDelta = targetMod - currentMod;
+            if (neededDelta < 0) neededDelta += Math.PI * 2;
+            
+            const extraSpins = (gameDuration === 5 ? 6 : 11) * Math.PI * 2;
+            const finalDelta = extraSpins + neededDelta;
+
+            let lastSliceTick = Math.floor(startAngle / slice);
+            const pointerEl = document.getElementById('wheelPointer');
+
+            function easeOutQuint(t) {
+                return 1 - Math.pow(1 - t, 5);
+            }
+
+            function stepWheel(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / durationMs, 1);
+                const eased = easeOutQuint(progress);
+
+                wheelGame.angle = startAngle + finalDelta * eased;
+                drawWheelStatic();
+
+                const currentSliceTick = Math.floor(wheelGame.angle / slice);
+                if (currentSliceTick > lastSliceTick) {
+                    lastSliceTick = currentSliceTick;
+                    playWheelTick();
+                    pointerEl.style.transform = 'translateY(-50%) rotate(-22deg)';
+                    setTimeout(() => {
+                        pointerEl.style.transform = 'translateY(-50%) rotate(0deg)';
+                    }, 55);
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(stepWheel);
+                } else {
+                    wheelGame.isSpinning = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+
+                    const winResult = getWheelWinnerAtAngle(wheelGame.angle, unassigned);
+                    if (winResult && winResult.student) {
+                        assignWinnerToTargetSeat(winResult.student, wheelGame.targetSeatForThisTurn);
+                    }
+                }
+            }
+
+            requestAnimationFrame(stepWheel);
+        }
+
+        // ============================================================================
+        // 8. ĐIỀU KHIỂN CHUNG, CHUYỂN TAB & MODAL DANH SÁCH HỌC SINH
+        // ============================================================================
+        function isAnyGameRunning() {
+            return duckGame.isRacing || plinkoGame.isPlaying || wheelGame.isSpinning;
+        }
+
+        function setTimeMode(val) {
+            if (isAnyGameRunning()) {
+                document.getElementById('gameDurationInput').value = gameDuration;
+                return showToast("Đang chạy trò chơi, không thể đổi thời gian!");
+            }
+            let sec = parseInt(val);
+            if (isNaN(sec) || sec < 5) sec = 5;
+            if (sec > 15) sec = 15;
+            document.getElementById('gameDurationInput').value = sec;
+            gameDuration = sec;
+            document.getElementById('duckTimerText').innerText = `00:${sec < 10 ? '0' + sec : sec}.0`;
+        }
+
+        function switchGame(gameId) {
+            if (isAnyGameRunning()) return showToast("Vui lòng đợi lượt chơi hiện tại hoàn tất!");
+            activeGame = gameId;
+
+            ['duck', 'plinko', 'wheel'].forEach(id => {
+                const tab = document.getElementById(`tab-${id}`);
+                const panel = document.getElementById(`game-${id}`);
+                if (id === gameId) {
+                    tab.className = "px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow flex items-center gap-1.5 transition";
+                    panel.classList.remove('hidden');
+                } else {
+                    tab.className = "px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition";
+                    panel.classList.add('hidden');
+                }
+            });
+
+            setTimeout(() => {
+                if (gameId === 'duck') initDuckCanvas();
+                if (gameId === 'plinko') initPlinkoCanvas();
+                if (gameId === 'wheel') initWheelCanvas();
+            }, 20);
+        }
+
+        function openStudentModal() {
+            if (isAnyGameRunning()) return showToast("Đang chạy trò chơi!");
+            document.getElementById('classNameInput').value = currentClassName;
+            updateClassDropdown();
+            
+            const textarea = document.getElementById('studentListInput');
+            textarea.value = students.map(s => s.name).join('\n');
+            const modal = document.getElementById('studentModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeStudentModal() {
+            const modal = document.getElementById('studentModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function fillSampleNames() {
+            initDefaultStudents();
+            document.getElementById('studentListInput').value = students.map(s => s.name).join('\n');
+        }
+
+        function updateClassDropdown() {
+            const selectModal = document.getElementById('classSelectDropdown');
+            const selectHeader = document.getElementById('headerClassSelect');
+            let html = '<option value="">-- Chọn lớp lưu sẵn --</option>';
+            for (let cName in classDataDict) {
+                html += `<option value="${cName}">${cName}</option>`;
+            }
+            if (selectModal) selectModal.innerHTML = html;
+            if (selectHeader) {
+                selectHeader.innerHTML = html;
+                selectHeader.value = currentClassName;
+            }
+        }
+
+        function switchClassFromHeader(cName) {
+            if (!cName || !classDataDict[cName]) return;
+            if (isAnyGameRunning()) {
+                document.getElementById('headerClassSelect').value = currentClassName;
+                return showToast("Đang chạy trò chơi, không thể đổi lớp!");
+            }
+            loadClassData(cName);
+            showToast(`Đã chuyển sang lớp: ${cName}`);
+        }
+
+        function loadClassProfile(cName) {
+            if (!cName || !classDataDict[cName]) return;
+            document.getElementById('classNameInput').value = cName;
+            document.getElementById('studentListInput').value = classDataDict[cName].students.join('\n');
+        }
+
+        function saveStudentList() {
+            const newClassName = document.getElementById('classNameInput').value.trim() || "Lớp Mặc Định";
+            const raw = document.getElementById('studentListInput').value;
+            const lines = raw.split('\n').map(s => s.trim()).filter(Boolean).slice(0, TOTAL_SEATS);
+            if (lines.length === 0) return showToast("Vui lòng nhập ít nhất 1 học sinh!");
+
+            currentClassName = newClassName;
+            document.getElementById('headerClassName').innerText = `Lớp: ${currentClassName} • Sơ đồ 4 dãy x 6 bàn`;
+
+            students = lines.map((name, idx) => ({
+                id: `hs_${idx + 1}`,
+                name: name,
+                shortName: getShortName(name),
+                seatId: null
+            }));
+            
+            if (!classDataDict[currentClassName]) classDataDict[currentClassName] = { students: [], rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }], activeRigPresetIndex: 0 };
+            
+            activePresetIndex = classDataDict[currentClassName].activeRigPresetIndex || 0;
+            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules));
+            saveClassData();
+            
+            currentTargetSeatId = findNextEmptySeatId();
+            lastAssignedSeatId = null;
+            isRigActive = false; 
+            toggleOffOnce = false;
+            document.getElementById('instantFillToggle').checked = true;
+            riggedArrangement = null;
+            
+            updateClassDropdown(); // Sync newly added class
+            closeStudentModal();
+            renderGrid();
+            showToast(`Đã lưu danh sách & áp dụng cho ${currentClassName}!`);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2600);
+        }
+
+        // ============================================================================
+        // 9. CƠ CHẾ THIẾT LẬP CƠ CẤU (RIGGING / MANIPULATION MODULE)
+        // ============================================================================
+        function updateSecretDotIndicator() {
+            const dot = document.getElementById('secretDotIndicator');
+            if (dot) {
+                if (isRigActive) {
+                    dot.classList.remove('hidden');
+                } else {
+                    dot.classList.add('hidden');
+                }
+            }
+        }
+
+        function handleSecretToggle(el) {
+            if (!el.checked) {
+                // Đang gạt tắt công tắc
+                toggleOffOnce = true;
+            } else {
+                // Khi bật lại công tắc sau khi đã tắt
+                if (toggleOffOnce) {
+                    toggleOffOnce = false;
+                    // Đảo trạng thái cơ cấu (Bật -> Tắt, hoặc Tắt -> Bật)
+                    isRigActive = !isRigActive;
+                    
+                    if (isRigActive) {
+                        // Ép buộc nạp lại luật từ mẫu đã lưu cuối cùng để đảm bảo đồng bộ 100%
+                        const pIdx = classDataDict[currentClassName].activeRigPresetIndex || 0;
+                        rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
+                        calculateRiggingSilently();
+                    } else {
+                        riggedArrangement = null;
+                    }
+                    updateSecretDotIndicator();
+                }
+            }
+        }
+
+        function updateAdminUI() {
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+            const rigBtn = document.getElementById('secretRigBtn');
+            const authIcon = document.getElementById('adminAuthIcon');
+            const authBtn = document.getElementById('adminAuthBtn');
+
+            if (isAdmin) {
+                rigBtn.classList.remove('hidden');
+                rigBtn.classList.add('flex');
+                
+                authIcon.className = "fa-solid fa-unlock-keyhole text-emerald-600";
+                authBtn.classList.add('bg-emerald-50', 'border-emerald-200');
+                authBtn.classList.remove('bg-slate-100', 'border-slate-200');
+            } else {
+                rigBtn.classList.add('hidden');
+                rigBtn.classList.remove('flex');
+                
+                authIcon.className = "fa-solid fa-user-shield text-slate-500";
+                authBtn.classList.remove('bg-emerald-50', 'border-emerald-200');
+                authBtn.classList.add('bg-slate-100', 'border-slate-200');
+            }
+        }
+
+        function requireAdmin(actionFunc) {
+            if (sessionStorage.getItem('isAdmin') === 'true') {
+                actionFunc();
+            } else {
+                pendingAdminAction = actionFunc;
+                document.getElementById('secretPasswordInput').value = '';
+                document.getElementById('passwordModal').classList.remove('hidden');
+                document.getElementById('passwordModal').classList.add('flex');
+                setTimeout(() => document.getElementById('secretPasswordInput').focus(), 100);
+            }
+        }
+
+        function toggleAdminAuth() {
+            if (sessionStorage.getItem('isAdmin') === 'true') {
+                logoutAdmin();
+            } else {
+                requireAdmin(() => {
+                    showToast("Đã kích hoạt quyền Quản trị viên!");
+                });
+            }
+        }
+
+        function openRigModal() {
+            if (sessionStorage.getItem('isAdmin') === 'true') {
+                populateRigStudentSelects();
+                updateRigPresetUI();
+                onRigRuleTypeChange();
+                renderRigRuleList();
+                renderMiniClassroom();
+                document.getElementById('rigModal').classList.remove('hidden');
+                document.getElementById('rigModal').classList.add('flex');
+            }
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.getElementById('passwordModal').classList.remove('flex');
+            pendingAdminAction = null;
+        }
+
+        function checkPassword() {
+            const pwd = document.getElementById('secretPasswordInput').value;
+            if (pwd === "admin" || pwd === "123456") {
+                sessionStorage.setItem('isAdmin', 'true');
+                closePasswordModal();
+                updateAdminUI();
+                if (pendingAdminAction) {
+                    pendingAdminAction();
+                    pendingAdminAction = null;
+                }
+            } else {
+                showToast("Mật khẩu không hợp lệ!");
+            }
+        }
+
+        function logoutAdmin() {
+            sessionStorage.removeItem('isAdmin');
+            updateAdminUI();
+            closeRigModal();
+            showToast("Đã thoát quyền quản trị!");
+        }
+
+        // ====== HỆ THỐNG PROMPT & CONFIRM TÙY CHỈNH ======
+        let promptCallback = null;
+        function openPrompt(title, defaultVal, callback) {
+            document.getElementById('promptTitle').innerText = title;
+            const input = document.getElementById('promptInput');
+            input.value = defaultVal;
+            promptCallback = callback;
+            document.getElementById('promptModal').classList.remove('hidden');
+            document.getElementById('promptModal').classList.add('flex');
+            setTimeout(() => { input.focus(); input.select(); }, 100);
+        }
+        function closePrompt() {
+            document.getElementById('promptModal').classList.add('hidden');
+            document.getElementById('promptModal').classList.remove('flex');
+            promptCallback = null;
+        }
+        document.getElementById('promptConfirmBtn').onclick = () => {
+            if(promptCallback) promptCallback(document.getElementById('promptInput').value);
+            closePrompt();
+        };
+        document.getElementById('promptInput').onkeypress = (e) => {
+            if(e.key === 'Enter') document.getElementById('promptConfirmBtn').click();
+        }
+
+        let confirmCallback = null;
+        function openConfirm(title, message, callback) {
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerText = message;
+            confirmCallback = callback;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('confirmModal').classList.add('flex');
+        }
+        function closeConfirm() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            document.getElementById('confirmModal').classList.remove('flex');
+            confirmCallback = null;
+        }
+        document.getElementById('confirmBtn').onclick = () => {
+            if(confirmCallback) confirmCallback();
+            closeConfirm();
+        };
+
+        // ====== QUẢN LÝ MẪU CƠ CẤU (PRESETS) ======
+        function updateRigPresetUI() {
+            const select = document.getElementById('rigPresetSelect');
+            if (!select) return;
+            select.innerHTML = '';
+            const presets = classDataDict[currentClassName].rigPresets || [];
+            presets.forEach((p, idx) => {
+                const isSelected = idx === activePresetIndex;
+                select.innerHTML += `<option value="${idx}" ${isSelected ? 'selected' : ''}>${p.name} ${isSelected ? ' (Đang Chọn)' : ''}</option>`;
+            });
+        }
+
+        function onSelectRigPreset() {
+            const select = document.getElementById('rigPresetSelect');
+            activePresetIndex = parseInt(select.value);
+            classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
+            
+            // Nạp dữ liệu của mẫu vừa chọn
+            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules));
+            saveClassData();
+            
+            updateRigPresetUI();
+            renderRigRuleList();
+            showToast("Đã chuyển mẫu cơ cấu!");
+        }
+
+        function promptNewPresetName() {
+            const defaultName = `Mẫu ${classDataDict[currentClassName].rigPresets.length + 1}`;
+            openPrompt("Lưu thành mẫu cơ cấu mới", defaultName, (name) => {
+                if (name.trim() !== "") {
+                    classDataDict[currentClassName].rigPresets.push({
+                        name: name.trim(),
+                        rules: JSON.parse(JSON.stringify(rigRulesList))
+                    });
+                    activePresetIndex = classDataDict[currentClassName].rigPresets.length - 1;
+                    classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
+                    saveClassData();
+                    updateRigPresetUI();
+                    showToast("Đã tạo mẫu cơ cấu mới!");
+                }
+            });
+        }
+
+        function updateActivePreset() {
+            classDataDict[currentClassName].rigPresets[activePresetIndex].rules = JSON.parse(JSON.stringify(rigRulesList));
+            saveClassData();
+            showToast("Đã lưu đè lên mẫu cơ cấu hiện tại!");
+        }
+
+        function deleteActivePreset() {
+            if (classDataDict[currentClassName].rigPresets.length <= 1) {
+                return showToast("Không thể xóa mẫu duy nhất. Hãy tạo mẫu khác trước!");
+            }
+            const pName = classDataDict[currentClassName].rigPresets[activePresetIndex].name;
+            openConfirm("Xóa mẫu cơ cấu", `Bạn có chắc muốn xóa vĩnh viễn mẫu "${pName}"?`, () => {
+                classDataDict[currentClassName].rigPresets.splice(activePresetIndex, 1);
+                activePresetIndex = 0;
+                classDataDict[currentClassName].activeRigPresetIndex = 0;
+                
+                rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[0].rules));
+                saveClassData();
+                updateRigPresetUI();
+                renderRigRuleList();
+                showToast("Đã xóa mẫu cơ cấu!");
+            });
+        }
+
+        function closeRigModal() {
+            document.getElementById('rigModal').classList.add('hidden');
+            document.getElementById('rigModal').classList.remove('flex');
+        }
+
+        function populateRigStudentSelects() {
+            const s1 = document.getElementById('rigStudent1');
+            s1.innerHTML = '';
+            students.forEach(s => {
+                s1.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+            });
+        }
+
+        function onRigRuleTypeChange() {
+            const type = document.getElementById('rigRuleType').value;
+            const container = document.getElementById('rigTargetContainer');
+            container.innerHTML = '';
+            
+            if (type === 'area_only') {
+                container.innerHTML = `<div class="text-xs font-bold text-indigo-600 bg-indigo-50 p-2.5 rounded-lg border border-indigo-200 w-full text-center">Hãy bấm chọn các ghế trên Sơ đồ thu nhỏ bên phải <i class="fa-solid fa-arrow-right ml-1"></i></div>`;
+                rigSelectedSeats = []; // Reset area selection
+            } else {
+                let stSelect = `<select id="rigTargetVal" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">`;
+                students.forEach(s => {
+                    stSelect += `<option value="${s.id}">${s.name}</option>`;
+                });
+                stSelect += `</select>`;
+                container.innerHTML = stSelect;
+            }
+            renderMiniClassroom();
+        }
+
+        function renderMiniClassroom() {
+            const grid = document.getElementById('miniClassroomGrid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            
+            const typeSelect = document.getElementById('rigRuleType');
+            const isArea = typeSelect && typeSelect.value === 'area_only';
+
+            for (let c = 1; c <= COLS; c++) {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'flex flex-col gap-2.5';
+                colDiv.innerHTML = `<div class="text-center text-[10px] font-extrabold text-slate-500 bg-slate-200/60 py-1.5 rounded-md uppercase tracking-wider">DÃY ${c}</div>`;
+                
+                for (let r = 1; r <= ROWS_PER_COL; r++) {
+                    const desk = document.createElement('div');
+                    desk.className = 'flex gap-1.5 bg-white p-1.5 border border-amber-200/80 rounded-lg shadow-sm';
+                    
+                    ['L', 'R'].forEach(side => {
+                        const seatId = `D${c}_B${r}_${side}`;
+                        let isSelected = false;
+                        if (isArea) isSelected = rigSelectedSeats.includes(seatId);
+                        
+                        const seatEl = document.createElement('div');
+                        seatEl.className = `w-full h-11 rounded-md border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 select-none 
+                            ${isSelected 
+                                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105' 
+                                : 'bg-slate-50 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 text-slate-500'}`;
+                        
+                        seatEl.innerHTML = `<span class="text-[9px] font-bold opacity-70 mb-0.5">Bàn ${r}</span><span class="text-[11px] font-extrabold leading-none">${side === 'L' ? 'Trái' : 'Phải'}</span>`;
+                        seatEl.title = `Bấm để chọn: Dãy ${c} - Bàn ${r} - ${side === 'L' ? 'Trái' : 'Phải'}`;
+                        
+                        seatEl.onclick = () => {
+                            if (isArea) {
+                                if (rigSelectedSeats.includes(seatId)) {
+                                    rigSelectedSeats = rigSelectedSeats.filter(id => id !== seatId);
+                                } else {
+                                    rigSelectedSeats.push(seatId);
+                                }
+                                renderMiniClassroom();
+                            }
+                        };
+                        desk.appendChild(seatEl);
+                    });
+                    colDiv.appendChild(desk);
+                }
+                grid.appendChild(colDiv);
+            }
+        }
+
+        function addRigRule() {
+            const type = document.getElementById('rigRuleType').value;
+            const s1Id = document.getElementById('rigStudent1').value;
+            
+            if (type === 'area_only') {
+                if (rigSelectedSeats.length === 0) return showToast("Vui lòng chọn ít nhất 1 ghế trên sơ đồ!");
+                rigRulesList.push({ type, s1Id, seats: [...rigSelectedSeats] });
+                rigSelectedSeats = [];
+                renderMiniClassroom();
+            } else {
+                const targetVal = document.getElementById('rigTargetVal').value;
+                if (s1Id === targetVal) return showToast("Không thể chọn cùng 1 người! Vui lòng chọn người khác.");
+                rigRulesList.push({ type, s1Id, targetVal });
+            }
+            renderRigRuleList();
+        }
+
+        function clearRigRules() {
+            rigRulesList = [];
+            riggedArrangement = null;
+            renderRigRuleList();
+        }
+
+        function getStudentName(id) {
+            const s = students.find(x => x.id === id);
+            return s ? s.name : id;
+        }
+
+        function renderRigRuleList() {
+            const list = document.getElementById('rigRuleList');
+            document.getElementById('rigRuleCount').innerText = rigRulesList.length;
+            list.innerHTML = '';
+            if (rigRulesList.length === 0) {
+                list.innerHTML = '<div class="text-slate-400 italic text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-300">Chưa có quy tắc nào. Hãy thêm luật phía trên.</div>';
+                return;
+            }
+            rigRulesList.forEach((r, idx) => {
+                let text = '';
+                const name1 = getStudentName(r.s1Id);
+                
+                if (r.type === 'area_only') {
+                    text = `<span class="text-indigo-700 font-extrabold">${name1}</span> BẮT BUỘC ngồi trong khu vực <span class="font-bold bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-200">${r.seats.length} ghế đã chọn</span>`;
+                } else if (r.type === 'separate') {
+                    text = `<span class="text-rose-600 font-extrabold">${name1}</span> KHÔNG ĐƯỢC ngồi cùng bàn với <span class="text-rose-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
+                } else if (r.type === 'together') {
+                    text = `<span class="text-emerald-600 font-extrabold">${name1}</span> BẮT BUỘC ngồi cùng bàn với <span class="text-emerald-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
+                } else if (r.type === 'surround_must') {
+                    text = `<span class="text-amber-600 font-extrabold">${name1}</span> BẮT BUỘC xung quanh phải có <span class="text-amber-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
+                } else if (r.type === 'surround_not') {
+                    text = `<span class="text-rose-600 font-extrabold">${name1}</span> KHÔNG ĐƯỢC CÓ <span class="text-rose-600 font-extrabold">${getStudentName(r.targetVal)}</span> ở các ghế xung quanh`;
+                }
+                
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm hover:border-indigo-300 transition-colors">
+                        <span class="leading-snug flex-1">- ${text}</span>
+                        <button onclick="removeRigRule(${idx})" class="text-rose-400 hover:text-white hover:bg-rose-500 bg-rose-50 w-7 h-7 rounded flex items-center justify-center transition shrink-0 ml-2 shadow-sm"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        function removeRigRule(idx) {
+            rigRulesList.splice(idx, 1);
+            renderRigRuleList();
+        }
+
+        // --- THUẬT TOÁN LOGIC CƠ CẤU BACKTRACKING + MONTE CARLO ---
+        function getSeatCoords(seatId) {
+            if(!seatId) return null;
+            const parts = seatId.split('_'); 
+            const c = parseInt(parts[0].substring(1));
+            const r = parseInt(parts[1].substring(1));
+            const side = parts[2] === 'L' ? 0 : 1;
+            return { x: (c - 1) * 2 + side, y: r - 1 };
+        }
+
+        function isSurrounding(seat1, seat2) {
+            if(!seat1 || !seat2 || seat1 === seat2) return false;
+            const c1 = getSeatCoords(seat1);
+            const c2 = getSeatCoords(seat2);
+            return Math.abs(c1.x - c2.x) <= 1 && Math.abs(c1.y - c2.y) <= 1;
+        }
+
+        function calculateRiggingSilently() {
+            riggedArrangement = null;
+            if (rigRulesList.length === 0) return;
+            
+            let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
+            rigRulesList.forEach(r => {
+                if(rules[r.type]) rules[r.type].push(r);
+            });
+            
+            let allowedSeatsPerStudent = {};
+            for (let r of rules.area_only) {
+                if (!allowedSeatsPerStudent[r.s1Id]) {
+                    allowedSeatsPerStudent[r.s1Id] = new Set(r.seats);
+                } else {
+                    let current = allowedSeatsPerStudent[r.s1Id];
+                    let next = new Set(r.seats);
+                    allowedSeatsPerStudent[r.s1Id] = new Set([...current].filter(x => next.has(x)));
+                }
+            }
+
+            // Ghi nhận các học sinh ĐÃ ĐƯỢC XẾP CHỖ (không thay đổi)
+            let placement = {};
+            students.forEach(s => {
+                if (s.seatId) placement[s.seatId] = s.id;
+            });
+
+            function isValidPartialLayout(testPlacement) {
+                let reverseMap = {};
+                for (let seat in testPlacement) reverseMap[testPlacement[seat]] = seat;
+
+                for (let r of rules.separate) {
+                    let seat1 = reverseMap[r.s1Id];
+                    let seat2 = reverseMap[r.targetVal];
+                    if (seat1 && seat2) {
+                        if (seat1.substring(0, seat1.lastIndexOf('_')) === seat2.substring(0, seat2.lastIndexOf('_'))) return false;
+                    }
+                }
+
+                for (let r of rules.together) {
+                    let seat1 = reverseMap[r.s1Id];
+                    let seat2 = reverseMap[r.targetVal];
+                    if (seat1 && seat2) {
+                        if (seat1.substring(0, seat1.lastIndexOf('_')) !== seat2.substring(0, seat2.lastIndexOf('_'))) return false;
+                    }
+                }
+
+                for (let r of rules.surround_must) {
+                    let seat1 = reverseMap[r.s1Id];
+                    let seat2 = reverseMap[r.targetVal];
+                    if (seat1 && seat2) {
+                        if (!isSurrounding(seat1, seat2)) return false;
+                    }
+                }
+
+                for (let r of rules.surround_not) {
+                    let seat1 = reverseMap[r.s1Id];
+                    let seat2 = reverseMap[r.targetVal];
+                    if (seat1 && seat2) {
+                        if (isSurrounding(seat1, seat2)) return false;
+                    }
+                }
+
+                return true;
+            }
+
+            let allStudents = students.map(s => s.id);
+            let stScores = allStudents.map(id => {
+                let score = 0;
+                if (allowedSeatsPerStudent[id]) score += 100;
+                rules.together.forEach(r => { if(r.s1Id === id || r.targetVal === id) score += 50; });
+                rules.surround_must.forEach(r => { if(r.s1Id === id || r.targetVal === id) score += 40; });
+                rules.separate.forEach(r => { if(r.s1Id === id || r.targetVal === id) score += 10; });
+                rules.surround_not.forEach(r => { if(r.s1Id === id || r.targetVal === id) score += 10; });
+                return {id, score};
+            });
+            stScores.sort((a,b) => b.score - a.score);
+            
+            let orderedStudents = stScores.map(x => x.id).filter(id => !Object.values(placement).includes(id));
+            let allSeats = generateSeatOrderList('random_any');
+
+            let bestPlacement = null;
+            const MAX_ATTEMPTS = 500;
+
+            for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+                let testPlacement = {...placement};
+                let seatList = [...allSeats];
+                seatList.sort(() => Math.random() - 0.5); 
+                
+                let failedPreplace = false;
+                for (let r of rules.together) {
+                    if (Object.values(testPlacement).includes(r.s1Id) || Object.values(testPlacement).includes(r.targetVal)) continue;
+
+                    let availableDesks = [];
+                    for(let c=1; c<=COLS; c++) {
+                        for(let row=1; row<=ROWS_PER_COL; row++) {
+                            let L = `D${c}_B${row}_L`;
+                            let R = `D${c}_B${row}_R`;
+                            if (!testPlacement[L] && !testPlacement[R]) {
+                                let s1Ok = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
+                                let s2Ok = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
+                                if (s1Ok && s2Ok) availableDesks.push({L, R, order: [r.s1Id, r.targetVal]});
+                                
+                                let s1Ok_alt = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R);
+                                let s2Ok_alt = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L);
+                                if (s1Ok_alt && s2Ok_alt) availableDesks.push({L, R, order: [r.targetVal, r.s1Id]});
+                            }
+                        }
+                    }
+                    if (availableDesks.length === 0) { failedPreplace = true; break; }
+                    let choice = availableDesks[Math.floor(Math.random() * availableDesks.length)];
+                    testPlacement[choice.L] = choice.order[0];
+                    testPlacement[choice.R] = choice.order[1];
+                }
+                if (failedPreplace) continue;
+
+                let unplaced = orderedStudents.filter(id => !Object.values(testPlacement).includes(id));
+                
+                function solve(idx) {
+                    if (idx === unplaced.length) return true;
+                    let stId = unplaced[idx];
+                    
+                    let validSeats = seatList.filter(s => !testPlacement[s]);
+                    if (allowedSeatsPerStudent[stId]) {
+                        validSeats = validSeats.filter(s => allowedSeatsPerStudent[stId].has(s));
+                    }
+
+                    for (let i = 0; i < validSeats.length; i++) {
+                        let seat = validSeats[i];
+                        testPlacement[seat] = stId;
+                        if (isValidPartialLayout(testPlacement)) {
+                            if (solve(idx + 1)) return true;
+                        }
+                        delete testPlacement[seat]; // backtrack
+                    }
+                    return false;
+                }
+                
+                if (solve(0)) {
+                    bestPlacement = testPlacement;
+                    break;
+                }
+            }
+            
+            if (bestPlacement) {
+                riggedArrangement = bestPlacement;
+            }
+        }
+
+
+        // Khởi chạy ứng dụng khi tải trang
+        window.addEventListener('DOMContentLoaded', () => {
+            let storedData = localStorage.getItem('classroom_data');
+            if (storedData) {
+                classDataDict = JSON.parse(storedData);
+                currentClassName = localStorage.getItem('classroom_current') || Object.keys(classDataDict)[0];
+                loadClassData(currentClassName);
+            } else {
+                initDefaultStudents();
+            }
+
+            updateClassDropdown(); // Tải danh sách lớp vào thanh chọn Header
+            currentTargetSeatId = findNextEmptySeatId();
+            renderGrid();
+            initDuckCanvas();
+            initPlinkoCanvas();
+            initWheelCanvas();
+            updateAdminUI(); // Khởi tạo giao diện Admin đồng bộ
+            updateSecretDotIndicator();
+
+            // IntersectionObserver: Ngăn chặn Canvas render ngầm gây lag khi lướt xem sơ đồ
+            const container = document.getElementById('gameContainer');
+            if (container && window.IntersectionObserver) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(e => isGameVisible = e.isIntersecting);
+                }, { threshold: 0.05 });
+                observer.observe(container);
+            }
+
+            window.addEventListener('resize', () => {
+                if (activeGame === 'duck' && !duckGame.isRacing) initDuckCanvas();
+                if (activeGame === 'plinko' && !plinkoGame.isPlaying) initPlinkoCanvas();
+            });
+
+            // Tải dữ liệu từ Google Sheets khi mở web
+            loadDataFromSheet();
+        });
+    </script>
+</body>
+</html>
