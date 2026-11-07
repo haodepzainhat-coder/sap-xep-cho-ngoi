@@ -1383,22 +1383,20 @@
             const emptyList = ALL_SEAT_IDS.filter(seatId => !students.some(s => s.seatId === seatId));
             if (emptyList.length === 0) return '';
             
-            if (currentFillOrder === 'random_any') {
-                // Ưu tiên chọn ghế ngẫu nhiên ở Bàn 1->5 trước, chừa Bàn 6 lại cuối cùng
-                const normalEmpty = emptyList.filter(id => !id.includes('_B6_'));
-                if (normalEmpty.length > 0) {
+            // ƯU TIÊN TUYỆT ĐỐI BÀN 1 -> 5: Chưa kín 5 hàng trên thì KHÔNG BAO GIỜ chọn Bàn 6
+            const normalEmpty = emptyList.filter(id => !id.includes('_B6_'));
+            if (normalEmpty.length > 0) {
+                if (currentFillOrder === 'random_any') {
                     return normalEmpty[Math.floor(Math.random() * normalEmpty.length)];
-                } else {
-                    return emptyList[Math.floor(Math.random() * emptyList.length)];
                 }
+                return normalEmpty[0];
             }
 
-            for (const seatId of ALL_SEAT_IDS) {
-                if (!students.some(s => s.seatId === seatId)) {
-                    return seatId;
-                }
+            // Khi Bàn 1->5 đã kín 100%, mới chọn tới Bàn 6
+            if (currentFillOrder === 'random_any') {
+                return emptyList[Math.floor(Math.random() * emptyList.length)];
             }
-            return '';
+            return emptyList[0];
         }
 
         function syncHeaderAndDropdown() {
@@ -1479,41 +1477,71 @@
         function autoAssignAll() {
             if (isAnyGameRunning()) return showToast("Đang trong lượt chơi, vui lòng đợi!");
             const unassigned = students.filter(s => !s.seatId);
-            let emptySeats = ALL_SEAT_IDS.filter(id => !students.some(s => s.seatId === id));
-            if (unassigned.length === 0 || emptySeats.length === 0) {
-                return showToast("Tất cả học sinh hoặc ghế đã được xếp đầy đủ!");
+            if (unassigned.length === 0) {
+                return showToast("Tất cả học sinh đã được xếp chỗ!");
             }
             
+            // 1. Phân tách ghế trống thành 2 nhóm rõ rệt: Hàng 1->5 và Hàng 6
+            let empty1to5 = ALL_SEAT_IDS.filter(id => !id.includes('_B6_') && !students.some(s => s.seatId === id));
+            let empty6 = ALL_SEAT_IDS.filter(id => id.includes('_B6_') && !students.some(s => s.seatId === id));
+
+            if (currentFillOrder === 'random_any') {
+                empty1to5.sort(() => Math.random() - 0.5);
+                empty6.sort(() => Math.random() - 0.5);
+            }
+
+            // Bắt buộc lấp đầy 100% Bàn 1->5 rồi mới tới Bàn 6
+            let orderedEmptySeats = [...empty1to5, ...empty6];
+            if (orderedEmptySeats.length === 0) {
+                return showToast("Không còn ghế trống nào trên sơ đồ!");
+            }
+
             let count = 0;
-            if (riggedArrangement) {
-                // Áp dụng thẳng theo cơ cấu ngầm đã tạo
+            if (isRigActive) {
+                calculateRiggingSilently();
+            }
+
+            if (isRigActive && riggedArrangement) {
+                // Áp dụng xếp theo cơ cấu đã tính toán chuẩn xác
                 unassigned.forEach(u => {
                     let seat = Object.keys(riggedArrangement).find(k => riggedArrangement[k] === u.id);
-                    if(seat && !students.some(s => s.seatId === seat)) {
+                    if (seat && !students.some(s => s.seatId === seat)) {
                         u.seatId = seat;
                         lastAssignedSeatId = seat;
                         count++;
                     }
                 });
+
+                // Các bạn còn lại (nếu có) tiếp tục điền ưu tiên lấp đầy Hàng 1->5 trước
+                let remUnassigned = students.filter(s => !s.seatId);
+                let remEmpty1to5 = ALL_SEAT_IDS.filter(id => !id.includes('_B6_') && !students.some(s => s.seatId === id));
+                let remEmpty6 = ALL_SEAT_IDS.filter(id => id.includes('_B6_') && !students.some(s => s.seatId === id));
+                if (currentFillOrder === 'random_any') {
+                    remEmpty1to5.sort(() => Math.random() - 0.5);
+                    remEmpty6.sort(() => Math.random() - 0.5);
+                }
+                let remOrdered = [...remEmpty1to5, ...remEmpty6];
+                
+                remUnassigned.forEach((u, i) => {
+                    if (i < remOrdered.length) {
+                        u.seatId = remOrdered[i];
+                        lastAssignedSeatId = remOrdered[i];
+                        count++;
+                    }
+                });
             } else {
                 unassigned.sort(() => Math.random() - 0.5);
-                if (currentFillOrder === 'random_any') {
-                    // Trộn lại các ghế trống nhưng vẫn đẩy Bàn 6 xuống cuối
-                    let normalEmpty = emptySeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
-                    let row6Empty = emptySeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
-                    emptySeats = normalEmpty.concat(row6Empty);
-                }
-                count = Math.min(unassigned.length, emptySeats.length);
+                count = Math.min(unassigned.length, orderedEmptySeats.length);
                 for (let i = 0; i < count; i++) {
-                    unassigned[i].seatId = emptySeats[i];
+                    unassigned[i].seatId = orderedEmptySeats[i];
                 }
-                lastAssignedSeatId = emptySeats[count - 1];
+                lastAssignedSeatId = orderedEmptySeats[count - 1];
             }
 
             currentTargetSeatId = findNextEmptySeatId();
             renderGrid();
             playWinFanfare();
-            showToast(`Đã xếp nhanh ${count} học sinh!`);
+            showToast(`Đã xếp nhanh ${count} học sinh (ưu tiên kín 5 hàng trên)!`);
         }
 
         // ============================================================================
@@ -3275,17 +3303,32 @@
             let listStudents = Array.from(studentsInvolved);
             if (listStudents.length === 0) return { success: true };
 
-            const MAX_TRIES = 350;
+            const MAX_TRIES = 500;
             for (let t = 0; t < MAX_TRIES; t++) {
                 testPlacement = {};
-                let seatsCopy = [...allSeats].sort(() => Math.random() - 0.5);
+                // Tách biệt ghế 1->5 và ghế 6 để luôn ưu tiên kín hàng trên
+                let seats1to5 = allSeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
+                let seats6 = allSeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
+                let seatsCopy = [...seats1to5, ...seats6];
 
                 let failed = false;
                 for (let r of rules.together) {
                     let desks = [];
+                    // Ưu tiên tìm bàn ở Bàn 1->5 trước
                     for (let c = 1; c <= COLS; c++) {
-                        for (let row = 1; row <= ROWS_PER_COL; row++) {
+                        for (let row = 1; row <= 5; row++) {
                             let L = `D${c}_B${row}_L`, R = `D${c}_B${row}_R`;
+                            if (!testPlacement[L] && !testPlacement[R]) {
+                                let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
+                                let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
+                                if (s1L && s2R) desks.push({ L, R, s1: r.s1Id, s2: r.targetVal });
+                            }
+                        }
+                    }
+                    if (desks.length === 0) {
+                        // Chỉ khi hàng 1-5 không còn bàn nào mới xét Bàn 6
+                        for (let c = 1; c <= COLS; c++) {
+                            let L = `D${c}_B6_L`, R = `D${c}_B6_R`;
                             if (!testPlacement[L] && !testPlacement[R]) {
                                 let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
                                 let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
@@ -3637,22 +3680,42 @@
             let allSeats = generateSeatOrderList('random_any');
 
             let bestPlacement = null;
-            const MAX_ATTEMPTS = 500;
+            const MAX_ATTEMPTS = 600;
 
             for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 let testPlacement = {...placement};
-                let seatList = [...allSeats];
-                seatList.sort(() => Math.random() - 0.5); 
+                
+                // Tách biệt ghế 1->5 và ghế 6: KHÔNG BAO GIỜ trộn lẫn Bàn 6 vào trước Bàn 1->5
+                let seats1to5 = allSeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
+                let seats6 = allSeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
+                let seatList = [...seats1to5, ...seats6];
                 
                 let failedPreplace = false;
                 for (let r of rules.together) {
                     if (Object.values(testPlacement).includes(r.s1Id) || Object.values(testPlacement).includes(r.targetVal)) continue;
 
                     let availableDesks = [];
+                    // Chỉ tìm bàn ở Bàn 1->5 trước
                     for(let c=1; c<=COLS; c++) {
-                        for(let row=1; row<=ROWS_PER_COL; row++) {
+                        for(let row=1; row<=5; row++) {
                             let L = `D${c}_B${row}_L`;
                             let R = `D${c}_B${row}_R`;
+                            if (!testPlacement[L] && !testPlacement[R]) {
+                                let s1Ok = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
+                                let s2Ok = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
+                                if (s1Ok && s2Ok) availableDesks.push({L, R, order: [r.s1Id, r.targetVal]});
+                                
+                                let s1Ok_alt = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R);
+                                let s2Ok_alt = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L);
+                                if (s1Ok_alt && s2Ok_alt) availableDesks.push({L, R, order: [r.targetVal, r.s1Id]});
+                            }
+                        }
+                    }
+                    // Nếu 5 hàng trên không còn bàn đôi trống, mới xem xét Bàn 6
+                    if (availableDesks.length === 0) {
+                        for(let c=1; c<=COLS; c++) {
+                            let L = `D${c}_B6_L`;
+                            let R = `D${c}_B6_R`;
                             if (!testPlacement[L] && !testPlacement[R]) {
                                 let s1Ok = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
                                 let s2Ok = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
