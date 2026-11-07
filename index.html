@@ -62,6 +62,26 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* Thêm style cho Kéo Thả (Drag & Drop) */
+        .draggable-item {
+            cursor: grab;
+        }
+        .draggable-item:active {
+            cursor: grabbing;
+        }
+        .drag-over {
+            border: 2px dashed #4f46e5 !important;
+            background-color: #eef2ff !important;
+            transform: scale(1.02);
+        }
+        .student-pool-pill {
+            transition: all 0.2s;
+        }
+        .student-pool-pill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
         /* Chế độ In Ấn / Xuất PDF */
         @media print {
             body, html { 
@@ -211,6 +231,16 @@
                     <optgroup label="Ngẫu Nhiên">
                         <option value="random_any">Ngẫu nhiên bất kỳ ghế trống</option>
                     </optgroup>
+                </select>
+            </div>
+
+            <!-- Tùy chọn Hiển thị Tên -->
+            <div class="bg-slate-100 p-1 rounded-lg flex items-center border border-slate-200">
+                <span class="text-[11px] font-bold text-slate-500 px-2">HIỂN THỊ:</span>
+                <select id="nameDisplaySelect" onchange="changeNameDisplayMode(this.value)" class="bg-white text-slate-800 font-bold text-xs rounded-md px-2 py-1 border border-slate-300 outline-none cursor-pointer">
+                    <option value="short" selected>Họ + Tên</option>
+                    <option value="full">Đầy đủ Họ Tên</option>
+                    <option value="first">Chỉ hiện Tên</option>
                 </select>
             </div>
 
@@ -459,6 +489,17 @@
                 <!-- 4 DÃY x 6 BÀN x 2 GHẾ -->
                 <div class="grid grid-cols-4 gap-6" id="classroomGrid">
                     <!-- Được vẽ tự động bằng JS -->
+                </div>
+
+                <!-- KHU VỰC HỌC SINH CHƯA XẾP CHỖ (ĐỂ KÉO THẢ) -->
+                <div class="mt-8 pt-6 border-t border-slate-200 no-print" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'pool')">
+                    <h3 class="text-sm font-extrabold text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-indigo-500"></i> Danh sách học sinh chờ xếp chỗ
+                        <span class="text-xs font-medium text-slate-500 font-normal">(Kéo tên thả vào ghế trống hoặc kéo 2 ghế để đổi chỗ)</span>
+                    </h3>
+                    <div id="unassignedPool" class="flex flex-wrap gap-2 min-h-[60px] p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                        <!-- Danh sách học sinh chưa xếp sẽ được render ở đây -->
+                    </div>
                 </div>
 
                 <!-- Chân trang sơ đồ -->
@@ -728,6 +769,7 @@
         let rigSelectedSeats = []; // Danh sách ghế được chọn cho rule "area_only"
         
         let pendingAdminAction = null; // Lưu hành động chờ xác thực Admin
+        let nameDisplayMode = 'short'; // Chế độ hiển thị tên
         window.isSyncingFromCloud = false;
 
         function generateSeatOrderList(orderType) {
@@ -937,16 +979,42 @@
             students = sampleNames.map((name, i) => ({
                 id: `hs_${i + 1}`,
                 name: name,
-                shortName: getShortName(name),
+                shortName: formatNameDisplay(name),
                 seatId: null
             }));
             saveClassData();
         }
 
-        function getShortName(fullName) {
+        function formatNameDisplay(fullName) {
+            if (!fullName) return "";
             const parts = fullName.trim().split(/\s+/);
-            if (parts.length <= 2) return fullName.trim();
-            return parts.slice(-2).join(' '); // Lấy Đệm + Tên cho rõ ràng (VD: "Minh An")
+            if (parts.length <= 1) return fullName.trim();
+            
+            if (nameDisplayMode === 'full') {
+                return fullName.trim();
+            } else if (nameDisplayMode === 'first') {
+                return parts[parts.length - 1];
+            } else {
+                // default 'short' (Họ + Tên)
+                return parts[0] + ' ' + parts[parts.length - 1];
+            }
+        }
+
+        function getShortName(fullName) {
+            return formatNameDisplay(fullName);
+        }
+
+        function changeNameDisplayMode(mode) {
+            nameDisplayMode = mode;
+            students.forEach(s => {
+                s.shortName = formatNameDisplay(s.name);
+            });
+            renderGrid();
+            if (!isAnyGameRunning()) {
+                rebuildDuckCandidates();
+                rebuildPlinkoBoard();
+                drawWheelStatic();
+            }
         }
 
         function formatSeatLabel(seatId) {
@@ -1015,16 +1083,24 @@
                         const seatEl = document.createElement('div');
                         seatEl.id = `seat-${seatId}`;
 
+                        // Thêm sự kiện Kéo Thả (Drag & Drop) cho ghế
+                        seatEl.ondragover = handleDragOver;
+                        seatEl.ondragleave = handleDragLeave;
+                        seatEl.ondrop = (e) => handleDrop(e, seatId);
+
                         if (occupant) {
-                            seatEl.className = `seat-box seat-occupied flex flex-col items-center justify-center p-1 relative group cursor-pointer ${isJustLanded ? 'seat-just-landed' : ''}`;
-                            seatEl.title = `${occupant.name} (Bấm dấu X để gỡ khỏi ghế)`;
+                            seatEl.className = `seat-box seat-occupied flex flex-col items-center justify-center p-1 relative group draggable-item ${isJustLanded ? 'seat-just-landed' : ''}`;
+                            seatEl.title = `${occupant.name} (Kéo thả để đổi chỗ, hoặc bấm X để gỡ)`;
+                            seatEl.draggable = true;
+                            seatEl.ondragstart = (e) => handleDragStart(e, occupant.id, seatId);
+                            seatEl.ondragend = handleDragEnd;
 
                             const nameSpan = document.createElement('span');
-                            nameSpan.className = 'text-[11px] font-extrabold text-center leading-tight px-1 line-clamp-2 select-text';
+                            nameSpan.className = 'text-[11px] font-extrabold text-center leading-tight px-1 line-clamp-2 select-text pointer-events-none';
                             nameSpan.innerText = occupant.shortName;
 
                             const removeBtn = document.createElement('button');
-                            removeBtn.className = 'absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] opacity-0 group-hover:opacity-100 transition shadow no-print';
+                            removeBtn.className = 'absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] opacity-0 group-hover:opacity-100 transition shadow no-print z-10';
                             removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
                             removeBtn.onclick = (e) => {
                                 e.stopPropagation();
@@ -1035,8 +1111,8 @@
                             seatEl.appendChild(removeBtn);
                         } else {
                             const isRandomMode = currentFillOrder === 'random_any';
-                            seatEl.className = `seat-box seat-empty flex flex-col items-center justify-center cursor-pointer ${isTarget ? 'seat-target' : ''}`;
-                            seatEl.title = `Chọn ghế này: ${formatSeatLabel(seatId)}`;
+                            seatEl.className = `seat-box seat-empty flex flex-col items-center justify-center cursor-pointer transition-colors ${isTarget ? 'seat-target' : ''}`;
+                            seatEl.title = `Ghế trống: ${formatSeatLabel(seatId)} (Bấm để đặt làm mục tiêu, hoặc thả học sinh vào đây)`;
                             
                             if (isTarget) {
                                 if (isRandomMode) {
@@ -1065,7 +1141,110 @@
                 grid.appendChild(colDiv);
             }
 
+            renderUnassignedPool();
             syncHeaderAndDropdown();
+        }
+
+        // ==========================================
+        // CÁC HÀM XỬ LÝ KÉO THẢ (DRAG & DROP)
+        // ==========================================
+        
+        function renderUnassignedPool() {
+            const pool = document.getElementById('unassignedPool');
+            if (!pool) return;
+            pool.innerHTML = '';
+            
+            const unassigned = students.filter(s => !s.seatId);
+            if (unassigned.length === 0) {
+                pool.innerHTML = '<span class="text-slate-400 italic text-xs w-full text-center py-2">Đã xếp hết học sinh vào chỗ ngồi.</span>';
+                return;
+            }
+
+            unassigned.forEach(st => {
+                const pill = document.createElement('div');
+                pill.className = 'student-pool-pill bg-white border border-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded-full cursor-grab shadow-sm flex items-center gap-1.5 select-none';
+                pill.draggable = true;
+                pill.innerHTML = `<i class="fa-solid fa-user text-indigo-400 text-[10px]"></i> ${st.shortName}`;
+                
+                pill.ondragstart = (e) => handleDragStart(e, st.id, 'pool');
+                pill.ondragend = handleDragEnd;
+                
+                pool.appendChild(pill);
+            });
+        }
+
+        function handleDragStart(e, studentId, sourceId) {
+            e.dataTransfer.setData('application/json', JSON.stringify({ studentId, sourceId }));
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.style.opacity = '0.4';
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '1';
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); 
+            e.dataTransfer.dropEffect = 'move';
+            const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
+            if (seatEl) {
+                seatEl.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
+            if (seatEl) {
+                seatEl.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e, targetId) {
+            e.preventDefault();
+            const seatEl = e.target.closest('.seat-box') || e.target.closest('#unassignedPool');
+            if (seatEl) seatEl.classList.remove('drag-over');
+
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                const { studentId, sourceId } = data;
+
+                if (sourceId === targetId) return; // Kéo thả vào chính nó
+
+                const student = students.find(s => s.id === studentId);
+                if (!student) return;
+
+                if (targetId === 'pool') {
+                    // Xóa khỏi ghế, đưa về danh sách chờ
+                    student.seatId = null;
+                    // Bỏ: không đổi mục tiêu sang ghế vừa trống nữa
+                } else {
+                    // Thả vào một ghế
+                    const occupant = students.find(s => s.seatId === targetId);
+                    
+                    if (occupant) {
+                        // Đổi chỗ
+                        if (sourceId === 'pool') {
+                            occupant.seatId = null;
+                            student.seatId = targetId;
+                        } else {
+                            occupant.seatId = sourceId;
+                            student.seatId = targetId;
+                        }
+                    } else {
+                        // Thả vào ghế trống
+                        student.seatId = targetId;
+                        // Bỏ: không ép nhảy mục tiêu tự động nữa (để giữ nguyên mục tiêu cũ)
+                    }
+                    lastAssignedSeatId = targetId;
+                }
+
+                renderGrid();
+                saveClassData();
+                playPegPing(1.2); // Phát âm thanh nhỏ báo hiệu đổi thành công
+            } catch (err) {
+                console.error("Lỗi khi kéo thả:", err);
+            }
         }
 
         function findNextEmptySeatId() {
