@@ -1667,10 +1667,16 @@
         // 3. CƠ CHẾ XỬ LÝ NGƯỜI THẮNG -> ĐIỀN THẲNG VÀO BÀN LẬP TỨC
         // ============================================================================
         function assignWinnerToTargetSeat(winnerStudent, forcedSeatId = null) {
-            let seatToFill = forcedSeatId || currentTargetSeatId;
-            // Nếu ở chế độ ngẫu nhiên, mỗi lượt bốc luôn lấy 1 ghế trống bất kỳ hoàn toàn ngẫu nhiên
-            if (currentFillOrder === 'random_any' || !seatToFill || students.some(s => s.seatId === seatToFill)) {
-                seatToFill = findNextEmptySeatId();
+            let seatToFill = forcedSeatId;
+            
+            // Nếu không có forcedSeatId, hoặc ghế đó đã có người ngồi, thì tìm ghế mới
+            if (!seatToFill || students.some(s => s.seatId === seatToFill)) {
+                seatToFill = currentTargetSeatId;
+                
+                // Trừ phi cố tình ép bằng forcedSeatId, nếu đang bật "Ngẫu nhiên" thì bốc random 1 ghế
+                if (currentFillOrder === 'random_any' || !seatToFill || students.some(s => s.seatId === seatToFill)) {
+                    seatToFill = findNextEmptySeatId();
+                }
             }
 
             if (!seatToFill) {
@@ -3740,6 +3746,19 @@
                 for (let r of rules.together) {
                     let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
                     if (s1 && s2 && s1.substring(0, s1.lastIndexOf('_')) !== s2.substring(0, s2.lastIndexOf('_'))) return false;
+                    
+                    if (s1 && !s2) {
+                        let base = s1.substring(0, s1.lastIndexOf('_'));
+                        let other = s1.endsWith('_L') ? '_R' : '_L';
+                        let otherSeat = base + other;
+                        if (layout[otherSeat] && layout[otherSeat] !== r.targetVal) return false;
+                    }
+                    if (s2 && !s1) {
+                        let base = s2.substring(0, s2.lastIndexOf('_'));
+                        let other = s2.endsWith('_L') ? '_R' : '_L';
+                        let otherSeat = base + other;
+                        if (layout[otherSeat] && layout[otherSeat] !== r.s1Id) return false;
+                    }
                 }
                 for (let r of rules.surround_must) {
                     let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
@@ -3771,6 +3790,36 @@
 
                 let failed = false;
                 for (let r of rules.together) {
+                    let hasS1 = Object.values(testPlacement).includes(r.s1Id);
+                    let hasS2 = Object.values(testPlacement).includes(r.targetVal);
+                    if (hasS1 && hasS2) continue;
+
+                    if (hasS1 && !hasS2) {
+                        let seatA = Object.keys(testPlacement).find(k => testPlacement[k] === r.s1Id);
+                        let base = seatA.substring(0, seatA.lastIndexOf('_'));
+                        let other = seatA.endsWith('_L') ? '_R' : '_L';
+                        let seatB = base + other;
+                        if (!testPlacement[seatB]) {
+                            if (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(seatB)) {
+                                testPlacement[seatB] = r.targetVal;
+                            } else { failed = true; break; }
+                        } else { failed = true; break; }
+                        continue;
+                    }
+                    
+                    if (hasS2 && !hasS1) {
+                        let seatB = Object.keys(testPlacement).find(k => testPlacement[k] === r.targetVal);
+                        let base = seatB.substring(0, seatB.lastIndexOf('_'));
+                        let other = seatB.endsWith('_L') ? '_R' : '_L';
+                        let seatA = base + other;
+                        if (!testPlacement[seatA]) {
+                            if (!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(seatA)) {
+                                testPlacement[seatA] = r.s1Id;
+                            } else { failed = true; break; }
+                        } else { failed = true; break; }
+                        continue;
+                    }
+
                     let desks = [];
                     // Ưu tiên tìm bàn ở Bàn 1->5 trước
                     for (let c = 1; c <= COLS; c++) {
@@ -4101,6 +4150,18 @@
                     if (seat1 && seat2) {
                         if (seat1.substring(0, seat1.lastIndexOf('_')) !== seat2.substring(0, seat2.lastIndexOf('_'))) return false;
                     }
+                    if (seat1 && !seat2) {
+                        let base = seat1.substring(0, seat1.lastIndexOf('_'));
+                        let other = seat1.endsWith('_L') ? '_R' : '_L';
+                        let otherSeat = base + other;
+                        if (testPlacement[otherSeat] && testPlacement[otherSeat] !== r.targetVal) return false;
+                    }
+                    if (seat2 && !seat1) {
+                        let base = seat2.substring(0, seat2.lastIndexOf('_'));
+                        let other = seat2.endsWith('_L') ? '_R' : '_L';
+                        let otherSeat = base + other;
+                        if (testPlacement[otherSeat] && testPlacement[otherSeat] !== r.s1Id) return false;
+                    }
                 }
 
                 for (let r of rules.surround_must) {
@@ -4150,7 +4211,35 @@
                 
                 let failedPreplace = false;
                 for (let r of rules.together) {
-                    if (Object.values(testPlacement).includes(r.s1Id) || Object.values(testPlacement).includes(r.targetVal)) continue;
+                    let hasS1 = Object.values(testPlacement).includes(r.s1Id);
+                    let hasS2 = Object.values(testPlacement).includes(r.targetVal);
+                    if (hasS1 && hasS2) continue;
+
+                    if (hasS1 && !hasS2) {
+                        let seatA = Object.keys(testPlacement).find(k => testPlacement[k] === r.s1Id);
+                        let base = seatA.substring(0, seatA.lastIndexOf('_'));
+                        let other = seatA.endsWith('_L') ? '_R' : '_L';
+                        let seatB = base + other;
+                        if (!testPlacement[seatB]) {
+                            if (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(seatB)) {
+                                testPlacement[seatB] = r.targetVal;
+                            } else { failedPreplace = true; break; }
+                        } else { failedPreplace = true; break; }
+                        continue;
+                    }
+                    
+                    if (hasS2 && !hasS1) {
+                        let seatB = Object.keys(testPlacement).find(k => testPlacement[k] === r.targetVal);
+                        let base = seatB.substring(0, seatB.lastIndexOf('_'));
+                        let other = seatB.endsWith('_L') ? '_R' : '_L';
+                        let seatA = base + other;
+                        if (!testPlacement[seatA]) {
+                            if (!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(seatA)) {
+                                testPlacement[seatA] = r.s1Id;
+                            } else { failedPreplace = true; break; }
+                        } else { failedPreplace = true; break; }
+                        continue;
+                    }
 
                     let availableDesks = [];
                     // Chỉ tìm bàn ở Bàn 1->5 trước
