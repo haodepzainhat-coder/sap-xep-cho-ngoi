@@ -389,6 +389,10 @@
                         <button onclick="shuffleDucks()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Đổi màu mũ & vị trí làn bơi">
                             <i class="fa-solid fa-shuffle"></i> Đổi Làn
                         </button>
+                        <!-- Nút Auto kế bên Đổi Làn -->
+                        <button id="btnAutoDuck" onclick="toggleAutoDuckRace()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động đua liên tục đến khi xếp xong cả lớp">
+                            <i class="fa-solid fa-play"></i> <span>Auto</span>
+                        </button>
                     </div>
                 </div>
 
@@ -734,7 +738,7 @@
     </div>
 
     <!-- MODAL PROMPT TÙY CHỈNH (NHẬP TÊN MẪU) -->
-    <div id="promptModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[80] hidden items-center justify-center p-4 no-print">
+    <div id="promptModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[120] hidden items-center justify-center p-4 no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 border border-slate-200 flex flex-col">
             <h3 id="promptTitle" class="text-base font-extrabold text-slate-900 mb-3">Nhập tên</h3>
             <input type="text" id="promptInput" class="w-full p-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-5">
@@ -746,7 +750,7 @@
     </div>
 
     <!-- MODAL CONFIRM TÙY CHỈNH (XÁC NHẬN XÓA) -->
-    <div id="confirmModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[80] hidden items-center justify-center p-4 no-print">
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[120] hidden items-center justify-center p-4 no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 border border-slate-200 flex flex-col">
             <div class="flex items-center gap-3 mb-3">
                 <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
@@ -944,6 +948,10 @@
         let isRigActive = false;
         let isRigMasterEnabled = true; // Quyền cơ cấu tổng do Admin cấp
         let toggleOffOnce = false;
+
+        // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO ĐUA VỊT
+        let isAutoDuck = false;
+        let autoDuckTimer = null;
 
         let rigRulesList = []; 
         let activePresetIndex = 0; // Lưu vị trí mẫu cơ cấu đang chọn
@@ -1564,6 +1572,7 @@
 
         function resetAllSeats() {
             if (isAnyGameRunning()) return showToast("Đang trong lượt chơi, vui lòng đợi!");
+            stopAutoDuck(); // Hủy Auto nếu đang bật
             students.forEach(s => s.seatId = null);
             
             // MỚI: Xóa sạch sơ đồ sẽ LUÔN TẮT CƠ CẤU (Reset hệ thống về bình thường)
@@ -1578,6 +1587,10 @@
             lastAssignedSeatId = null;
             renderGrid();
             showToast("Đã làm mới lại sơ đồ bàn ghế!");
+
+            // Hiện lại bảng chọn chế độ khi reset sơ đồ
+            hasChosenWelcomeMode = false;
+            showWelcomeModal();
         }
 
         function autoAssignAll() {
@@ -2323,10 +2336,69 @@
 
                     // Điền thẳng con vịt chiến thắng vào ghế ngồi đã khóa trên sơ đồ!
                     assignWinnerToTargetSeat(winnerDuck.student, duckGame.targetSeatForThisTurn);
+
+                    // Xử lý chế độ Auto liên tục nếu đang bật
+                    if (isAutoDuck) {
+                        const remaining = students.filter(s => !s.seatId);
+                        const nextSeat = findNextEmptySeatId();
+                        if (remaining.length > 0 && nextSeat) {
+                            autoDuckTimer = setTimeout(() => {
+                                if (isAutoDuck && activeGame === 'duck') {
+                                    startDuckRace();
+                                }
+                            }, 1400);
+                        } else {
+                            stopAutoDuck();
+                            showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
+                        }
+                    }
                 }
             }
 
             requestAnimationFrame(stepRace);
+        }
+
+        // ==========================================
+        // CÁC HÀM XỬ LÝ CHẾ ĐỘ AUTO ĐUA VỊT
+        // ==========================================
+        function toggleAutoDuckRace() {
+            if (isAutoDuck) {
+                stopAutoDuck();
+                showToast("Đã dừng chế độ Đua Tự Động!");
+            } else {
+                const unassigned = students.filter(s => !s.seatId);
+                if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
+                if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
+
+                isAutoDuck = true;
+                updateAutoDuckUI();
+                showToast("🚀 Đã BẬT Auto! Vịt sẽ đua liên tục cho tới khi xếp hết học sinh.");
+
+                if (!duckGame.isRacing) {
+                    startDuckRace();
+                }
+            }
+        }
+
+        function stopAutoDuck() {
+            isAutoDuck = false;
+            if (autoDuckTimer) {
+                clearTimeout(autoDuckTimer);
+                autoDuckTimer = null;
+            }
+            updateAutoDuckUI();
+        }
+
+        function updateAutoDuckUI() {
+            const btn = document.getElementById('btnAutoDuck');
+            if (!btn) return;
+            if (isAutoDuck) {
+                btn.className = "px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl border border-amber-400 text-xs transition flex items-center gap-1.5 shadow-md shadow-amber-900/40 animate-pulse";
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Dừng Auto</span>';
+            } else {
+                btn.className = "px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5";
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Auto</span>';
+            }
         }
 
         // ============================================================================
@@ -2896,6 +2968,7 @@
 
         function switchGame(gameId) {
             if (isAnyGameRunning()) return showToast("Vui lòng đợi lượt chơi hiện tại hoàn tất!");
+            if (gameId !== 'duck') stopAutoDuck(); // Tự động ngắt Auto nếu rời khỏi Đua Vịt
             activeGame = gameId;
 
             ['duck', 'plinko', 'wheel'].forEach(id => {
@@ -3255,30 +3328,57 @@
         }
 
         let confirmCallback = null;
-        function openConfirm(title, message, callback) {
+        let cancelCallback = null;
+        function openConfirm(title, message, callback, onCancel = null) {
             document.getElementById('confirmTitle').innerText = title;
             document.getElementById('confirmMessage').innerText = message;
             confirmCallback = callback;
+            cancelCallback = onCancel;
             document.getElementById('confirmModal').classList.remove('hidden');
             document.getElementById('confirmModal').classList.add('flex');
         }
         function closeConfirm() {
             document.getElementById('confirmModal').classList.add('hidden');
             document.getElementById('confirmModal').classList.remove('flex');
+            if (cancelCallback) {
+                const onCancel = cancelCallback;
+                cancelCallback = null;
+                onCancel();
+            }
             confirmCallback = null;
         }
         document.getElementById('confirmBtn').onclick = () => {
-            if(confirmCallback) confirmCallback();
+            const cb = confirmCallback;
+            confirmCallback = null;
+            cancelCallback = null;
+            if(cb) cb();
             closeConfirm();
         };
 
         // ====== HỆ THỐNG GỬI & NHẬN CẤU HÌNH (GMAIL CHO ADMIN) ======
         let sessionMode = 'none'; // 'test' hoặc 'submit'
+        let hasChosenWelcomeMode = false;
+
+        function showWelcomeModal() {
+            const modal = document.getElementById('welcomeModeModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function hideWelcomeModal() {
+            const modal = document.getElementById('welcomeModeModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
 
         function selectWelcomeMode(mode) {
+            hasChosenWelcomeMode = true;
             sessionMode = mode;
-            document.getElementById('welcomeModeModal').classList.add('hidden');
-            document.getElementById('welcomeModeModal').classList.remove('flex');
+            hideWelcomeModal();
             
             const submitBtn = document.getElementById('submitToAdminBtn');
             
@@ -3408,6 +3508,9 @@
             const sub = subs.find(s => s.id === subId);
             if (!sub) return;
 
+            // Đóng bảng nhận cấu hình để không che chắn
+            closeSubmissionsModal();
+
             openConfirm("Xác nhận Áp dụng", `Bạn có chắc muốn đổ sơ đồ của "${sub.sender}" ra bản đồ? Dữ liệu ghế ngồi hiện tại sẽ bị xóa bỏ.`, () => {
                 // Xóa ghế cũ
                 students.forEach(s => s.seatId = null);
@@ -3421,8 +3524,10 @@
                 lastAssignedSeatId = null;
                 renderGrid();
                 saveClassData();
-                closeSubmissionsModal();
                 showToast(`✨ Đã áp dụng hoàn tất cấu hình của "${sub.sender}"!`);
+            }, () => {
+                // Nếu bấm Hủy thì mở lại bảng Hộp thư
+                openSubmissionsModal();
             });
         }
 
@@ -3437,12 +3542,15 @@
         function clearAllSubmissions() {
             let subs = classDataDict[currentClassName].submissions || [];
             if(subs.length === 0) return;
+            closeSubmissionsModal();
             openConfirm("Xóa toàn bộ hộp thư", "Bạn có chắc chắn muốn dọn sạch tất cả cấu hình gửi về của lớp này?", () => {
                 classDataDict[currentClassName].submissions = [];
                 saveClassData();
                 renderSubmissionsList();
                 updateSubmissionBadge();
                 showToast("Đã dọn sạch hộp thư thành công!");
+            }, () => {
+                openSubmissionsModal();
             });
         }
 
@@ -4170,9 +4278,10 @@
                 saveClassData();
             }
 
-            // Gọi Modal lựa chọn mục đích sử dụng (Chỉ tắt bằng cách bấm vào 1 trong 2 nút)
-            document.getElementById('welcomeModeModal').classList.remove('hidden');
-            document.getElementById('welcomeModeModal').classList.add('flex');
+            // Chỉ hiển thị nếu người dùng chưa chọn chế độ
+            if (!hasChosenWelcomeMode) {
+                showWelcomeModal();
+            }
         });
     </script>
 </body>
