@@ -2707,131 +2707,172 @@
                     if (barMoveElapsed >= barMoveDuration) {
                         plinkoGame.state = 'dropping';
                         document.getElementById('plinkoStatusBadge').innerText = 'Đang rơi tự do...';
+                        plinkoGame.dropElapsed = 0;
+                        plinkoGame.winnerAssigned = false;
                         
-                        // Spawn 5 balls
                         let startX = plinkoGame.barX - plinkoGame.barWidth/2 + 15;
                         let usableW = plinkoGame.barWidth - 30;
                         let step = selectedStudents.length > 1 ? usableW / (selectedStudents.length - 1) : 0;
                         
-                        plinkoGame.balls = selectedStudents.map((st, i) => ({
-                            student: st,
-                            x: selectedStudents.length === 1 ? plinkoGame.barX : startX + i * step,
-                            y: 40,
-                            vx: (Math.random() - 0.5) * 60,
-                            vy: 0,
-                            r: 10,
+                        let startXs = selectedStudents.map((_, i) => selectedStudents.length === 1 ? plinkoGame.barX : startX + i * step);
+                        
+                        // Chạy giả lập vật lý ngầm trước (Pre-calculate paths)
+                        function generatePlinkoPaths(startXs) {
+                            const simDt = 1/60;
+                            const gravity = gameDuration === 5 ? 760 : 410;
+                            const baseBounce = 0.62;
+                            
+                            let sBalls = startXs.map(x => ({
+                                x: x, y: 40, vx: (Math.random() - 0.5) * 60, vy: 0, r: 10,
+                                path: [], finished: false, finishFrame: 99999, bouncedPeg: null
+                            }));
+                            
+                            let frame = 0;
+                            let allFinished = false;
+                            
+                            while (!allFinished && frame < 1500) {
+                                allFinished = true;
+                                sBalls.forEach(b => {
+                                    if (b.finished) return;
+                                    allFinished = false;
+                                    
+                                    b.vy += gravity * simDt;
+                                    if (b.vy > 850) b.vy = 850; // Giới hạn vận tốc rơi
+                                    
+                                    b.x += b.vx * simDt;
+                                    b.y += b.vy * simDt;
+                                    
+                                    // Va chạm đinh
+                                    plinkoGame.pegs.forEach(p => {
+                                        const dx = b.x - p.x;
+                                        const dy = b.y - p.y;
+                                        const dist = Math.hypot(dx, dy);
+                                        const minDist = b.r + p.r;
+                                        if (dist < minDist) {
+                                            const nx = dx / (dist || 1);
+                                            const ny = dy / (dist || 1);
+                                            b.x = p.x + nx * (minDist + 0.1);
+                                            b.y = p.y + ny * (minDist + 0.1);
+                                            
+                                            const speed = Math.hypot(b.vx, b.vy);
+                                            b.vx = nx * speed * baseBounce + (Math.random() - 0.5) * 60;
+                                            b.vy = ny * speed * baseBounce;
+                                            
+                                            // Chống kẹt: Tăng ngẫu nhiên lực văng ngang
+                                            if (Math.abs(b.vx) < 25) {
+                                                b.vx = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 30);
+                                            }
+                                            b.bouncedPeg = p;
+                                        }
+                                    });
+                                    
+                                    // Va chạm tường
+                                    if (b.x - b.r < plinkoGame.wallLeft) {
+                                        b.x = plinkoGame.wallLeft + b.r;
+                                        b.vx = Math.abs(b.vx) * 0.75;
+                                    } else if (b.x + b.r > plinkoGame.wallRight) {
+                                        b.x = plinkoGame.wallRight - b.r;
+                                        b.vx = -Math.abs(b.vx) * 0.75;
+                                    }
+                                    
+                                    // Chạm đích
+                                    if (b.y + b.r >= plinkoGame.finishY) {
+                                        b.y = plinkoGame.finishY - b.r;
+                                        b.finished = true;
+                                        b.finishFrame = frame;
+                                    }
+                                    
+                                    b.path.push({x: b.x, y: b.y, bouncedPeg: b.bouncedPeg});
+                                    b.bouncedPeg = null;
+                                });
+                                frame++;
+                            }
+                            return sBalls;
+                        }
+
+                        let simulatedBalls = generatePlinkoPaths(startXs);
+                        
+                        // Tìm quỹ đạo chạm đích nhanh nhất
+                        let fastestIndex = 0;
+                        let minFrame = simulatedBalls[0].finishFrame;
+                        for (let i = 1; i < simulatedBalls.length; i++) {
+                            if (simulatedBalls[i].finishFrame < minFrame) {
+                                minFrame = simulatedBalls[i].finishFrame;
+                                fastestIndex = i;
+                            }
+                        }
+                        
+                        // Gán học sinh vào các quỹ đạo
+                        let assignedStudents = new Array(selectedStudents.length);
+                        let pool = [...selectedStudents];
+                        
+                        // Nếu có cơ cấu, GÁN NGƯỜI THẮNG VÀO QUỸ ĐẠO NHANH NHẤT
+                        if (plinkoGame.riggedStudentId) {
+                            let riggedIdx = pool.findIndex(s => s.id === plinkoGame.riggedStudentId);
+                            if (riggedIdx !== -1) {
+                                assignedStudents[fastestIndex] = pool.splice(riggedIdx, 1)[0];
+                            }
+                        }
+                        
+                        // Random những người còn lại
+                        for (let i = 0; i < assignedStudents.length; i++) {
+                            if (!assignedStudents[i]) {
+                                let rIdx = Math.floor(Math.random() * pool.length);
+                                assignedStudents[i] = pool.splice(rIdx, 1)[0];
+                            }
+                        }
+                        
+                        plinkoGame.balls = simulatedBalls.map((sb, i) => ({
+                            student: assignedStudents[i],
                             color: WHEEL_PALETTE[i % WHEEL_PALETTE.length],
-                            isWinner: st.id === plinkoGame.riggedStudentId,
+                            isWinner: assignedStudents[i].id === plinkoGame.riggedStudentId,
+                            path: sb.path,
+                            frameIdx: 0,
+                            x: sb.path[0].x,
+                            y: sb.path[0].y,
+                            r: 10,
                             trail: []
                         }));
                     }
                 } else if (plinkoGame.state === 'dropping') {
-                    const gravity = gameDuration === 5 ? 760 : 410;
-                    const baseBounce = 0.62;
+                    plinkoGame.dropElapsed += dt;
+                    const simDt = 1/60;
+                    const targetFrame = Math.floor(plinkoGame.dropElapsed / simDt);
+                    
                     let winnerAssigned = false;
 
-                    let winnerBall = plinkoGame.balls.find(x => x.isWinner);
-
                     plinkoGame.balls.forEach(b => {
-                        let currentGravity = gravity;
-                        
-                        // Thao túng Vật Lý Tự Nhiên (Natural Physics Manipulation)
-                        if (plinkoGame.riggedStudentId) {
-                            if (b.isWinner) {
-                                currentGravity = gravity * 1.06; // Bi thắng hơi nặng hơn một chút xíu (rơi nhanh hơn)
-                                // Gió nhẹ đẩy bi thắng vào giữa để ít bị đập đinh (tìm đường rỗng)
-                                const centerX = plinkoGame.logicalWidth / 2;
-                                b.vx += (centerX - b.x) * 1.5 * dt; 
-                            } else {
-                                currentGravity = gravity * 0.94; // Bi thua hơi nhẹ hơn
-                                if (winnerBall && b.y > winnerBall.y) {
-                                    // Kẻ ngáng đường: chịu lực cản không khí tự nhiên (giảm tốc êm ái)
-                                    b.vy *= 0.93; 
-                                    // Gió tạt sang hai bên để bắt buộc đập vào đinh hoặc tường (câu giờ)
-                                    const dirToWall = b.x < plinkoGame.logicalWidth / 2 ? -1 : 1;
-                                    b.vx += dirToWall * 400 * dt;
+                        // Tiến lên frame mục tiêu để đồng bộ tốc độ khung hình thực tế
+                        while (b.frameIdx < targetFrame && b.frameIdx < b.path.length) {
+                            let currentPos = b.path[b.frameIdx];
+                            if (currentPos) {
+                                b.x = currentPos.x;
+                                b.y = currentPos.y;
+                                if (currentPos.bouncedPeg) {
+                                    let p = currentPos.bouncedPeg;
+                                    p.glow = 1;
+                                    plinkoGame.ripples.push({ x: p.x, y: p.y, r: p.r, alpha: 0.85 });
+                                    playPegPing(0.9 + (b.y / plinkoGame.finishY) * 0.5);
                                 }
                             }
+                            b.frameIdx++;
                         }
-
-                        b.vy += currentGravity * dt;
                         
-                        // Giới hạn vận tốc rơi tối đa để tránh xuyên tường
-                        if (b.vy > 850) b.vy = 850;
-
-                        b.x += b.vx * dt;
-                        b.y += b.vy * dt;
+                        // Nếu đã tới cuối quỹ đạo
+                        if (b.frameIdx >= b.path.length) {
+                            let lastPos = b.path[b.path.length - 1];
+                            b.x = lastPos.x;
+                            b.y = lastPos.y;
+                        }
 
                         b.trail.push({x: b.x, y: b.y});
                         if (b.trail.length > 12) b.trail.shift();
 
-                        // Va chạm đinh ghim
-                        plinkoGame.pegs.forEach(p => {
-                            const dx = b.x - p.x;
-                            const dy = b.y - p.y;
-                            const dist = Math.hypot(dx, dy);
-                            const minDist = b.r + p.r;
-                            if (dist < minDist) {
-                                const nx = dx / (dist || 1);
-                                const ny = dy / (dist || 1);
-                                b.x = p.x + nx * (minDist + 0.1);
-                                b.y = p.y + ny * (minDist + 0.1);
-                                
-                                const speed = Math.hypot(b.vx, b.vy);
-                                let bounce = baseBounce;
-                                
-                                if (plinkoGame.riggedStudentId) {
-                                    if (b.isWinner) {
-                                         // Bi thắng: giảm độ nảy để trôi tuột xuống dễ hơn
-                                         bounce = baseBounce * 0.8;
-                                         b.vx = nx * speed * bounce + (Math.random() - 0.5) * 40;
-                                         b.vy = ny * speed * bounce;
-                                         if (b.vy < 0) b.vy *= 0.6; // Bớt nảy ngược lên
-                                    } else if (winnerBall && b.y > winnerBall.y - 40) {
-                                         // Bi thua đang đe dọa: nảy mạnh hơn, văng ngang nhiều hơn
-                                         bounce = baseBounce * 1.25;
-                                         b.vx = nx * speed * bounce + (Math.random() > 0.5 ? 1 : -1) * (60 + Math.random() * 60);
-                                         b.vy = ny * speed * bounce;
-                                         if (ny < 0) b.vy -= 60; // Thêm lực nảy lên nhẹ
-                                    } else {
-                                         b.vx = nx * speed * bounce + (Math.random() - 0.5) * 70;
-                                         b.vy = ny * speed * bounce;
-                                    }
-                                } else {
-                                    // Chơi ngẫu nhiên bình thường
-                                    b.vx = nx * speed * bounce + (Math.random() - 0.5) * 70;
-                                    b.vy = ny * speed * bounce;
-                                }
-                                
-                                // Chống kẹt bi
-                                if (Math.abs(b.vx) < 18) b.vx = (Math.random() < 0.5 ? -1 : 1) * 35;
-
-                                p.glow = 1;
-                                plinkoGame.ripples.push({ x: p.x, y: p.y, r: p.r, alpha: 0.85 });
-                                playPegPing(0.9 + (b.y / plinkoGame.finishY) * 0.5);
-                            }
-                        });
-
-                        // Va chạm tường
-                        if (b.x - b.r < plinkoGame.wallLeft) {
-                            b.x = plinkoGame.wallLeft + b.r;
-                            b.vx = Math.abs(b.vx) * 0.75;
-                        } else if (b.x + b.r > plinkoGame.wallRight) {
-                            b.x = plinkoGame.wallRight - b.r;
-                            b.vx = -Math.abs(b.vx) * 0.75;
-                        }
-
-                        // Chạm đích
-                        if (b.y + b.r >= plinkoGame.finishY && !winnerAssigned) {
-                            if (plinkoGame.riggedStudentId && !b.isWinner) {
-                                 // Màng bảo vệ cuối cùng cực êm: giả lập đập vào đệm cao su vô hình sát vạch
-                                 b.y = plinkoGame.finishY - b.r - 2;
-                                 b.vy = -350 - Math.random() * 50; 
-                                 b.vx += (Math.random() - 0.5) * 150;
-                            } else {
-                                 winnerAssigned = true;
-                                 plinkoGame.winner = b;
-                            }
+                        // Kiểm tra chiến thắng
+                        if (b.frameIdx >= b.path.length && !plinkoGame.winnerAssigned) {
+                            plinkoGame.winnerAssigned = true;
+                            plinkoGame.winner = b;
+                            winnerAssigned = true;
                         }
                     });
 
@@ -2843,6 +2884,7 @@
 
                     if (winnerAssigned) {
                         plinkoGame.isPlaying = false;
+                        const btn = document.getElementById('btnStartPlinko');
                         btn.disabled = false;
                         btn.classList.remove('opacity-50');
                         document.getElementById('plinkoStatusBadge').innerText = `Về đích: ${plinkoGame.winner.student.shortName}`;
@@ -3219,9 +3261,14 @@
         // 9. CƠ CHẾ THIẾT LẬP CƠ CẤU (RIGGING / MANIPULATION MODULE)
         // ============================================================================
         function canUseRig() {
+            // KHÓA CỨNG BẢO MẬT 1: Nếu đang ở chế độ chơi thử nghiệm (test) thì tuyệt đối không cho phép bật cơ cấu
+            if (typeof sessionMode !== 'undefined' && sessionMode === 'test') return false;
+
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            if (rigScope === 'all') return true;
-            if (rigScope === 'admin') return isAdmin;
+            if (typeof rigScope !== 'undefined') {
+                if (rigScope === 'all') return true;
+                if (rigScope === 'admin') return isAdmin;
+            }
             return false;
         }
 
@@ -3243,7 +3290,7 @@
         function updateMasterRigUI() {
             const toggle = document.getElementById('masterRigToggle');
             const badge = document.getElementById('masterRigStatusBadge');
-            const isAll = (rigScope === 'all');
+            const isAll = (typeof rigScope !== 'undefined' && rigScope === 'all');
             if (toggle) toggle.checked = isAll;
             if (badge) {
                 if (isAll) {
@@ -3278,8 +3325,8 @@
         }
 
         function toggleRigFromBadge() {
-            // Kiểm tra quyền áp dụng
-            if (!canUseRig()) {
+            // Kiểm tra quyền áp dụng - Cấm tuyệt đối khi ở chế độ test thử
+            if (!canUseRig() || (typeof sessionMode !== 'undefined' && sessionMode === 'test')) {
                 return;
             }
 
@@ -3306,8 +3353,8 @@
                 if (toggleOffOnce) {
                     toggleOffOnce = false;
 
-                    // Kiểm tra quyền áp dụng
-                    if (!canUseRig()) {
+                    // Kiểm tra quyền áp dụng - Cấm tuyệt đối khi ở chế độ test thử
+                    if (!canUseRig() || (typeof sessionMode !== 'undefined' && sessionMode === 'test')) {
                         return;
                     }
 
@@ -3542,7 +3589,7 @@
                     submitBtn.classList.add('hidden');
                     submitBtn.classList.remove('flex');
                 }
-                showToast("Đã vào chế độ Chơi Thử Nghiệm!");
+                showToast("Đã vào chế độ Chơi Thử Nghiệm (100% ngẫu nhiên)!");
             }
             updateSecretDotIndicator();
         }
@@ -4243,7 +4290,8 @@
 
         function calculateRiggingSilently() {
             riggedArrangement = null;
-            if (rigRulesList.length === 0) return;
+            // Ở chế độ test thử hoặc khi chưa được cấp quyền thì lập tức thoát, không tính toán cơ cấu ngầm
+            if (sessionMode === 'test' || !canUseRig() || rigRulesList.length === 0) return;
             
             let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
             rigRulesList.forEach(r => {
