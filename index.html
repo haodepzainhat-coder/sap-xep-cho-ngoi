@@ -604,15 +604,17 @@
                     <p class="text-xs text-slate-500">Mẹo: Bạn có thể thêm <b>nhiều luật cho cùng 1 người</b>. Dữ liệu cơ cấu được lưu riêng biệt cho từng lớp học!</p>
                 </div>
 
-                <!-- CÔNG TẮC TỔNG BẬT/TẮT CƠ CẤU (CHỈ ADMIN QUẢN LÝ) -->
+                <!-- CÔNG TẮC CHỌN PHẠM VI ÁP DỤNG CƠ CẤU (CHỈ ADMIN / TẤT CẢ) -->
                 <div class="flex items-center gap-3">
-                    <label class="flex items-center gap-2.5 bg-slate-100 hover:bg-slate-200/80 px-3.5 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Khi tắt công tắc này, bên ngoài trang web hoàn toàn không thể kích hoạt cơ cấu">
+                    <label class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Gạt công tắc để chọn phạm vi: Chỉ áp dụng với Admin hoặc Áp dụng với tất cả mọi người">
                         <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
-                            <i class="fa-solid fa-shield-halved text-indigo-600"></i> Quyền Cơ Cấu:
+                            <i class="fa-solid fa-sliders text-indigo-600"></i> Cơ Cấu:
                         </span>
                         <input type="checkbox" id="masterRigToggle" onchange="toggleMasterRigSwitch(this.checked)" class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 relative"></div>
-                        <span id="masterRigStatusBadge" class="text-xs font-black min-w-[70px] text-center px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200">ĐÃ KHÓA</span>
+                        <div class="w-11 h-6 bg-indigo-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 relative"></div>
+                        <span id="masterRigStatusBadge" class="text-xs font-black min-w-[145px] text-center px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-user-shield"></i> Chỉ áp dụng với Admin
+                        </span>
                     </label>
 
                     <button onclick="closeRigModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center">
@@ -946,7 +948,7 @@
         let classDataDict = {};
         let currentClassName = "Lớp Mặc Định";
         let isRigActive = false;
-        let isRigMasterEnabled = true; // Quyền cơ cấu tổng do Admin cấp
+        let rigScope = 'all'; // 'all' (Áp dụng với tất cả) hoặc 'admin' (Chỉ áp dụng với Admin)
         let toggleOffOnce = false;
 
         // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO ĐUA VỊT
@@ -1116,20 +1118,22 @@
             activePresetIndex = data.activeRigPresetIndex || 0;
             if (activePresetIndex >= data.rigPresets.length) activePresetIndex = 0;
 
-            // Nạp quyền cơ cấu tổng (mặc định bật nếu chưa thiết lập)
-            if (data.rigMasterEnabled !== undefined) {
-                isRigMasterEnabled = !!data.rigMasterEnabled;
+            // Nạp phạm vi áp dụng cơ cấu ('all' hoặc 'admin')
+            if (data.rigScope !== undefined) {
+                rigScope = data.rigScope;
+            } else if (data.rigMasterEnabled !== undefined) {
+                rigScope = data.rigMasterEnabled ? 'all' : 'admin';
             } else {
-                const storedMaster = localStorage.getItem('classroom_rig_master');
-                isRigMasterEnabled = storedMaster !== null ? storedMaster === 'true' : true;
+                const storedScope = localStorage.getItem('classroom_rig_scope');
+                rigScope = storedScope || 'all';
             }
 
             // Nạp luật từ mẫu đang kích hoạt vào bộ nhớ tạm để chỉnh sửa
             rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
             riggedArrangement = null;
             
-            // Xử lý nạp chế độ Gửi Admin nếu đang được Bật (Khởi tạo lại trạng thái cơ cấu cho chuẩn)
-            if (sessionMode === 'submit' && isRigMasterEnabled) {
+            // Xử lý nạp chế độ Gửi Admin nếu đang được Bật
+            if (sessionMode === 'submit' && canUseRig()) {
                 isRigActive = true;
                 calculateRiggingSilently();
             } else {
@@ -1157,11 +1161,11 @@
 
             classDataDict[currentClassName].students = students.map(s => s.name);
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
-            classDataDict[currentClassName].rigMasterEnabled = isRigMasterEnabled;
+            classDataDict[currentClassName].rigScope = rigScope;
             
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
-            localStorage.setItem('classroom_rig_master', isRigMasterEnabled ? 'true' : 'false');
+            localStorage.setItem('classroom_rig_scope', rigScope);
 
             // Tự động đẩy lên Google Sheet (chỉ khi đã đồng bộ ban đầu xong và không phải đang nạp từ mây)
             if (!window.isSyncingFromCloud && hasInitialCloudSyncDone) {
@@ -1212,7 +1216,7 @@
                     students: students.map(s => s.name),
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
-                    rigMasterEnabled: isRigMasterEnabled
+                    rigScope: rigScope
                 };
             }
         }
@@ -1616,11 +1620,11 @@
             }
 
             let count = 0;
-            if (isRigActive) {
+            if (isRigActive && canUseRig()) {
                 calculateRiggingSilently();
             }
 
-            if (isRigActive && riggedArrangement) {
+            if (isRigActive && canUseRig() && riggedArrangement) {
                 // Áp dụng xếp theo cơ cấu đã tính toán chuẩn xác
                 unassigned.forEach(u => {
                     let seat = Object.keys(riggedArrangement).find(k => riggedArrangement[k] === u.id);
@@ -2259,7 +2263,7 @@
             duckGame.targetSeatForThisTurn = targetSeatForThisTurn; // Khóa mục tiêu để đảm bảo không sai lệch
 
             let winnerIndex = -1;
-            if (riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
+            if (isRigActive && canUseRig() && riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
                 // Ép con vịt ứng với học sinh trong cơ cấu win 100%
                 let riggedStudentId = riggedArrangement[targetSeatForThisTurn];
                 winnerIndex = duckGame.ducks.findIndex(d => d.student.id === riggedStudentId);
@@ -2622,7 +2626,7 @@
                 targetSeatForThisTurn = findNextEmptySeatId();
             }
             plinkoGame.targetSeatForThisTurn = targetSeatForThisTurn;
-            plinkoGame.riggedStudentId = riggedArrangement ? riggedArrangement[targetSeatForThisTurn] : null;
+            plinkoGame.riggedStudentId = (isRigActive && canUseRig() && riggedArrangement) ? riggedArrangement[targetSeatForThisTurn] : null;
 
             rebuildPlinkoBoard(); // reset các ô hứng
 
@@ -2887,7 +2891,7 @@
             wheelGame.targetSeatForThisTurn = targetSeatForThisTurn;
 
             let winnerIndex = -1;
-            if (riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
+            if (isRigActive && canUseRig() && riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
                 let riggedStudentId = riggedArrangement[targetSeatForThisTurn];
                 winnerIndex = unassigned.findIndex(s => s.id === riggedStudentId);
             }
@@ -3098,15 +3102,22 @@
         // ============================================================================
         // 9. CƠ CHẾ THIẾT LẬP CƠ CẤU (RIGGING / MANIPULATION MODULE)
         // ============================================================================
+        function canUseRig() {
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+            if (rigScope === 'all') return true;
+            if (rigScope === 'admin') return isAdmin;
+            return false;
+        }
+
         function updateSecretDotIndicator() {
             const indicator = document.getElementById('secretRigIndicator') || document.getElementById('secretDotIndicator');
             if (indicator) {
-                if (isRigActive && isRigMasterEnabled) {
-                    // Khi BẬT cơ cấu: Thêm dấu chấm v2.1. và đổi nhẹ màu viền, không co giãn kích thước
+                if (isRigActive && canUseRig()) {
+                    // Khi BẬT cơ cấu và đủ quyền áp dụng: Thêm dấu chấm v2.1. và đổi nhẹ màu viền
                     indicator.innerText = "v2.1.";
                     indicator.className = "w-12 text-center text-[11px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
                 } else {
-                    // Khi TẮT cơ cấu: Trả về v2.1 xám nhạt như nhãn phiên bản bình thường
+                    // Khi TẮT cơ cấu hoặc không áp dụng: Trả về v2.1 xám nhạt như bình thường
                     indicator.innerText = "v2.1";
                     indicator.className = "w-12 text-center text-[11px] font-bold text-slate-400 bg-slate-100/80 border border-slate-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
                 }
@@ -3116,39 +3127,43 @@
         function updateMasterRigUI() {
             const toggle = document.getElementById('masterRigToggle');
             const badge = document.getElementById('masterRigStatusBadge');
-            if (toggle) toggle.checked = isRigMasterEnabled;
+            const isAll = (rigScope === 'all');
+            if (toggle) toggle.checked = isAll;
             if (badge) {
-                if (isRigMasterEnabled) {
-                    badge.innerText = "ĐANG BẬT";
-                    badge.className = "text-xs font-black min-w-[70px] text-center px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200";
+                if (isAll) {
+                    badge.innerHTML = '<i class="fa-solid fa-users"></i> Áp dụng với tất cả';
+                    badge.className = "text-xs font-black min-w-[145px] text-center px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center gap-1";
                 } else {
-                    badge.innerText = "ĐÃ KHÓA";
-                    badge.className = "text-xs font-black min-w-[70px] text-center px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200";
+                    badge.innerHTML = '<i class="fa-solid fa-user-shield"></i> Chỉ áp dụng với Admin';
+                    badge.className = "text-xs font-black min-w-[145px] text-center px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center justify-center gap-1";
                 }
             }
         }
 
         function toggleMasterRigSwitch(checked) {
-            isRigMasterEnabled = checked;
+            rigScope = checked ? 'all' : 'admin';
             ensureCurrentClassExists();
-            classDataDict[currentClassName].rigMasterEnabled = isRigMasterEnabled;
+            classDataDict[currentClassName].rigScope = rigScope;
             saveClassData();
             updateMasterRigUI();
 
-            if (!isRigMasterEnabled) {
-                // Tắt ngay cơ cấu đang chạy ngoài web nếu Admin vừa khóa
-                isRigActive = false;
-                riggedArrangement = null;
+            if (rigScope === 'admin') {
+                const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+                if (!isAdmin) {
+                    isRigActive = false;
+                    riggedArrangement = null;
+                }
                 updateSecretDotIndicator();
-                showToast("🔒 Đã KHÓA quyền cơ cấu! Bên ngoài hoàn toàn không thể kích hoạt.");
+                showToast("🛡️ Đã chọn: CHỈ ÁP DỤNG VỚI ADMIN! Người dùng bên ngoài sẽ chạy ngẫu nhiên 100%.");
             } else {
-                showToast("🔓 Đã MỞ quyền cơ cấu! Bạn có thể kích hoạt ngầm từ bên ngoài.");
+                updateSecretDotIndicator();
+                showToast("🌐 Đã chọn: ÁP DỤNG VỚI TẤT CẢ! Người dùng bên ngoài cũng sẽ được áp dụng cơ cấu.");
             }
         }
 
         function toggleRigFromBadge() {
-            // Kiểm tra: Nếu Admin đã tắt quyền cơ cấu trong bảng thì bên ngoài hoàn toàn vô tác dụng!
-            if (!isRigMasterEnabled) {
+            // Kiểm tra quyền áp dụng
+            if (!canUseRig()) {
                 return;
             }
 
@@ -3175,8 +3190,8 @@
                 if (toggleOffOnce) {
                     toggleOffOnce = false;
 
-                    // Kiểm tra: Nếu Admin đã khóa quyền cơ cấu thì bỏ qua, không kích hoạt
-                    if (!isRigMasterEnabled) {
+                    // Kiểm tra quyền áp dụng
+                    if (!canUseRig()) {
                         return;
                     }
 
@@ -3184,7 +3199,6 @@
                     isRigActive = !isRigActive;
                     
                     if (isRigActive) {
-                        // Ép buộc nạp lại luật từ mẫu đã lưu cuối cùng để đảm bảo đồng bộ 100%
                         ensureCurrentClassExists();
                         const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
                         if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
@@ -3389,7 +3403,7 @@
             const submitBtn = document.getElementById('submitToAdminBtn');
             
             if (mode === 'submit') {
-                if (isRigMasterEnabled) {
+                if (canUseRig()) {
                     isRigActive = true;
                     const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
                     if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
@@ -3398,7 +3412,7 @@
                     calculateRiggingSilently();
                     document.getElementById('instantFillToggle').checked = false; // Nhả công tắc điền
                 }
-                // Dù có cơ cấu hay Admin đã khóa, vẫn hiện nút Gửi về Admin để nộp bài
+                // Dù có cơ cấu hay không, vẫn hiện nút Gửi về Admin để nộp bài
                 if (submitBtn) {
                     submitBtn.classList.remove('hidden');
                     submitBtn.classList.add('flex');
