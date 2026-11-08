@@ -960,6 +960,13 @@
         let riggedArrangement = null; // map ngầm: seatId -> studentId
         let rigSelectedSeats = []; // Danh sách ghế được chọn cho rule "area_only"
         
+        // Ghi nhớ vị trí ghế đã ngồi ở lần xếp gần nhất để chống trùng 2 lần liên tiếp
+        let previousSessionSeats = {};
+        try {
+            const savedPrev = localStorage.getItem('classroom_prev_seats');
+            if (savedPrev) previousSessionSeats = JSON.parse(savedPrev);
+        } catch (e) {}
+
         let pendingAdminAction = null; // Lưu hành động chờ xác thực Admin
         let nameDisplayMode = 'short'; // Chế độ hiển thị tên
         window.isSyncingFromCloud = false;
@@ -1577,6 +1584,13 @@
         function resetAllSeats() {
             if (isAnyGameRunning()) return showToast("Đang trong lượt chơi, vui lòng đợi!");
             stopAutoDuck(); // Hủy Auto nếu đang bật
+            
+            // Lưu lại vị trí các bạn vừa ngồi trước khi reset để chống lặp lại ở lần xếp kế tiếp
+            students.forEach(s => {
+                if (s.seatId) previousSessionSeats[s.id] = s.seatId;
+            });
+            localStorage.setItem('classroom_prev_seats', JSON.stringify(previousSessionSeats));
+
             students.forEach(s => s.seatId = null);
             
             // MỚI: Xóa sạch sơ đồ sẽ LUÔN TẮT CƠ CẤU (Reset hệ thống về bình thường)
@@ -3894,33 +3908,34 @@
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
             
             // Nạp dữ liệu của mẫu vừa chọn
-            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules));
+            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules || []));
+            rigSelectedSeats = [];
             saveClassData();
             
             updateRigPresetUI();
             renderRigRuleList();
-            showToast("Đã chuyển mẫu cơ cấu!");
+            renderMiniClassroom();
+            showToast("Đã chuyển sang: " + classDataDict[currentClassName].rigPresets[activePresetIndex].name);
         }
 
         function promptNewPresetName() {
-            const check = validateRigRules(rigRulesList);
-            if (!check.valid) {
-                showValidationWarning(check.errorMsg);
-                return;
-            }
-
             const defaultName = `Mẫu ${classDataDict[currentClassName].rigPresets.length + 1}`;
-            openPrompt("Lưu thành mẫu cơ cấu mới", defaultName, (name) => {
-                if (name.trim() !== "") {
+            openPrompt("Tạo mẫu cơ cấu mới (trắng)", defaultName, (name) => {
+                if (name && name.trim() !== "") {
+                    // Tạo một mẫu mới TRẮNG TINH không mang theo quy tắc của mẫu cũ
                     classDataDict[currentClassName].rigPresets.push({
                         name: name.trim(),
-                        rules: JSON.parse(JSON.stringify(rigRulesList))
+                        rules: []
                     });
                     activePresetIndex = classDataDict[currentClassName].rigPresets.length - 1;
                     classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
+                    rigRulesList = []; // Làm sạch danh sách quy tắc đang chỉnh
+                    rigSelectedSeats = [];
                     saveClassData();
                     updateRigPresetUI();
-                    showToast("Đã tạo mẫu cơ cấu mới!");
+                    renderRigRuleList();
+                    renderMiniClassroom();
+                    showToast("Đã tạo mẫu cơ cấu mới trống (trắng tinh)!");
                 }
             });
         }
@@ -4078,7 +4093,11 @@
                 const name1 = getStudentName(r.s1Id);
                 
                 if (r.type === 'area_only') {
-                    text = `<span class="text-indigo-700 font-extrabold">${name1}</span> BẮT BUỘC ngồi trong khu vực <span class="font-bold bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-200">${r.seats.length} ghế đã chọn</span>`;
+                    const prevSeat = previousSessionSeats[r.s1Id];
+                    const prevNotice = (prevSeat && r.seats.includes(prevSeat)) 
+                        ? ` <span class="text-[10px] text-amber-600 font-bold bg-amber-50 px-1 py-0.5 rounded border border-amber-200" title="Chỗ cũ: ${formatSeatLabel(prevSeat)}">(Tránh chỗ lần trước)</span>` 
+                        : '';
+                    text = `<span class="text-indigo-700 font-extrabold">${name1}</span> BẮT BUỘC ngồi trong khu vực <span class="font-bold bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-200">${r.seats.length} ghế đã chọn</span>${prevNotice}`;
                 } else if (r.type === 'separate') {
                     text = `<span class="text-rose-600 font-extrabold">${name1}</span> KHÔNG ĐƯỢC ngồi cùng bàn với <span class="text-rose-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
                 } else if (r.type === 'together') {
@@ -4131,12 +4150,20 @@
             
             let allowedSeatsPerStudent = {};
             for (let r of rules.area_only) {
+                // Tự động loại trừ ghế đã ngồi ở lần gần nhất (nếu còn ghế khác trong khu vực)
+                let candidateSeats = [...r.seats];
+                const prevSeat = previousSessionSeats[r.s1Id];
+                if (prevSeat && candidateSeats.includes(prevSeat) && candidateSeats.length > 1) {
+                    candidateSeats = candidateSeats.filter(s => s !== prevSeat);
+                }
+
                 if (!allowedSeatsPerStudent[r.s1Id]) {
-                    allowedSeatsPerStudent[r.s1Id] = new Set(r.seats);
+                    allowedSeatsPerStudent[r.s1Id] = new Set(candidateSeats);
                 } else {
                     let current = allowedSeatsPerStudent[r.s1Id];
-                    let next = new Set(r.seats);
-                    allowedSeatsPerStudent[r.s1Id] = new Set([...current].filter(x => next.has(x)));
+                    let next = new Set(candidateSeats);
+                    let inter = new Set([...current].filter(x => next.has(x)));
+                    allowedSeatsPerStudent[r.s1Id] = inter.size > 0 ? inter : current;
                 }
             }
 
