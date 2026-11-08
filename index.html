@@ -2727,24 +2727,37 @@
                     }
                 } else if (plinkoGame.state === 'dropping') {
                     const gravity = gameDuration === 5 ? 760 : 410;
-                    const bounce = 0.62;
+                    const baseBounce = 0.62;
                     let winnerAssigned = false;
 
                     let winnerBall = plinkoGame.balls.find(x => x.isWinner);
 
                     plinkoGame.balls.forEach(b => {
-                        b.vy += gravity * dt;
+                        let currentGravity = gravity;
                         
-                        // Thao túng Vật Lý (Rigging Manipulation)
+                        // Thao túng Vật Lý Tự Nhiên (Natural Physics Manipulation)
                         if (plinkoGame.riggedStudentId) {
                             if (b.isWinner) {
-                                b.vy += 120 * dt; // Kéo người chiến thắng rơi xuống đích nhanh hơn
-                            } else if (winnerBall && b.y > winnerBall.y) {
-                                // Những ai dám vượt người chiến thắng sẽ bị lực cản vô hình kéo lại
-                                b.vy -= 220 * dt;
-                                b.vy *= 0.95; // Tăng ma sát giảm tốc
+                                currentGravity = gravity * 1.06; // Bi thắng hơi nặng hơn một chút xíu (rơi nhanh hơn)
+                                // Gió nhẹ đẩy bi thắng vào giữa để ít bị đập đinh (tìm đường rỗng)
+                                const centerX = plinkoGame.logicalWidth / 2;
+                                b.vx += (centerX - b.x) * 1.5 * dt; 
+                            } else {
+                                currentGravity = gravity * 0.94; // Bi thua hơi nhẹ hơn
+                                if (winnerBall && b.y > winnerBall.y) {
+                                    // Kẻ ngáng đường: chịu lực cản không khí tự nhiên (giảm tốc êm ái)
+                                    b.vy *= 0.93; 
+                                    // Gió tạt sang hai bên để bắt buộc đập vào đinh hoặc tường (câu giờ)
+                                    const dirToWall = b.x < plinkoGame.logicalWidth / 2 ? -1 : 1;
+                                    b.vx += dirToWall * 400 * dt;
+                                }
                             }
                         }
+
+                        b.vy += currentGravity * dt;
+                        
+                        // Giới hạn vận tốc rơi tối đa để tránh xuyên tường
+                        if (b.vy > 850) b.vy = 850;
 
                         b.x += b.vx * dt;
                         b.y += b.vy * dt;
@@ -2765,22 +2778,33 @@
                                 b.y = p.y + ny * (minDist + 0.1);
                                 
                                 const speed = Math.hypot(b.vx, b.vy);
+                                let bounce = baseBounce;
                                 
-                                if (plinkoGame.riggedStudentId && b.isWinner && ny > 0) {
-                                     // Người thắng khi đập chốt ít bị nảy lên
-                                     b.vx = nx * speed * bounce + (Math.random() - 0.5) * 80;
-                                     b.vy = Math.max(-30, ny * speed * bounce * 0.5); 
-                                } else if (plinkoGame.riggedStudentId && !b.isWinner && winnerBall && b.y > winnerBall.y) {
-                                     // Kẻ ngáng đường sẽ bị nảy văng lên rất mạnh
-                                     b.vx = nx * speed * bounce + (Math.random() - 0.5) * 120;
-                                     b.vy = -Math.abs(ny * speed * bounce) - 150;
+                                if (plinkoGame.riggedStudentId) {
+                                    if (b.isWinner) {
+                                         // Bi thắng: giảm độ nảy để trôi tuột xuống dễ hơn
+                                         bounce = baseBounce * 0.8;
+                                         b.vx = nx * speed * bounce + (Math.random() - 0.5) * 40;
+                                         b.vy = ny * speed * bounce;
+                                         if (b.vy < 0) b.vy *= 0.6; // Bớt nảy ngược lên
+                                    } else if (winnerBall && b.y > winnerBall.y - 40) {
+                                         // Bi thua đang đe dọa: nảy mạnh hơn, văng ngang nhiều hơn
+                                         bounce = baseBounce * 1.25;
+                                         b.vx = nx * speed * bounce + (Math.random() > 0.5 ? 1 : -1) * (60 + Math.random() * 60);
+                                         b.vy = ny * speed * bounce;
+                                         if (ny < 0) b.vy -= 60; // Thêm lực nảy lên nhẹ
+                                    } else {
+                                         b.vx = nx * speed * bounce + (Math.random() - 0.5) * 70;
+                                         b.vy = ny * speed * bounce;
+                                    }
                                 } else {
-                                     b.vx = nx * speed * bounce + (Math.random() - 0.5) * 65;
-                                     b.vy = ny * speed * bounce;
+                                    // Chơi ngẫu nhiên bình thường
+                                    b.vx = nx * speed * bounce + (Math.random() - 0.5) * 70;
+                                    b.vy = ny * speed * bounce;
                                 }
                                 
                                 // Chống kẹt bi
-                                if (Math.abs(b.vx) < 15) b.vx = (Math.random() < 0.5 ? -1 : 1) * 30;
+                                if (Math.abs(b.vx) < 18) b.vx = (Math.random() < 0.5 ? -1 : 1) * 35;
 
                                 p.glow = 1;
                                 plinkoGame.ripples.push({ x: p.x, y: p.y, r: p.r, alpha: 0.85 });
@@ -2800,9 +2824,10 @@
                         // Chạm đích
                         if (b.y + b.r >= plinkoGame.finishY && !winnerAssigned) {
                             if (plinkoGame.riggedStudentId && !b.isWinner) {
-                                 // Màng bảo vệ cuối cùng: Kẻ nào rơi xuống trước mà không phải người chiến thắng sẽ bị bật văng trở lại
+                                 // Màng bảo vệ cuối cùng cực êm: giả lập đập vào đệm cao su vô hình sát vạch
                                  b.y = plinkoGame.finishY - b.r - 2;
-                                 b.vy = -450;
+                                 b.vy = -350 - Math.random() * 50; 
+                                 b.vx += (Math.random() - 0.5) * 150;
                             } else {
                                  winnerAssigned = true;
                                  plinkoGame.winner = b;
