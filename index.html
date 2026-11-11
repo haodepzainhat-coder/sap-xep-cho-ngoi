@@ -606,6 +606,12 @@
 
                 <!-- CÔNG TẮC CHỌN PHẠM VI ÁP DỤNG CƠ CẤU (CHỈ ADMIN / TẤT CẢ) -->
                 <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Tự động tắt cơ cấu ngầm sau khi đã gửi sơ đồ thành công cho Admin">
+                        <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1"><i class="fa-solid fa-power-off text-indigo-600"></i> Dùng 1 lần:</span>
+                        <input type="checkbox" id="rigOneTimeToggle" onchange="toggleRigOneTime(this.checked)" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500 relative"></div>
+                    </label>
+
                     <label class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Gạt công tắc để chọn phạm vi: Chỉ áp dụng với Admin hoặc Áp dụng với tất cả mọi người">
                         <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
                             <i class="fa-solid fa-sliders text-indigo-600"></i> Cơ Cấu:
@@ -948,7 +954,8 @@
         let classDataDict = {};
         let currentClassName = "Lớp Mặc Định";
         let isRigActive = false;
-        let rigScope = 'all'; // 'all' (Áp dụng với tất cả) hoặc 'admin' (Chỉ áp dụng với Admin)
+        let rigScope = 'admin'; // Khởi tạo biến toàn cục để tránh lỗi ReferenceError
+        let isRigOneTimeUse = false; // Biến kiểm soát cơ cấu dùng 1 lần rồi tắt
         let toggleOffOnce = false;
 
         // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO ĐUA VỊT
@@ -1125,6 +1132,14 @@
             activePresetIndex = data.activeRigPresetIndex || 0;
             if (activePresetIndex >= data.rigPresets.length) activePresetIndex = 0;
 
+            // Nạp cấu hình dùng 1 lần
+            if (data.rigOneTimeUse !== undefined) {
+                isRigOneTimeUse = data.rigOneTimeUse;
+            } else {
+                const storedOneTime = localStorage.getItem('classroom_rig_onetime');
+                isRigOneTimeUse = storedOneTime === 'true';
+            }
+
             // Nạp phạm vi áp dụng cơ cấu ('all' hoặc 'admin')
             if (data.rigScope !== undefined) {
                 rigScope = data.rigScope;
@@ -1169,10 +1184,12 @@
             classDataDict[currentClassName].students = students.map(s => s.name);
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
             classDataDict[currentClassName].rigScope = rigScope;
+            classDataDict[currentClassName].rigOneTimeUse = isRigOneTimeUse;
             
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
             localStorage.setItem('classroom_rig_scope', rigScope);
+            localStorage.setItem('classroom_rig_onetime', isRigOneTimeUse ? 'true' : 'false');
 
             // Tự động đẩy lên Google Sheet (chỉ khi đã đồng bộ ban đầu xong và không phải đang nạp từ mây)
             if (!window.isSyncingFromCloud && hasInitialCloudSyncDone) {
@@ -1223,7 +1240,8 @@
                     students: students.map(s => s.name),
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
-                    rigScope: rigScope
+                    rigScope: rigScope,
+                    rigOneTimeUse: isRigOneTimeUse
                 };
             }
         }
@@ -3290,8 +3308,12 @@
         function updateMasterRigUI() {
             const toggle = document.getElementById('masterRigToggle');
             const badge = document.getElementById('masterRigStatusBadge');
+            const oneTimeToggle = document.getElementById('rigOneTimeToggle');
+            
             const isAll = (typeof rigScope !== 'undefined' && rigScope === 'all');
             if (toggle) toggle.checked = isAll;
+            if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
+            
             if (badge) {
                 if (isAll) {
                     badge.innerHTML = '<i class="fa-solid fa-users"></i> Áp dụng với tất cả';
@@ -3322,6 +3344,14 @@
                 updateSecretDotIndicator();
                 showToast("🌐 Đã chọn: ÁP DỤNG VỚI TẤT CẢ! Người dùng bên ngoài cũng sẽ được áp dụng cơ cấu.");
             }
+        }
+
+        function toggleRigOneTime(checked) {
+            isRigOneTimeUse = checked;
+            ensureCurrentClassExists();
+            classDataDict[currentClassName].rigOneTimeUse = isRigOneTimeUse;
+            saveClassData();
+            showToast(checked ? "Đã BẬT: Cơ cấu sẽ tự động TẮT sau khi nộp sơ đồ!" : "Đã TẮT: Chế độ dùng 1 lần.");
         }
 
         function toggleRigFromBadge() {
@@ -3622,7 +3652,18 @@
                 });
                 
                 saveClassData(); // Lưu lên Cloud ngay lập tức
-                showToast("🚀 Đã gửi cấu hình thành công cho Admin!");
+                
+                let successMsg = "🚀 Đã gửi cấu hình thành công cho Admin!";
+                // Tự động tắt cơ cấu nếu chế độ "Dùng 1 lần" đang được bật
+                if (isRigOneTimeUse && isRigActive) {
+                    isRigActive = false;
+                    riggedArrangement = null;
+                    document.getElementById('instantFillToggle').checked = true; // Bật lại điền tự động mặc định
+                    updateSecretDotIndicator();
+                    successMsg = "🚀 Đã gửi cấu hình thành công! (Cơ cấu đã tự động tắt)";
+                }
+                
+                showToast(successMsg);
                 updateSubmissionBadge();
             });
         }
