@@ -389,8 +389,8 @@
                         <button onclick="shuffleDucks()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Đổi màu mũ & vị trí làn bơi">
                             <i class="fa-solid fa-shuffle"></i> Đổi Làn
                         </button>
-                        <!-- Nút Auto kế bên Đổi Làn -->
-                        <button id="btnAutoDuck" onclick="toggleAutoMode()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động đua liên tục đến khi xếp xong cả lớp">
+                        <!-- Nút Auto Đua Vịt -->
+                        <button id="btnAutoDuck" onclick="toggleAutoMode('duck')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động chơi liên tục đến khi xếp xong cả lớp">
                             <i class="fa-solid fa-play"></i> <span>Auto</span>
                         </button>
                     </div>
@@ -418,7 +418,8 @@
                         <button id="btnStartPlinko" onclick="startPlinko()" class="px-8 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black rounded-xl shadow-lg shadow-indigo-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
                             <i class="fa-solid fa-bowling-ball"></i> THẢ BI MAY MẮN (XẾP CHỖ NGAY)
                         </button>
-                        <button id="btnAutoPlinko" onclick="toggleAutoMode()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động thả bi liên tục đến khi xếp xong cả lớp">
+                        <!-- Nút Auto Thả Bi -->
+                        <button id="btnAutoPlinko" onclick="toggleAutoMode('plinko')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động chơi liên tục đến khi xếp xong cả lớp">
                             <i class="fa-solid fa-play"></i> <span>Auto</span>
                         </button>
                     </div>
@@ -447,11 +448,12 @@
                         <div class="bg-slate-800/90 border border-slate-700 px-5 py-1 rounded-full text-xs font-bold text-amber-300">
                             Đang trỏ vào: <span id="wheelCurrentHover" class="text-white font-extrabold">---</span>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 mt-1">
                             <button id="btnStartWheel" onclick="startWheel()" class="px-8 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-black rounded-xl shadow-lg shadow-rose-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
                                 <i class="fa-solid fa-dharmachakra"></i> QUAY VÒNG QUAY (XẾP CHỖ NGAY)
                             </button>
-                            <button id="btnAutoWheel" onclick="toggleAutoMode()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động quay liên tục đến khi xếp xong cả lớp">
+                            <!-- Nút Auto Vòng Quay -->
+                            <button id="btnAutoWheel" onclick="toggleAutoMode('wheel')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động chơi liên tục đến khi xếp xong cả lớp">
                                 <i class="fa-solid fa-play"></i> <span>Auto</span>
                             </button>
                         </div>
@@ -612,14 +614,14 @@
                     <p class="text-xs text-slate-500">Mẹo: Bạn có thể thêm <b>nhiều luật cho cùng 1 người</b>. Dữ liệu cơ cấu được lưu riêng biệt cho từng lớp học!</p>
                 </div>
 
-                <!-- CÔNG TẮC CHỌN PHẠM VI ÁP DỤNG CƠ CẤU (CHỈ ADMIN / TẤT CẢ) -->
                 <div class="flex items-center gap-3">
-                    <label class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Tự động tắt cơ cấu ngầm sau khi đã gửi sơ đồ thành công cho Admin">
-                        <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1"><i class="fa-solid fa-power-off text-indigo-600"></i> Dùng 1 lần:</span>
-                        <input type="checkbox" id="rigOneTimeToggle" onchange="toggleRigOneTime(this.checked)" class="sr-only peer">
-                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500 relative"></div>
+                    <!-- CÔNG TẮC DÙNG 1 LẦN -->
+                    <label class="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 cursor-pointer select-none transition shadow-sm" title="Nếu bật, cơ cấu sẽ TỰ ĐỘNG KHÓA sau khi bạn bấm Gửi sơ đồ cho Admin.">
+                        <input type="checkbox" id="rigOneTimeUseToggle" onchange="toggleOneTimeUse(this.checked)" class="accent-rose-500 w-3.5 h-3.5">
+                        <span class="text-[11px] font-bold text-rose-700">Dùng 1 lần (Auto khóa khi Gửi)</span>
                     </label>
 
+                    <!-- CÔNG TẮC CHỌN PHẠM VI ÁP DỤNG CƠ CẤU (CHỈ ADMIN / TẤT CẢ) -->
                     <label class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Gạt công tắc để chọn phạm vi: Chỉ áp dụng với Admin hoặc Áp dụng với tất cả mọi người">
                         <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
                             <i class="fa-solid fa-sliders text-indigo-600"></i> Cơ Cấu:
@@ -964,6 +966,7 @@
         let isRigActive = false;
         let rigScope = 'admin'; // Khởi tạo biến toàn cục để tránh lỗi ReferenceError
         let isRigOneTimeUse = false; // Biến kiểm soát cơ cấu dùng 1 lần rồi tắt
+        let isRigLockedByOneTimeUse = false; // Cờ khóa hoàn toàn cơ cấu sau khi gửi bài
         let toggleOffOnce = false;
 
         // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO CHUNG
@@ -1140,14 +1143,6 @@
             activePresetIndex = data.activeRigPresetIndex || 0;
             if (activePresetIndex >= data.rigPresets.length) activePresetIndex = 0;
 
-            // Nạp cấu hình dùng 1 lần
-            if (data.rigOneTimeUse !== undefined) {
-                isRigOneTimeUse = data.rigOneTimeUse;
-            } else {
-                const storedOneTime = localStorage.getItem('classroom_rig_onetime');
-                isRigOneTimeUse = storedOneTime === 'true';
-            }
-
             // Nạp phạm vi áp dụng cơ cấu ('all' hoặc 'admin')
             if (data.rigScope !== undefined) {
                 rigScope = data.rigScope;
@@ -1157,10 +1152,18 @@
                 const storedScope = localStorage.getItem('classroom_rig_scope');
                 rigScope = storedScope || 'all';
             }
-
+            
+            // Nạp cờ "Dùng 1 lần"
+            if (data.isRigOneTimeUse !== undefined) {
+                isRigOneTimeUse = data.isRigOneTimeUse;
+            }
+            
             // Nạp luật từ mẫu đang kích hoạt vào bộ nhớ tạm để chỉnh sửa
             rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
             riggedArrangement = null;
+            
+            // Reset các cờ cơ cấu
+            isRigLockedByOneTimeUse = false;
             
             // Xử lý nạp chế độ Gửi Admin nếu đang được Bật
             if (sessionMode === 'submit' && canUseRig()) {
@@ -1172,6 +1175,10 @@
 
             toggleOffOnce = false;
             document.getElementById('instantFillToggle').checked = !isRigActive;
+            
+            const oneTimeToggle = document.getElementById('rigOneTimeUseToggle');
+            if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
+            
             updateSecretDotIndicator();
             updateSubmissionBadge(); // Cập nhật số lượng thư chờ trong hộp
 
@@ -1192,12 +1199,11 @@
             classDataDict[currentClassName].students = students.map(s => s.name);
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
             classDataDict[currentClassName].rigScope = rigScope;
-            classDataDict[currentClassName].rigOneTimeUse = isRigOneTimeUse;
+            classDataDict[currentClassName].isRigOneTimeUse = isRigOneTimeUse;
             
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
             localStorage.setItem('classroom_rig_scope', rigScope);
-            localStorage.setItem('classroom_rig_onetime', isRigOneTimeUse ? 'true' : 'false');
 
             // Tự động đẩy lên Google Sheet (chỉ khi đã đồng bộ ban đầu xong và không phải đang nạp từ mây)
             if (!window.isSyncingFromCloud && hasInitialCloudSyncDone) {
@@ -1232,7 +1238,8 @@
                     students: sampleNames,
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
-                    rigMasterEnabled: true
+                    rigScope: 'all',
+                    isRigOneTimeUse: false
                 };
             }
 
@@ -1249,7 +1256,7 @@
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
                     rigScope: rigScope,
-                    rigOneTimeUse: isRigOneTimeUse
+                    isRigOneTimeUse: isRigOneTimeUse
                 };
             }
         }
@@ -1621,6 +1628,7 @@
             
             // MỚI: Xóa sạch sơ đồ sẽ LUÔN TẮT CƠ CẤU (Reset hệ thống về bình thường)
             isRigActive = false;
+            isRigLockedByOneTimeUse = false; // Mở khóa lại cơ cấu khi reset vòng mới
             toggleOffOnce = false;
             const toggleEl = document.getElementById('instantFillToggle');
             if (toggleEl) toggleEl.checked = true; // Trạng thái Checked = Bật điền thẳng, Tắt Cơ cấu
@@ -2387,7 +2395,21 @@
                     // Điền thẳng con vịt chiến thắng vào ghế ngồi đã khóa trên sơ đồ!
                     assignWinnerToTargetSeat(winnerDuck.student, duckGame.targetSeatForThisTurn);
 
-                    handleAutoNextTurn();
+                    // Xử lý chế độ Auto liên tục nếu đang bật
+                    if (isAutoMode) {
+                        const remaining = students.filter(s => !s.seatId);
+                        const nextSeat = findNextEmptySeatId();
+                        if (remaining.length > 0 && nextSeat) {
+                            autoTimer = setTimeout(() => {
+                                if (isAutoMode && activeGame === 'duck') {
+                                    startDuckRace();
+                                }
+                            }, 1400);
+                        } else {
+                            stopAutoMode();
+                            showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
+                        }
+                    }
                 }
             }
 
@@ -2395,12 +2417,12 @@
         }
 
         // ==========================================
-        // CÁC HÀM XỬ LÝ CHẾ ĐỘ AUTO
+        // CÁC HÀM XỬ LÝ CHẾ ĐỘ AUTO CHUNG
         // ==========================================
-        function toggleAutoMode() {
+        function toggleAutoMode(gameId) {
             if (isAutoMode) {
                 stopAutoMode();
-                showToast("Đã dừng chế độ Tự Động!");
+                showToast("Đã dừng chế độ Chơi Tự Động!");
             } else {
                 const unassigned = students.filter(s => !s.seatId);
                 if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
@@ -2408,11 +2430,15 @@
 
                 isAutoMode = true;
                 updateAutoUI();
-                showToast("🚀 Đã BẬT Auto! Hệ thống sẽ tự động chơi cho tới khi xếp hết học sinh.");
+                showToast("🚀 Đã BẬT Auto! Hệ thống sẽ chơi liên tục cho tới khi xếp hết học sinh.");
 
-                if (activeGame === 'duck' && !duckGame.isRacing) startDuckRace();
-                else if (activeGame === 'plinko' && !plinkoGame.isPlaying) startPlinko();
-                else if (activeGame === 'wheel' && !wheelGame.isSpinning) startWheel();
+                if (gameId === 'duck' && !duckGame.isRacing) {
+                    startDuckRace();
+                } else if (gameId === 'plinko' && !plinkoGame.isPlaying) {
+                    startPlinko();
+                } else if (gameId === 'wheel' && !wheelGame.isSpinning) {
+                    startWheel();
+                }
             }
         }
 
@@ -2426,9 +2452,8 @@
         }
 
         function updateAutoUI() {
-            const btns = ['btnAutoDuck', 'btnAutoPlinko', 'btnAutoWheel'];
-            btns.forEach(id => {
-                const btn = document.getElementById(id);
+            ['btnAutoDuck', 'btnAutoPlinko', 'btnAutoWheel'].forEach(btnId => {
+                const btn = document.getElementById(btnId);
                 if (!btn) return;
                 if (isAutoMode) {
                     btn.className = "px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl border border-amber-400 text-xs transition flex items-center gap-1.5 shadow-md shadow-amber-900/40 animate-pulse";
@@ -2440,27 +2465,8 @@
             });
         }
 
-        function handleAutoNextTurn() {
-            if (isAutoMode) {
-                const remaining = students.filter(s => !s.seatId);
-                const nextSeat = findNextEmptySeatId();
-                if (remaining.length > 0 && nextSeat) {
-                    autoTimer = setTimeout(() => {
-                        if (isAutoMode) {
-                            if (activeGame === 'duck') startDuckRace();
-                            else if (activeGame === 'plinko') startPlinko();
-                            else if (activeGame === 'wheel') startWheel();
-                        }
-                    }, 1400);
-                } else {
-                    stopAutoMode();
-                    showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
-                }
-            }
-        }
-
         // ============================================================================
-        // 6. TRÒ CHƠI 2: THẢ BI PLINKO (GALTON BOARD VẬT LÝ MƯỢT + KHÔNG BAO GIỜ KẸT)
+        // 6. TRÒ CHƠI 2: THẢ BI PLINKO (GALTON BOARD VẬT LÝ MƯỢT + GHOST TRACK)
         // ============================================================================
         const plinkoGame = {
             canvas: null,
@@ -2480,13 +2486,13 @@
             finishY: 1000,
             idleId: null,
             isPlaying: false,
-            winner: null
+            winner: null,
+            ghostSimulations: [] // Lưu quỹ đạo ngầm để chiếu lại mượt mà
         };
 
         function initPlinkoCanvas() {
             const canvas = document.getElementById('plinkoCanvas');
             const rect = canvas.parentElement.getBoundingClientRect();
-            // TỐI ƯU HÓA: Giới hạn DPR tối đa = 2 để tránh lag đồ họa
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
             plinkoGame.logicalWidth = Math.max(520, rect.width);
@@ -2499,7 +2505,7 @@
 
             plinkoGame.canvas = canvas;
             plinkoGame.ctx = canvas.getContext('2d');
-            plinkoGame.ctx.scale(dpr, dpr); // Tinh chỉnh sắc nét cho màn hình cao
+            plinkoGame.ctx.scale(dpr, dpr);
 
             rebuildPlinkoBoard();
             startPlinkoIdleLoop();
@@ -2509,7 +2515,6 @@
             if (!plinkoGame.canvas) return;
             const w = plinkoGame.logicalWidth;
 
-            // Xây dựng 14 hàng đinh ghim so le chuẩn Plinko
             plinkoGame.pegs = [];
             const rows = 14;
             const startY = 100;
@@ -2524,7 +2529,7 @@
                     plinkoGame.pegs.push({
                         x: startX + c * colGap,
                         y: startY + r * rowGap,
-                        r: 7, // Chốt đinh to hơn
+                        r: 7, 
                         glow: 0
                     });
                 }
@@ -2564,7 +2569,6 @@
             ctx.save();
             ctx.translate(0, -camY);
 
-            // Hai vách năng lượng hai bên tháp Plinko
             ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
             ctx.lineWidth = 4;
             ctx.beginPath();
@@ -2574,8 +2578,7 @@
             ctx.lineTo(plinkoGame.wallRight, plinkoGame.finishY);
             ctx.stroke();
             
-            // Vạch đích
-            ctx.strokeStyle = '#10b981'; // Emerald
+            ctx.strokeStyle = '#10b981';
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.moveTo(plinkoGame.wallLeft, plinkoGame.finishY);
@@ -2587,7 +2590,6 @@
             ctx.textAlign = 'center';
             ctx.fillText('ĐÍCH ĐẾN', w / 2, plinkoGame.finishY + 22);
 
-            // Vòng sáng lan tỏa khi bi chạm đinh ghim
             for (let i = plinkoGame.ripples.length - 1; i >= 0; i--) {
                 const rp = plinkoGame.ripples[i];
                 rp.r += 1.4;
@@ -2603,7 +2605,6 @@
                 ctx.stroke();
             }
 
-            // Vẽ các chốt đinh ghim (Pegs)
             plinkoGame.pegs.forEach(p => {
                 if (p.glow > 0) p.glow = Math.max(0, p.glow - 0.05);
                 ctx.fillStyle = p.glow > 0 ? '#38bdf8' : '#e2e8f0';
@@ -2612,7 +2613,6 @@
                 ctx.fill();
             });
             
-            // Thanh thả bi
             if (plinkoGame.state === 'bar_moving' || plinkoGame.state === 'dropping') {
                 ctx.fillStyle = '#94a3b8';
                 ctx.beginPath();
@@ -2626,7 +2626,6 @@
                 }
             }
 
-            // Vẽ các viên bi đua
             plinkoGame.balls.forEach(b => {
                 if (b.trail.length > 1) {
                     for (let i = 0; i < b.trail.length; i++) {
@@ -2661,7 +2660,6 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(b.student.shortName, b.x, b.y - b.r - 15);
                 
-                // Mũi nhọn trỏ xuống bi
                 ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
                 ctx.beginPath();
                 ctx.moveTo(b.x - 4, b.y - b.r - 6);
@@ -2674,13 +2672,93 @@
             ctx.restore();
         }
 
+        // TÍNH TOÁN NGẦM QUỸ ĐẠO RƠI CỦA 5 VIÊN BI (GHOST SIMULATION)
+        function simulatePlinkoDrop(startX, count, dt) {
+            let tracks = [];
+            let ghostBalls = [];
+            const gravity = gameDuration === 5 ? 760 : 410;
+            const bounce = 0.62;
+            let usableW = plinkoGame.barWidth - 30;
+            let step = count > 1 ? usableW / (count - 1) : 0;
+
+            for (let i=0; i<count; i++) {
+                ghostBalls.push({
+                    id: i,
+                    x: count === 1 ? startX + plinkoGame.barWidth/2 - 15 : startX + i * step,
+                    y: 40,
+                    vx: (Math.random() - 0.5) * 60,
+                    vy: 0,
+                    r: 10,
+                    frames: [],
+                    finished: false,
+                    finishTime: 0
+                });
+            }
+
+            let timeSimulated = 0;
+            let allFinished = false;
+            
+            while (!allFinished && timeSimulated < 10) { // Giới hạn sim 10s
+                timeSimulated += dt;
+                allFinished = true;
+
+                ghostBalls.forEach(b => {
+                    if (b.finished) return;
+                    allFinished = false;
+
+                    b.vy += gravity * dt;
+                    if (b.vy > 850) b.vy = 850;
+                    
+                    b.x += b.vx * dt;
+                    b.y += b.vy * dt;
+
+                    // Va chạm đinh
+                    let hitPeg = false;
+                    for (let p of plinkoGame.pegs) {
+                        const dx = b.x - p.x;
+                        const dy = b.y - p.y;
+                        const dist = Math.hypot(dx, dy);
+                        const minDist = b.r + p.r;
+                        if (dist < minDist) {
+                            const nx = dx / (dist || 1);
+                            const ny = dy / (dist || 1);
+                            b.x = p.x + nx * (minDist + 0.1);
+                            b.y = p.y + ny * (minDist + 0.1);
+                            const speed = Math.hypot(b.vx, b.vy);
+                            b.vx = nx * speed * bounce + (Math.random() - 0.5) * 70;
+                            b.vy = ny * speed * bounce;
+                            if (Math.abs(b.vx) < 18) b.vx = (Math.random() < 0.5 ? -1 : 1) * 35;
+                            hitPeg = true;
+                            break;
+                        }
+                    }
+
+                    // Va chạm tường
+                    if (b.x - b.r < plinkoGame.wallLeft) {
+                        b.x = plinkoGame.wallLeft + b.r;
+                        b.vx = Math.abs(b.vx) * 0.75;
+                    } else if (b.x + b.r > plinkoGame.wallRight) {
+                        b.x = plinkoGame.wallRight - b.r;
+                        b.vx = -Math.abs(b.vx) * 0.75;
+                    }
+
+                    b.frames.push({ x: b.x, y: b.y, hitPeg: hitPeg });
+
+                    if (b.y + b.r >= plinkoGame.finishY) {
+                        b.finished = true;
+                        b.finishTime = timeSimulated;
+                    }
+                });
+            }
+            return ghostBalls;
+        }
+
         function startPlinko() {
             if (plinkoGame.isPlaying) return;
             const unassigned = students.filter(s => !s.seatId);
             if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
             if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
 
-            // LOGIC CƠ CẤU (RIGGING) ĐỂ ĐẢM BẢO NGƯỜI ĐƯỢC CHỈ ĐỊNH LUÔN CÓ MẶT VÀ CHIẾN THẮNG
             let targetSeatForThisTurn = currentTargetSeatId;
             if (currentFillOrder === 'random_any' || !targetSeatForThisTurn || students.some(s => s.seatId === targetSeatForThisTurn)) {
                 targetSeatForThisTurn = findNextEmptySeatId();
@@ -2688,12 +2766,10 @@
             plinkoGame.targetSeatForThisTurn = targetSeatForThisTurn;
             plinkoGame.riggedStudentId = (isRigActive && canUseRig() && riggedArrangement) ? riggedArrangement[targetSeatForThisTurn] : null;
 
-            rebuildPlinkoBoard(); // reset board
+            rebuildPlinkoBoard(); 
 
-            // Lấy tối đa 5 học sinh
             let pool = [...unassigned];
             let selectedStudents = [];
-            // Bắt buộc phải có bạn đã được cơ cấu ngầm vào nhóm 5 người này
             if (plinkoGame.riggedStudentId) {
                 let riggedStudent = pool.find(s => s.id === plinkoGame.riggedStudentId);
                 if (riggedStudent) {
@@ -2705,7 +2781,6 @@
             while(selectedStudents.length < 5 && pool.length > 0) {
                 selectedStudents.push(pool.pop());
             }
-            selectedStudents.sort(() => Math.random() - 0.5); // Xáo trộn vị trí xuất phát ngẫu nhiên
 
             plinkoGame.isPlaying = true;
             plinkoGame.state = 'bar_moving';
@@ -2720,7 +2795,7 @@
             document.getElementById('plinkoStatusBadge').innerText = 'Thanh ngang đang chọn vị trí thả...';
 
             let lastTime = performance.now();
-            const barMoveDuration = 800 + Math.random() * 800; // 0.8 đến 1.6s
+            const barMoveDuration = 800 + Math.random() * 800; 
             let barMoveElapsed = 0;
 
             function stepPlinko(now) {
@@ -2741,172 +2816,80 @@
                     if (barMoveElapsed >= barMoveDuration) {
                         plinkoGame.state = 'dropping';
                         document.getElementById('plinkoStatusBadge').innerText = 'Đang rơi tự do...';
-                        plinkoGame.dropElapsed = 0;
-                        plinkoGame.winnerAssigned = false;
                         
+                        // 1. TÍNH TOÁN NGẦM ĐƯỜNG RƠI 1 LẦN DUY NHẤT
                         let startX = plinkoGame.barX - plinkoGame.barWidth/2 + 15;
-                        let usableW = plinkoGame.barWidth - 30;
-                        let step = selectedStudents.length > 1 ? usableW / (selectedStudents.length - 1) : 0;
+                        const ghostSim = simulatePlinkoDrop(startX, selectedStudents.length, 0.016);
                         
-                        let startXs = selectedStudents.map((_, i) => selectedStudents.length === 1 ? plinkoGame.barX : startX + i * step);
+                        // 2. TÌM BI NHANH NHẤT VÀ GÁN TÊN THEO CƠ CẤU
+                        ghostSim.sort((a,b) => a.finishTime - b.finishTime);
+                        let assignedNames = new Array(selectedStudents.length);
                         
-                        // Chạy giả lập vật lý ngầm trước (Pre-calculate paths)
-                        function generatePlinkoPaths(startXs) {
-                            const simDt = 1/60;
-                            const gravity = gameDuration === 5 ? 760 : 410;
-                            const baseBounce = 0.62;
-                            
-                            let sBalls = startXs.map(x => ({
-                                x: x, y: 40, vx: (Math.random() - 0.5) * 60, vy: 0, r: 10,
-                                path: [], finished: false, finishFrame: 99999, bouncedPeg: null
-                            }));
-                            
-                            let frame = 0;
-                            let allFinished = false;
-                            
-                            while (!allFinished && frame < 1500) {
-                                allFinished = true;
-                                sBalls.forEach(b => {
-                                    if (b.finished) return;
-                                    allFinished = false;
-                                    
-                                    b.vy += gravity * simDt;
-                                    if (b.vy > 850) b.vy = 850; // Giới hạn vận tốc rơi
-                                    
-                                    b.x += b.vx * simDt;
-                                    b.y += b.vy * simDt;
-                                    
-                                    // Va chạm đinh
-                                    plinkoGame.pegs.forEach(p => {
-                                        const dx = b.x - p.x;
-                                        const dy = b.y - p.y;
-                                        const dist = Math.hypot(dx, dy);
-                                        const minDist = b.r + p.r;
-                                        if (dist < minDist) {
-                                            const nx = dx / (dist || 1);
-                                            const ny = dy / (dist || 1);
-                                            b.x = p.x + nx * (minDist + 0.1);
-                                            b.y = p.y + ny * (minDist + 0.1);
-                                            
-                                            const speed = Math.hypot(b.vx, b.vy);
-                                            b.vx = nx * speed * baseBounce + (Math.random() - 0.5) * 60;
-                                            b.vy = ny * speed * baseBounce;
-                                            
-                                            // Chống kẹt: Tăng ngẫu nhiên lực văng ngang
-                                            if (Math.abs(b.vx) < 25) {
-                                                b.vx = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 30);
-                                            }
-                                            b.bouncedPeg = p;
-                                        }
-                                    });
-                                    
-                                    // Va chạm tường
-                                    if (b.x - b.r < plinkoGame.wallLeft) {
-                                        b.x = plinkoGame.wallLeft + b.r;
-                                        b.vx = Math.abs(b.vx) * 0.75;
-                                    } else if (b.x + b.r > plinkoGame.wallRight) {
-                                        b.x = plinkoGame.wallRight - b.r;
-                                        b.vx = -Math.abs(b.vx) * 0.75;
-                                    }
-                                    
-                                    // Chạm đích
-                                    if (b.y + b.r >= plinkoGame.finishY) {
-                                        b.y = plinkoGame.finishY - b.r;
-                                        b.finished = true;
-                                        b.finishFrame = frame;
-                                    }
-                                    
-                                    b.path.push({x: b.x, y: b.y, bouncedPeg: b.bouncedPeg});
-                                    b.bouncedPeg = null;
-                                });
-                                frame++;
+                        if (plinkoGame.riggedStudentId) {
+                            // Gắn người được cơ cấu vào bi về Nhất
+                            assignedNames[ghostSim[0].id] = selectedStudents.find(s => s.id === plinkoGame.riggedStudentId);
+                            let remainingStudents = selectedStudents.filter(s => s.id !== plinkoGame.riggedStudentId);
+                            for (let i = 1; i < ghostSim.length; i++) {
+                                assignedNames[ghostSim[i].id] = remainingStudents.pop();
                             }
-                            return sBalls;
+                        } else {
+                            selectedStudents.sort(() => Math.random() - 0.5);
+                            for (let i = 0; i < ghostSim.length; i++) {
+                                assignedNames[ghostSim[i].id] = selectedStudents[i];
+                            }
                         }
 
-                        let simulatedBalls = generatePlinkoPaths(startXs);
-                        
-                        // Tìm quỹ đạo chạm đích nhanh nhất
-                        let fastestIndex = 0;
-                        let minFrame = simulatedBalls[0].finishFrame;
-                        for (let i = 1; i < simulatedBalls.length; i++) {
-                            if (simulatedBalls[i].finishFrame < minFrame) {
-                                minFrame = simulatedBalls[i].finishFrame;
-                                fastestIndex = i;
-                            }
-                        }
-                        
-                        // Gán học sinh vào các quỹ đạo
-                        let assignedStudents = new Array(selectedStudents.length);
-                        let pool = [...selectedStudents];
-                        
-                        // Nếu có cơ cấu, GÁN NGƯỜI THẮNG VÀO QUỸ ĐẠO NHANH NHẤT
-                        if (plinkoGame.riggedStudentId) {
-                            let riggedIdx = pool.findIndex(s => s.id === plinkoGame.riggedStudentId);
-                            if (riggedIdx !== -1) {
-                                assignedStudents[fastestIndex] = pool.splice(riggedIdx, 1)[0];
-                            }
-                        }
-                        
-                        // Random những người còn lại
-                        for (let i = 0; i < assignedStudents.length; i++) {
-                            if (!assignedStudents[i]) {
-                                let rIdx = Math.floor(Math.random() * pool.length);
-                                assignedStudents[i] = pool.splice(rIdx, 1)[0];
-                            }
-                        }
-                        
-                        plinkoGame.balls = simulatedBalls.map((sb, i) => ({
-                            student: assignedStudents[i],
-                            color: WHEEL_PALETTE[i % WHEEL_PALETTE.length],
-                            isWinner: assignedStudents[i].id === plinkoGame.riggedStudentId,
-                            path: sb.path,
-                            frameIdx: 0,
-                            x: sb.path[0].x,
-                            y: sb.path[0].y,
-                            r: 10,
-                            trail: []
-                        }));
+                        // 3. KHỞI TẠO BĂNG TRÌNH CHIẾU LẠI
+                        plinkoGame.ghostSimulations = ghostSim;
+                        plinkoGame.currentFrameIdx = 0;
+
+                        plinkoGame.balls = assignedNames.map((st, i) => {
+                            let originTrack = ghostSim.find(g => g.id === i);
+                            return {
+                                student: st,
+                                x: originTrack.frames[0].x,
+                                y: originTrack.frames[0].y,
+                                r: 10,
+                                color: WHEEL_PALETTE[i % WHEEL_PALETTE.length],
+                                isWinner: st.id === plinkoGame.riggedStudentId,
+                                trail: [],
+                                track: originTrack.frames
+                            };
+                        });
                     }
                 } else if (plinkoGame.state === 'dropping') {
-                    plinkoGame.dropElapsed += dt;
-                    const simDt = 1/60;
-                    const targetFrame = Math.floor(plinkoGame.dropElapsed / simDt);
-                    
+                    // TRÌNH CHIẾU LẠI QUỸ ĐẠO ĐÃ ĐƯỢC TÍNH TOÁN SẴN
+                    let frameIdx = plinkoGame.currentFrameIdx++;
                     let winnerAssigned = false;
 
                     plinkoGame.balls.forEach(b => {
-                        // Tiến lên frame mục tiêu để đồng bộ tốc độ khung hình thực tế
-                        while (b.frameIdx < targetFrame && b.frameIdx < b.path.length) {
-                            let currentPos = b.path[b.frameIdx];
-                            if (currentPos) {
-                                b.x = currentPos.x;
-                                b.y = currentPos.y;
-                                if (currentPos.bouncedPeg) {
-                                    let p = currentPos.bouncedPeg;
-                                    p.glow = 1;
-                                    plinkoGame.ripples.push({ x: p.x, y: p.y, r: p.r, alpha: 0.85 });
+                        if (frameIdx < b.track.length) {
+                            let frameData = b.track[frameIdx];
+                            b.x = frameData.x;
+                            b.y = frameData.y;
+                            
+                            b.trail.push({x: b.x, y: b.y});
+                            if (b.trail.length > 12) b.trail.shift();
+
+                            if (frameData.hitPeg) {
+                                // Tìm peg gần nhất để phát sáng
+                                let closestPeg = null;
+                                let minDist = 999;
+                                plinkoGame.pegs.forEach(p => {
+                                    let d = Math.hypot(b.x - p.x, b.y - p.y);
+                                    if (d < minDist) { minDist = d; closestPeg = p; }
+                                });
+                                if (closestPeg && minDist < 20) {
+                                    closestPeg.glow = 1;
+                                    plinkoGame.ripples.push({ x: closestPeg.x, y: closestPeg.y, r: closestPeg.r, alpha: 0.85 });
                                     playPegPing(0.9 + (b.y / plinkoGame.finishY) * 0.5);
                                 }
                             }
-                            b.frameIdx++;
-                        }
-                        
-                        // Nếu đã tới cuối quỹ đạo
-                        if (b.frameIdx >= b.path.length) {
-                            let lastPos = b.path[b.path.length - 1];
-                            b.x = lastPos.x;
-                            b.y = lastPos.y;
-                        }
-
-                        b.trail.push({x: b.x, y: b.y});
-                        if (b.trail.length > 12) b.trail.shift();
-
-                        // Kiểm tra chiến thắng
-                        if (b.frameIdx >= b.path.length && !plinkoGame.winnerAssigned) {
-                            plinkoGame.winnerAssigned = true;
-                            plinkoGame.winner = b;
-                            winnerAssigned = true;
+                        } else {
+                            if (!winnerAssigned && !plinkoGame.winner) {
+                                winnerAssigned = true;
+                                plinkoGame.winner = b;
+                            }
                         }
                     });
 
@@ -2918,14 +2901,28 @@
 
                     if (winnerAssigned) {
                         plinkoGame.isPlaying = false;
-                        const btn = document.getElementById('btnStartPlinko');
                         btn.disabled = false;
                         btn.classList.remove('opacity-50');
                         document.getElementById('plinkoStatusBadge').innerText = `Về đích: ${plinkoGame.winner.student.shortName}`;
                         assignWinnerToTargetSeat(plinkoGame.winner.student, plinkoGame.targetSeatForThisTurn);
                         
                         renderPlinkoScene();
-                        handleAutoNextTurn();
+
+                        // Xử lý Auto Mode
+                        if (isAutoMode) {
+                            const remaining = students.filter(s => !s.seatId);
+                            const nextSeat = findNextEmptySeatId();
+                            if (remaining.length > 0 && nextSeat) {
+                                autoTimer = setTimeout(() => {
+                                    if (isAutoMode && activeGame === 'plinko') {
+                                        startPlinko();
+                                    }
+                                }, 1400);
+                            } else {
+                                stopAutoMode();
+                                showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
+                            }
+                        }
                         return; 
                     }
                 }
@@ -2978,7 +2975,7 @@
             const h = wheelGame.canvas.height;
             const cx = w / 2;
             const cy = h / 2;
-            const outerR = w / 2 - 20; // Vòng quay to hơn
+            const outerR = w / 2 - 20; 
             const innerR = outerR - 18;
 
             ctx.clearRect(0, 0, w, h);
@@ -3002,7 +2999,6 @@
                 document.getElementById('wheelCurrentHover').innerText = currentPick.student.name;
             }
 
-            // Vành kim loại ngoài cùng
             ctx.fillStyle = '#1e293b';
             ctx.strokeStyle = '#fbbf24';
             ctx.lineWidth = 5;
@@ -3029,17 +3025,15 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                // Vẽ tên học sinh dọc theo nan quạt
                 ctx.save();
                 ctx.rotate(startA + slice / 2);
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#ffffff';
-                const fontSize = unassigned.length > 32 ? 18 : (unassigned.length > 20 ? 22 : 28); // Tăng font to hơn
+                const fontSize = unassigned.length > 32 ? 18 : (unassigned.length > 20 ? 22 : 28); 
                 ctx.font = `900 ${fontSize}px "Nunito"`;
                 ctx.fillText(st.shortName, innerR - 25, 0);
 
-                // Đinh tán vàng ở mép mỗi ô
                 ctx.fillStyle = '#fef08a';
                 ctx.beginPath();
                 ctx.arc(innerR - 6, 0, 4, 0, Math.PI * 2);
@@ -3049,17 +3043,16 @@
 
             ctx.restore();
 
-            // Tâm vòng quay sang trọng
             ctx.fillStyle = '#0f172a';
             ctx.strokeStyle = '#fbbf24';
             ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.arc(cx, cy, 38, 0, Math.PI * 2); // Tâm to hơn
+            ctx.arc(cx, cy, 38, 0, Math.PI * 2); 
             ctx.fill();
             ctx.stroke();
 
             ctx.fillStyle = '#fbbf24';
-            ctx.font = '900 24px "Inter"'; // Ngôi sao to hơn
+            ctx.font = '900 24px "Inter"';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('★', cx, cy + 2);
@@ -3076,7 +3069,6 @@
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            // LOGIC CƠ CẤU (RIGGING): TÍNH TOÁN GÓC DỪNG CHUẨN XÁC
             let targetSeatForThisTurn = currentTargetSeatId;
             if (currentFillOrder === 'random_any' || !targetSeatForThisTurn || students.some(s => s.seatId === targetSeatForThisTurn)) {
                 targetSeatForThisTurn = findNextEmptySeatId();
@@ -3096,9 +3088,8 @@
             const startTime = performance.now();
             const startAngle = wheelGame.angle;
             
-            // Ép Vòng Quay kết thúc chính xác ở mũi kim trỏ vào winnerIndex
             const slice = (Math.PI * 2) / unassigned.length;
-            let targetNorm = winnerIndex * slice + slice / 2; // Canh giữa nan quạt
+            let targetNorm = winnerIndex * slice + slice / 2;
             let targetMod = Math.PI * 2 - targetNorm;
             let currentMod = startAngle % (Math.PI * 2);
             let neededDelta = targetMod - currentMod;
@@ -3142,8 +3133,22 @@
                     const winResult = getWheelWinnerAtAngle(wheelGame.angle, unassigned);
                     if (winResult && winResult.student) {
                         assignWinnerToTargetSeat(winResult.student, wheelGame.targetSeatForThisTurn);
+                        
+                        if (isAutoMode) {
+                            const remaining = students.filter(s => !s.seatId);
+                            const nextSeat = findNextEmptySeatId();
+                            if (remaining.length > 0 && nextSeat) {
+                                autoTimer = setTimeout(() => {
+                                    if (isAutoMode && activeGame === 'wheel') {
+                                        startWheel();
+                                    }
+                                }, 1400);
+                            } else {
+                                stopAutoMode();
+                                showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
+                            }
+                        }
                     }
-                    handleAutoNextTurn();
                 }
             }
 
@@ -3172,7 +3177,7 @@
 
         function switchGame(gameId) {
             if (isAnyGameRunning()) return showToast("Vui lòng đợi lượt chơi hiện tại hoàn tất!");
-            stopAutoMode(); // Tự động ngắt Auto nếu đổi màn chơi
+            stopAutoMode(); 
             activeGame = gameId;
 
             ['duck', 'plinko', 'wheel'].forEach(id => {
@@ -3238,7 +3243,7 @@
                 return showToast("Đang chạy trò chơi, không thể đổi lớp!");
             }
             loadClassData(cName);
-            saveClassData(); // Lưu lại lớp đang chọn lên Google Sheet để máy khác cũng mở đúng lớp này
+            saveClassData(); 
             showToast(`Đã chuyển sang lớp: ${cName}`);
         }
 
@@ -3273,14 +3278,15 @@
             currentTargetSeatId = findNextEmptySeatId();
             lastAssignedSeatId = null;
             isRigActive = false; 
+            isRigLockedByOneTimeUse = false;
             toggleOffOnce = false;
             document.getElementById('instantFillToggle').checked = true;
             riggedArrangement = null;
             
-            updateClassDropdown(); // Sync newly added class
+            updateClassDropdown(); 
             closeStudentModal();
             renderGrid();
-            saveDataToSheet(true); // Gửi trực tiếp lên Sheet và hiện thông báo xác nhận
+            saveDataToSheet(true); 
         }
 
         function showToast(msg) {
@@ -3297,14 +3303,22 @@
         // 9. CƠ CHẾ THIẾT LẬP CƠ CẤU (RIGGING / MANIPULATION MODULE)
         // ============================================================================
         function canUseRig() {
-            // KHÓA CỨNG BẢO MẬT 1: Nếu đang ở chế độ chơi thử nghiệm (test) thì tuyệt đối không cho phép bật cơ cấu
+            // Nếu cờ khóa 1 lần đã kích hoạt thì tuyệt đối cấm cơ cấu
+            if (isRigLockedByOneTimeUse) return false;
+            // Khi chọn chế độ "Chơi thử nghiệm", TUYỆT ĐỐI không bao giờ bật cơ cấu với mọi điều kiện
             if (typeof sessionMode !== 'undefined' && sessionMode === 'test') return false;
 
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            if (typeof rigScope !== 'undefined') {
-                if (rigScope === 'all') return true;
-                if (rigScope === 'admin') return isAdmin;
+            
+            let currentScope = 'admin';
+            if (typeof classDataDict !== 'undefined' && classDataDict[currentClassName] && classDataDict[currentClassName].rigScope) {
+                currentScope = classDataDict[currentClassName].rigScope;
+            } else if (typeof rigScope !== 'undefined') {
+                currentScope = rigScope;
             }
+
+            if (currentScope === 'all') return true;
+            if (currentScope === 'admin') return isAdmin;
             return false;
         }
 
@@ -3312,11 +3326,9 @@
             const indicator = document.getElementById('secretRigIndicator') || document.getElementById('secretDotIndicator');
             if (indicator) {
                 if (isRigActive && canUseRig()) {
-                    // Khi BẬT cơ cấu và đủ quyền áp dụng: Thêm dấu chấm v2.1. và đổi nhẹ màu viền
                     indicator.innerText = "v2.1.";
                     indicator.className = "w-12 text-center text-[11px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
                 } else {
-                    // Khi TẮT cơ cấu hoặc không áp dụng: Trả về v2.1 xám nhạt như bình thường
                     indicator.innerText = "v2.1";
                     indicator.className = "w-12 text-center text-[11px] font-bold text-slate-400 bg-slate-100/80 border border-slate-200 px-1 py-0.5 rounded-md tracking-normal cursor-pointer select-none transition-all duration-200";
                 }
@@ -3326,12 +3338,8 @@
         function updateMasterRigUI() {
             const toggle = document.getElementById('masterRigToggle');
             const badge = document.getElementById('masterRigStatusBadge');
-            const oneTimeToggle = document.getElementById('rigOneTimeToggle');
-            
-            const isAll = (typeof rigScope !== 'undefined' && rigScope === 'all');
+            const isAll = (rigScope === 'all');
             if (toggle) toggle.checked = isAll;
-            if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
-            
             if (badge) {
                 if (isAll) {
                     badge.innerHTML = '<i class="fa-solid fa-users"></i> Áp dụng với tất cả';
@@ -3363,22 +3371,20 @@
                 showToast("🌐 Đã chọn: ÁP DỤNG VỚI TẤT CẢ! Người dùng bên ngoài cũng sẽ được áp dụng cơ cấu.");
             }
         }
-
-        function toggleRigOneTime(checked) {
+        
+        function toggleOneTimeUse(checked) {
             isRigOneTimeUse = checked;
             ensureCurrentClassExists();
-            classDataDict[currentClassName].rigOneTimeUse = isRigOneTimeUse;
+            classDataDict[currentClassName].isRigOneTimeUse = isRigOneTimeUse;
             saveClassData();
-            showToast(checked ? "Đã BẬT: Cơ cấu sẽ tự động TẮT sau khi nộp sơ đồ!" : "Đã TẮT: Chế độ dùng 1 lần.");
+            if (checked) {
+                showToast("⏱️ Đã bật Tự động khóa! Cơ cấu sẽ tắt sau khi bạn Gửi sơ đồ.");
+            }
         }
 
         function toggleRigFromBadge() {
-            // Kiểm tra quyền áp dụng - Cấm tuyệt đối khi ở chế độ test thử
-            if (!canUseRig() || (typeof sessionMode !== 'undefined' && sessionMode === 'test')) {
-                return;
-            }
+            if (!canUseRig()) return;
 
-            // Cho phép bấm trực tiếp vào nhãn v2.1 để bật/tắt nhanh cơ cấu
             isRigActive = !isRigActive;
             if (isRigActive) {
                 const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
@@ -3394,19 +3400,13 @@
 
         function handleSecretToggle(el) {
             if (!el.checked) {
-                // Đang gạt tắt công tắc
                 toggleOffOnce = true;
             } else {
-                // Khi bật lại công tắc sau khi đã tắt
                 if (toggleOffOnce) {
                     toggleOffOnce = false;
 
-                    // Kiểm tra quyền áp dụng - Cấm tuyệt đối khi ở chế độ test thử
-                    if (!canUseRig() || (typeof sessionMode !== 'undefined' && sessionMode === 'test')) {
-                        return;
-                    }
+                    if (!canUseRig()) return;
 
-                    // Đảo trạng thái cơ cấu (Bật -> Tắt, hoặc Tắt -> Bật)
                     isRigActive = !isRigActive;
                     
                     if (isRigActive) {
@@ -3486,6 +3486,10 @@
                 populateRigStudentSelects();
                 updateRigPresetUI();
                 updateMasterRigUI();
+                
+                const oneTimeToggle = document.getElementById('rigOneTimeUseToggle');
+                if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
+                
                 onRigRuleTypeChange();
                 renderRigRuleList();
                 renderMiniClassroom();
@@ -3587,7 +3591,7 @@
         };
 
         // ====== HỆ THỐNG GỬI & NHẬN CẤU HÌNH (GMAIL CHO ADMIN) ======
-        let sessionMode = 'none'; // 'test' hoặc 'submit'
+        let sessionMode = 'none'; 
         let hasChosenWelcomeMode = false;
 
         function showWelcomeModal() {
@@ -3609,6 +3613,7 @@
         function selectWelcomeMode(mode) {
             hasChosenWelcomeMode = true;
             sessionMode = mode;
+            isRigLockedByOneTimeUse = false; // Đảm bảo reset trạng thái khóa khi bắt đầu phiên mới
             hideWelcomeModal();
             
             const submitBtn = document.getElementById('submitToAdminBtn');
@@ -3621,18 +3626,19 @@
                         rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
                     }
                     calculateRiggingSilently();
-                    document.getElementById('instantFillToggle').checked = false; // Nhả công tắc điền
+                    document.getElementById('instantFillToggle').checked = false; 
                 }
-                // Dù có cơ cấu hay không, vẫn hiện nút Gửi về Admin để nộp bài
+                
                 if (submitBtn) {
                     submitBtn.classList.remove('hidden');
                     submitBtn.classList.add('flex');
                 }
                 showToast("Đã vào chế độ Sắp Xếp Chính Thức!");
             } else {
+                sessionMode = 'test';
                 isRigActive = false;
                 riggedArrangement = null;
-                document.getElementById('instantFillToggle').checked = true; // Bật công tắc điền tự động
+                document.getElementById('instantFillToggle').checked = true; 
                 if (submitBtn) {
                     submitBtn.classList.add('hidden');
                     submitBtn.classList.remove('flex');
@@ -3669,16 +3675,17 @@
                     count: count
                 });
                 
-                saveClassData(); // Lưu lên Cloud ngay lập tức
+                saveClassData(); 
                 
                 let successMsg = "🚀 Đã gửi cấu hình thành công cho Admin!";
                 // Tự động tắt cơ cấu nếu chế độ "Dùng 1 lần" đang được bật
                 if (isRigOneTimeUse && isRigActive) {
                     isRigActive = false;
                     riggedArrangement = null;
+                    isRigLockedByOneTimeUse = true; // KHÓA HOÀN TOÀN CƠ CẤU
                     document.getElementById('instantFillToggle').checked = true; // Bật lại điền tự động mặc định
                     updateSecretDotIndicator();
-                    successMsg = "🚀 Đã gửi cấu hình thành công! (Cơ cấu đã tự động tắt)";
+                    successMsg = "🚀 Đã gửi cấu hình thành công! (Cơ cấu đã bị KHÓA hoàn toàn)";
                 }
                 
                 showToast(successMsg);
@@ -3750,13 +3757,10 @@
             const sub = subs.find(s => s.id === subId);
             if (!sub) return;
 
-            // Đóng bảng nhận cấu hình để không che chắn
             closeSubmissionsModal();
 
             openConfirm("Xác nhận Áp dụng", `Bạn có chắc muốn đổ sơ đồ của "${sub.sender}" ra bản đồ? Dữ liệu ghế ngồi hiện tại sẽ bị xóa bỏ.`, () => {
-                // Xóa ghế cũ
                 students.forEach(s => s.seatId = null);
-                // Lắp ghế mới từ file gửi về
                 for (let studentId in sub.layout) {
                     const st = students.find(s => s.id === studentId);
                     if (st) st.seatId = sub.layout[studentId];
@@ -3768,7 +3772,6 @@
                 saveClassData();
                 showToast(`✨ Đã áp dụng hoàn tất cấu hình của "${sub.sender}"!`);
             }, () => {
-                // Nếu bấm Hủy thì mở lại bảng Hộp thư
                 openSubmissionsModal();
             });
         }
@@ -3831,7 +3834,6 @@
         function validateRigRules(rules) {
             if (!rules || rules.length === 0) return { valid: true };
 
-            // 1. Kiểm tra giới hạn khu vực rỗng
             let allowedSeats = {};
             for (let r of rules) {
                 if (r.type === 'area_only') {
@@ -3852,7 +3854,6 @@
                 }
             }
 
-            // 2. Kiểm tra xung đột "together" (mỗi bàn chỉ có 2 ghế)
             let togetherMap = {};
             for (let r of rules) {
                 if (r.type === 'together') {
@@ -3876,7 +3877,6 @@
                 }
             }
 
-            // 3. Kiểm tra mâu thuẫn trực tiếp giữa từng cặp học sinh
             for (let i = 0; i < rules.length; i++) {
                 for (let j = i + 1; j < rules.length; j++) {
                     let r1 = rules[i];
@@ -3908,7 +3908,6 @@
                 }
             }
 
-            // 4. Kiểm tra A & B "together" nhưng bàn hợp lệ không giao nhau
             for (let r of rules) {
                 if (r.type === 'together') {
                     let s1Seats = allowedSeats[r.s1Id];
@@ -3940,7 +3939,6 @@
                 }
             }
 
-            // 5. Kiểm tra tính khả thi thực tế bằng bộ giải thử nghiệm (Simulation)
             const testResult = testSolveArrangement(rules);
             if (!testResult.success) {
                 return {
@@ -3952,7 +3950,6 @@
             return { valid: true };
         }
 
-        // Mô phỏng nhanh thuật toán xếp chỗ để thẩm định tính khả thi 100%
         function testSolveArrangement(testRules) {
             let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
             testRules.forEach(r => { if (rules[r.type]) rules[r.type].push(r); });
@@ -4007,7 +4004,6 @@
                 return true;
             }
 
-            // Thử nghiệm sắp xếp
             let studentsInvolved = new Set();
             testRules.forEach(r => {
                 if (r.s1Id) studentsInvolved.add(r.s1Id);
@@ -4019,7 +4015,6 @@
             const MAX_TRIES = 500;
             for (let t = 0; t < MAX_TRIES; t++) {
                 testPlacement = {};
-                // Tách biệt ghế 1->5 và ghế 6 để luôn ưu tiên kín hàng trên
                 let seats1to5 = allSeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
                 let seats6 = allSeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
                 let seatsCopy = [...seats1to5, ...seats6];
@@ -4057,7 +4052,6 @@
                     }
 
                     let desks = [];
-                    // Ưu tiên tìm bàn ở Bàn 1->5 trước
                     for (let c = 1; c <= COLS; c++) {
                         for (let row = 1; row <= 5; row++) {
                             let L = `D${c}_B${row}_L`, R = `D${c}_B${row}_R`;
@@ -4069,7 +4063,6 @@
                         }
                     }
                     if (desks.length === 0) {
-                        // Chỉ khi hàng 1-5 không còn bàn nào mới xét Bàn 6
                         for (let c = 1; c <= COLS; c++) {
                             let L = `D${c}_B6_L`, R = `D${c}_B6_R`;
                             if (!testPlacement[L] && !testPlacement[R]) {
@@ -4087,7 +4080,10 @@
                 if (failed) continue;
 
                 let remaining = listStudents.filter(id => !Object.values(testPlacement).includes(id));
+                let stepCount = 0; // Cầu dao tự động (Circuit Breaker) chống treo máy
+                
                 function solve(idx) {
+                    if (stepCount++ > 1500) return false; 
                     if (idx === remaining.length) return true;
                     let st = remaining[idx];
                     let validSeats = seatsCopy.filter(s => !testPlacement[s]);
@@ -4115,7 +4111,6 @@
             activePresetIndex = parseInt(select.value);
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
             
-            // Nạp dữ liệu của mẫu vừa chọn
             rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules || []));
             rigSelectedSeats = [];
             saveClassData();
@@ -4130,14 +4125,13 @@
             const defaultName = `Mẫu ${classDataDict[currentClassName].rigPresets.length + 1}`;
             openPrompt("Tạo mẫu cơ cấu mới (trắng)", defaultName, (name) => {
                 if (name && name.trim() !== "") {
-                    // Tạo một mẫu mới TRẮNG TINH không mang theo quy tắc của mẫu cũ
                     classDataDict[currentClassName].rigPresets.push({
                         name: name.trim(),
                         rules: []
                     });
                     activePresetIndex = classDataDict[currentClassName].rigPresets.length - 1;
                     classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
-                    rigRulesList = []; // Làm sạch danh sách quy tắc đang chỉnh
+                    rigRulesList = []; 
                     rigSelectedSeats = [];
                     saveClassData();
                     updateRigPresetUI();
@@ -4199,7 +4193,7 @@
             
             if (type === 'area_only') {
                 container.innerHTML = `<div class="text-xs font-bold text-indigo-600 bg-indigo-50 p-2.5 rounded-lg border border-indigo-200 w-full text-center">Hãy bấm chọn các ghế trên Sơ đồ thu nhỏ bên phải <i class="fa-solid fa-arrow-right ml-1"></i></div>`;
-                rigSelectedSeats = []; // Reset area selection
+                rigSelectedSeats = []; 
             } else {
                 let stSelect = `<select id="rigTargetVal" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">`;
                 students.forEach(s => {
@@ -4330,7 +4324,6 @@
             renderRigRuleList();
         }
 
-        // --- THUẬT TOÁN LOGIC CƠ CẤU BACKTRACKING + MONTE CARLO ---
         function getSeatCoords(seatId) {
             if(!seatId) return null;
             const parts = seatId.split('_'); 
@@ -4349,8 +4342,8 @@
 
         function calculateRiggingSilently() {
             riggedArrangement = null;
-            // Ở chế độ test thử hoặc khi chưa được cấp quyền thì lập tức thoát, không tính toán cơ cấu ngầm
-            if (sessionMode === 'test' || !canUseRig() || rigRulesList.length === 0) return;
+            if (typeof sessionMode !== 'undefined' && sessionMode === 'test') return;
+            if (!canUseRig() || rigRulesList.length === 0) return;
             
             let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
             rigRulesList.forEach(r => {
@@ -4359,7 +4352,6 @@
             
             let allowedSeatsPerStudent = {};
             for (let r of rules.area_only) {
-                // Tự động loại trừ ghế đã ngồi ở lần gần nhất (nếu còn ghế khác trong khu vực)
                 let candidateSeats = [...r.seats];
                 const prevSeat = previousSessionSeats[r.s1Id];
                 if (prevSeat && candidateSeats.includes(prevSeat) && candidateSeats.length > 1) {
@@ -4376,7 +4368,6 @@
                 }
             }
 
-            // Ghi nhận các học sinh ĐÃ ĐƯỢC XẾP CHỖ (không thay đổi)
             let placement = {};
             students.forEach(s => {
                 if (s.seatId) placement[s.seatId] = s.id;
@@ -4454,7 +4445,6 @@
             for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 let testPlacement = {...placement};
                 
-                // Tách biệt ghế 1->5 và ghế 6: KHÔNG BAO GIỜ trộn lẫn Bàn 6 vào trước Bàn 1->5
                 let seats1to5 = allSeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
                 let seats6 = allSeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
                 let seatList = [...seats1to5, ...seats6];
@@ -4492,7 +4482,6 @@
                     }
 
                     let availableDesks = [];
-                    // Chỉ tìm bàn ở Bàn 1->5 trước
                     for(let c=1; c<=COLS; c++) {
                         for(let row=1; row<=5; row++) {
                             let L = `D${c}_B${row}_L`;
@@ -4508,7 +4497,6 @@
                             }
                         }
                     }
-                    // Nếu 5 hàng trên không còn bàn đôi trống, mới xem xét Bàn 6
                     if (availableDesks.length === 0) {
                         for(let c=1; c<=COLS; c++) {
                             let L = `D${c}_B6_L`;
@@ -4532,8 +4520,10 @@
                 if (failedPreplace) continue;
 
                 let unplaced = orderedStudents.filter(id => !Object.values(testPlacement).includes(id));
+                let stepCount = 0; // Tích hợp Circuit Breaker
                 
                 function solve(idx) {
+                    if (stepCount++ > 1500) return false; 
                     if (idx === unplaced.length) return true;
                     let stId = unplaced[idx];
                     
@@ -4548,7 +4538,7 @@
                         if (isValidPartialLayout(testPlacement)) {
                             if (solve(idx + 1)) return true;
                         }
-                        delete testPlacement[seat]; // backtrack
+                        delete testPlacement[seat]; 
                     }
                     return false;
                 }
@@ -4567,10 +4557,8 @@
 
         // Khởi chạy ứng dụng khi tải trang
         window.addEventListener('DOMContentLoaded', async () => {
-            // Xóa phiên đăng nhập cũ để buộc người dùng nhập mật khẩu mới 884043
             sessionStorage.removeItem('isAdmin');
 
-            // 1. Tải trước từ LocalStorage nếu có để hiển thị ngay tức thì
             let storedData = localStorage.getItem('classroom_data');
             if (storedData) {
                 try {
@@ -4581,7 +4569,6 @@
                     initDefaultStudents(false);
                 }
             } else {
-                // Máy mới hoàn toàn: chỉ tạo tạm trong RAM, KHÔNG ghi đè lên Google Sheet
                 initDefaultStudents(false);
             }
 
@@ -4594,7 +4581,6 @@
             updateAdminUI();
             updateSecretDotIndicator();
 
-            // IntersectionObserver: Ngăn chặn Canvas render ngầm gây lag khi lướt xem sơ đồ
             const container = document.getElementById('gameContainer');
             if (container && window.IntersectionObserver) {
                 const observer = new IntersectionObserver((entries) => {
@@ -4608,16 +4594,13 @@
                 if (activeGame === 'plinko' && !plinkoGame.isPlaying) initPlinkoCanvas();
             });
 
-            // 2. Ưu tiên tải ngay dữ liệu từ Google Sheets
             showToast("☁️ Đang kiểm tra dữ liệu từ Google Sheet...");
             const cloudSuccess = await loadDataFromSheet(true);
             if (!cloudSuccess && !storedData) {
-                // Nếu cả Cloud và Local đều chưa từng có dữ liệu, lúc này mới tạo bản mẫu đầu tiên
                 hasInitialCloudSyncDone = true;
                 saveClassData();
             }
 
-            // Chỉ hiển thị nếu người dùng chưa chọn chế độ
             if (!hasChosenWelcomeMode) {
                 showWelcomeModal();
             }
