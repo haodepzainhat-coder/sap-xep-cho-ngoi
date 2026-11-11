@@ -616,10 +616,13 @@
 
                 <div class="flex items-center gap-3">
                     <!-- CÔNG TẮC DÙNG 1 LẦN -->
-                    <label class="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 cursor-pointer select-none transition shadow-sm" title="Nếu bật, cơ cấu sẽ TỰ ĐỘNG KHÓA sau khi bạn bấm Gửi sơ đồ cho Admin.">
+                    <label class="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 cursor-pointer select-none transition shadow-sm" title="Nếu bật, chỉ cần 1 người bấm Gửi sơ đồ cho Admin thì cơ cấu sẽ KHÓA CỨNG. Chỉ Admin mới mở lại được.">
                         <input type="checkbox" id="rigOneTimeUseToggle" onchange="toggleOneTimeUse(this.checked)" class="accent-rose-500 w-3.5 h-3.5">
                         <span class="text-[11px] font-bold text-rose-700">Dùng 1 lần (Auto khóa khi Gửi)</span>
                     </label>
+                    <button id="rigOneTimeLockBadge" onclick="unlockOneTimeRig()" class="hidden items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer animate-pulse" title="Cơ cấu đang bị khóa cứng do đã có người gửi. Chỉ Admin mới có quyền bấm để mở lại!">
+                        <i class="fa-solid fa-lock"></i> Đang khóa cứng • Mở lại
+                    </button>
 
                     <!-- CÔNG TẮC CHỌN PHẠM VI ÁP DỤNG CƠ CẤU (CHỈ ADMIN / TẤT CẢ) -->
                     <label class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Gạt công tắc để chọn phạm vi: Chỉ áp dụng với Admin hoặc Áp dụng với tất cả mọi người">
@@ -668,11 +671,11 @@
                                 <option value="surround_must">🔄 Xung quanh PHẢI CÓ người này</option>
                                 <option value="surround_not">⛔ Xung quanh KHÔNG ĐƯỢC CÓ người này</option>
                             </select>
-                            <select id="rigStudent1" class="text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">
+                            <select id="rigStudent1" onchange="onRigStudent1Change()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">
                                 <!-- Options added dynamically -->
                             </select>
-                            <div id="rigTargetContainer" class="flex gap-2 w-full">
-                                <!-- Container cho Chọn người thứ 2 / Hoặc Chọn ghế & Xác suất -->
+                            <div id="rigTargetContainer" class="flex flex-col gap-2 w-full">
+                                <!-- Container cho Chọn người thứ 2 / Hoặc Chọn nhiều người / Hoặc Chọn ghế -->
                             </div>
                         </div>
                         <button id="addRigRuleBtn" onclick="addRigRule()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition w-full shadow-md flex justify-center items-center gap-2">
@@ -1153,17 +1156,13 @@
                 rigScope = storedScope || 'all';
             }
             
-            // Nạp cờ "Dùng 1 lần"
-            if (data.isRigOneTimeUse !== undefined) {
-                isRigOneTimeUse = data.isRigOneTimeUse;
-            }
+            // Nạp cờ "Dùng 1 lần" & trạng thái khóa cứng
+            isRigOneTimeUse = Boolean(data.isRigOneTimeUse);
+            isRigLockedByOneTimeUse = Boolean(data.isRigLockedByOneTimeUse);
             
             // Nạp luật từ mẫu đang kích hoạt vào bộ nhớ tạm để chỉnh sửa
             rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
             riggedArrangement = null;
-            
-            // Reset các cờ cơ cấu
-            isRigLockedByOneTimeUse = false;
             
             // Xử lý nạp chế độ Gửi Admin nếu đang được Bật
             if (sessionMode === 'submit' && canUseRig()) {
@@ -1178,6 +1177,7 @@
             
             const oneTimeToggle = document.getElementById('rigOneTimeUseToggle');
             if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
+            updateOneTimeLockUI();
             
             updateSecretDotIndicator();
             updateSubmissionBadge(); // Cập nhật số lượng thư chờ trong hộp
@@ -1200,6 +1200,7 @@
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
             classDataDict[currentClassName].rigScope = rigScope;
             classDataDict[currentClassName].isRigOneTimeUse = isRigOneTimeUse;
+            classDataDict[currentClassName].isRigLockedByOneTimeUse = isRigLockedByOneTimeUse;
             
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
@@ -1239,7 +1240,8 @@
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
                     rigScope: 'all',
-                    isRigOneTimeUse: false
+                    isRigOneTimeUse: false,
+                    isRigLockedByOneTimeUse: false
                 };
             }
 
@@ -1256,7 +1258,8 @@
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
                     rigScope: rigScope,
-                    isRigOneTimeUse: isRigOneTimeUse
+                    isRigOneTimeUse: isRigOneTimeUse,
+                    isRigLockedByOneTimeUse: isRigLockedByOneTimeUse
                 };
             }
         }
@@ -1628,7 +1631,6 @@
             
             // MỚI: Xóa sạch sơ đồ sẽ LUÔN TẮT CƠ CẤU (Reset hệ thống về bình thường)
             isRigActive = false;
-            isRigLockedByOneTimeUse = false; // Mở khóa lại cơ cấu khi reset vòng mới
             toggleOffOnce = false;
             const toggleEl = document.getElementById('instantFillToggle');
             if (toggleEl) toggleEl.checked = true; // Trạng thái Checked = Bật điền thẳng, Tắt Cơ cấu
@@ -1937,6 +1939,7 @@
                     labelWidth: null // Khởi tạo cache chiều dài text để tối ưu đồ họa
                 };
             });
+            duckGame.ducks.sort((a, b) => a.baseY - b.baseY);
             duckGame.cameraX = 0;
         }
 
@@ -2045,20 +2048,20 @@
                 ctx.fill();
             }
 
-            // 5. Vẽ đàn vịt theo thứ tự Y để con gần che con xa tự nhiên
-            const sortedDucks = [...duckGame.ducks].sort((a, b) => a.y - b.y);
-            // Tỷ lệ hiển thị to rõ hơn cho máy chiếu
-            const scale = sortedDucks.length > 36 ? 0.75 : (sortedDucks.length > 24 ? 0.85 : (sortedDucks.length > 14 ? 0.95 : 1.1));
+            // 5. Vẽ đàn vịt theo thứ tự Y đã sắp sẵn để con gần che con xa tự nhiên
+            const ducksList = duckGame.ducks;
+            const scale = ducksList.length > 36 ? 0.75 : (ducksList.length > 24 ? 0.85 : (ducksList.length > 14 ? 0.95 : 1.1));
 
-            sortedDucks.forEach(d => {
-                const bobY = d.baseY + Math.sin(now * 0.008 + d.phase) * 2.5;
+            for (let i = 0; i < ducksList.length; i++) {
+                const d = ducksList[i];
+                const bobY = d.baseY + Math.sin(now * 0.007 + d.phase) * 2.2;
                 d.y = bobY;
                 // TỐI ƯU HÓA (CULLING): Chỉ vẽ những chú vịt đang xuất hiện trong khung hình Camera
                 const screenX = d.x - camX;
-                if (screenX > -250 && screenX < w + 200) {
+                if (screenX > -260 && screenX < w + 220) {
                     drawSingleCartoonDuck(ctx, d, screenX, bobY, scale, now);
                 }
-            });
+            }
         }
 
         function drawCheckeredLine(ctx, screenX, topY, bottomY, isFinish) {
@@ -2116,7 +2119,6 @@
         }
 
         function drawSingleCartoonDuck(ctx, duck, sx, sy, scale, now) {
-            if (sx < -150 || sx > duckGame.logicalWidth + 150) return;
             ctx.save();
             ctx.translate(sx, sy);
             ctx.scale(scale, scale);
@@ -2327,60 +2329,85 @@
             const totalDist = finishX - startX;
             const durationMs = gameDuration * 1000;
             const startTime = performance.now();
+            let lastFrameTime = startTime;
+            let lastTimerStr = '';
+            let lastLeaderboardTime = 0;
+            let lastTop3Key = '';
+            const timerEl = document.getElementById('duckTimerText');
+            const leaderboardEl = document.getElementById('duckLeaderboard');
 
             function stepRace(now) {
+                const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+                lastFrameTime = now;
                 const elapsed = now - startTime;
                 const progress = Math.min(elapsed / durationMs, 1);
                 const remainSec = Math.max(0, (durationMs - elapsed) / 1000);
-                document.getElementById('duckTimerText').innerText = `00:${remainSec < 10 ? '0' + remainSec.toFixed(1) : remainSec.toFixed(1)}`.replace('00:010', '00:10');
+                const timerStr = `00:${remainSec.toFixed(1).padStart(4, '0')}`;
+                if (timerStr !== lastTimerStr) {
+                    lastTimerStr = timerStr;
+                    timerEl.textContent = timerStr;
+                }
 
-                if (Math.random() < 0.06) playQuackSound();
+                if (Math.random() < 0.05) playQuackSound();
 
+                const waveEnv = Math.sin(progress * Math.PI);
                 let maxDuckX = 0;
-                duckGame.ducks.forEach((d, idx) => {
-                    const wave = Math.sin(progress * Math.PI * d.freq1 + d.phase) * 0.045
-                               + Math.sin(progress * Math.PI * d.freq2) * 0.025;
+                const ducksList = duckGame.ducks;
+                const camX = duckGame.cameraX;
+                const viewW = duckGame.logicalWidth;
+
+                for (let idx = 0; idx < ducksList.length; idx++) {
+                    const d = ducksList[idx];
+                    const wave = (Math.sin(progress * Math.PI * d.freq1 + d.phase) * 0.042
+                               + Math.sin(progress * Math.PI * d.freq2) * 0.022) * waveEnv;
 
                     let targetNorm;
                     if (idx === winnerIndex) {
-                        // Vịt thắng có pha nước rút bứt tốc ở chặng cuối (thay vì bị chậm lại)
-                        const lateBoost = progress > 0.6 ? Math.pow(progress - 0.6, 2) * 0.5 : 0;
+                        const lateBoost = progress > 0.6 ? Math.pow(progress - 0.6, 2) * 0.52 : 0;
                         targetNorm = progress + wave * 0.5 + lateBoost;
                         d.turboBurst = progress > 0.65;
                         if (progress >= 1) targetNorm = 1.05;
                     } else {
-                        // Các vịt khác đua bình thường, băng băng về đích với tốc độ ổn định chứ không dừng hẳn lại
                         const midSurge = Math.exp(-Math.pow((progress - d.surgeCenter) / 0.2, 2)) * 0.05;
-                        const speedFactor = 0.85 + (idx % 10) * 0.01; // Các con về sau vạch đích 1 chút
+                        const speedFactor = 0.85 + (idx % 10) * 0.01;
                         targetNorm = progress * speedFactor + wave * 0.5 + midSurge;
                         d.turboBurst = midSurge > 0.04;
                     }
 
                     const newX = startX + Math.max(0, targetNorm) * totalDist;
-                    if (duckGame.isRacing && Math.random() < 0.35) {
+                    const sx = newX - camX;
+                    if (duckGame.isRacing && duckGame.particles.length < 70 && sx > -40 && sx < viewW + 40 && Math.random() < 0.25) {
                         duckGame.particles.push({
                             x: newX - 18,
                             y: d.y + 8,
                             vx: -1.5 - Math.random() * 2,
                             vy: (Math.random() - 0.5) * 1.2,
-                            r: 1.5 + Math.random() * 2.5,
-                            alpha: 0.75
+                            r: 1.5 + Math.random() * 2.2,
+                            alpha: 0.72
                         });
                     }
                     d.x = newX;
                     if (newX > maxDuckX) maxDuckX = newX;
-                });
+                }
 
-                // Camera bám mượt theo tốp vịt dẫn đầu
-                const targetCam = Math.max(0, Math.min(maxDuckX - duckGame.logicalWidth * 0.62, finishX - duckGame.logicalWidth + 130));
-                duckGame.cameraX += (targetCam - duckGame.cameraX) * 0.14;
+                // Camera bám mượt độc lập tần số quét màn hình
+                const targetCam = Math.max(0, Math.min(maxDuckX - viewW * 0.62, finishX - viewW + 130));
+                const camLerp = 1 - Math.exp(-9 * dt);
+                duckGame.cameraX += (targetCam - duckGame.cameraX) * camLerp;
 
-                // Cập nhật Bảng Xếp Hạng Top 3 trực tiếp
-                const top3 = [...duckGame.ducks].sort((a, b) => b.x - a.x).slice(0, 3);
-                document.getElementById('duckLeaderboard').innerHTML = top3.map((d, rank) => {
-                    const medal = rank === 0 ? '🥇' : (rank === 1 ? '🥈' : '🥉');
-                    return `<div class="flex justify-between gap-2"><span>${medal} #${d.number} ${d.student.shortName}</span></div>`;
-                }).join('');
+                // Cập nhật Bảng Xếp Hạng Top 3 tối ưu (giảm DOM reflow)
+                if (now - lastLeaderboardTime > 120 || progress >= 1) {
+                    lastLeaderboardTime = now;
+                    const top3 = [...ducksList].sort((a, b) => b.x - a.x).slice(0, 3);
+                    const top3Key = top3.map(d => d.number).join(',');
+                    if (top3Key !== lastTop3Key) {
+                        lastTop3Key = top3Key;
+                        leaderboardEl.innerHTML = top3.map((d, rank) => {
+                            const medal = rank === 0 ? '🥇' : (rank === 1 ? '🥈' : '🥉');
+                            return `<div class="flex justify-between gap-2"><span>${medal} #${d.number} ${d.student.shortName}</span></div>`;
+                        }).join('');
+                    }
+                }
 
                 renderDuckScene(now, progress);
 
@@ -3278,7 +3305,6 @@
             currentTargetSeatId = findNextEmptySeatId();
             lastAssignedSeatId = null;
             isRigActive = false; 
-            isRigLockedByOneTimeUse = false;
             toggleOffOnce = false;
             document.getElementById('instantFillToggle').checked = true;
             riggedArrangement = null;
@@ -3372,13 +3398,42 @@
             }
         }
         
+        function updateOneTimeLockUI() {
+            const lockBadge = document.getElementById('rigOneTimeLockBadge');
+            if (!lockBadge) return;
+            if (isRigLockedByOneTimeUse) {
+                lockBadge.classList.remove('hidden');
+                lockBadge.classList.add('flex');
+            } else {
+                lockBadge.classList.add('hidden');
+                lockBadge.classList.remove('flex');
+            }
+        }
+
+        function unlockOneTimeRig() {
+            if (sessionStorage.getItem('isAdmin') !== 'true') return;
+            isRigLockedByOneTimeUse = false;
+            ensureCurrentClassExists();
+            classDataDict[currentClassName].isRigLockedByOneTimeUse = false;
+            saveClassData();
+            updateOneTimeLockUI();
+            updateSecretDotIndicator();
+            showToast("🔓 Admin đã mở khóa lại cơ cấu!");
+        }
+
         function toggleOneTimeUse(checked) {
+            if (sessionStorage.getItem('isAdmin') !== 'true') return;
             isRigOneTimeUse = checked;
+            isRigLockedByOneTimeUse = false;
             ensureCurrentClassExists();
             classDataDict[currentClassName].isRigOneTimeUse = isRigOneTimeUse;
+            classDataDict[currentClassName].isRigLockedByOneTimeUse = false;
             saveClassData();
+            updateOneTimeLockUI();
             if (checked) {
-                showToast("⏱️ Đã bật Tự động khóa! Cơ cấu sẽ tắt sau khi bạn Gửi sơ đồ.");
+                showToast("⏱️ Đã bật Dùng 1 lần! Sau khi 1 người Gửi sơ đồ, cơ cấu sẽ khóa cứng tới khi Admin mở lại.");
+            } else {
+                showToast("Đã tắt chế độ khóa cứng dùng 1 lần.");
             }
         }
 
@@ -3489,6 +3544,7 @@
                 
                 const oneTimeToggle = document.getElementById('rigOneTimeUseToggle');
                 if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
+                updateOneTimeLockUI();
                 
                 onRigRuleTypeChange();
                 renderRigRuleList();
@@ -3613,7 +3669,6 @@
         function selectWelcomeMode(mode) {
             hasChosenWelcomeMode = true;
             sessionMode = mode;
-            isRigLockedByOneTimeUse = false; // Đảm bảo reset trạng thái khóa khi bắt đầu phiên mới
             hideWelcomeModal();
             
             const submitBtn = document.getElementById('submitToAdminBtn');
@@ -3675,18 +3730,20 @@
                     count: count
                 });
                 
-                saveClassData(); 
-                
                 let successMsg = "🚀 Đã gửi cấu hình thành công cho Admin!";
-                // Tự động tắt cơ cấu nếu chế độ "Dùng 1 lần" đang được bật
-                if (isRigOneTimeUse && isRigActive) {
+                // Tự động KHÓA CỨNG cơ cấu vĩnh viễn nếu chế độ "Dùng 1 lần" đang được bật
+                if (isRigOneTimeUse) {
                     isRigActive = false;
                     riggedArrangement = null;
-                    isRigLockedByOneTimeUse = true; // KHÓA HOÀN TOÀN CƠ CẤU
+                    isRigLockedByOneTimeUse = true; // KHÓA CỨNG VĨNH VIỄN CHO TỚI KHI ADMIN MỞ LẠI
+                    classDataDict[currentClassName].isRigLockedByOneTimeUse = true;
                     document.getElementById('instantFillToggle').checked = true; // Bật lại điền tự động mặc định
                     updateSecretDotIndicator();
-                    successMsg = "🚀 Đã gửi cấu hình thành công! (Cơ cấu đã bị KHÓA hoàn toàn)";
+                    updateOneTimeLockUI();
+                    // Giữ nguyên thông báo bình thường, tuyệt đối không để lộ cơ cấu hay trạng thái khóa
                 }
+
+                saveClassData();
                 
                 showToast(successMsg);
                 updateSubmissionBadge();
@@ -4059,6 +4116,10 @@
                                 let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
                                 let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
                                 if (s1L && s2R) desks.push({ L, R, s1: r.s1Id, s2: r.targetVal });
+
+                                let s1R = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R);
+                                let s2L = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L);
+                                if (s1R && s2L) desks.push({ L, R, s1: r.targetVal, s2: r.s1Id });
                             }
                         }
                     }
@@ -4069,6 +4130,10 @@
                                 let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
                                 let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
                                 if (s1L && s2R) desks.push({ L, R, s1: r.s1Id, s2: r.targetVal });
+
+                                let s1R = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R);
+                                let s2L = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L);
+                                if (s1R && s2L) desks.push({ L, R, s1: r.targetVal, s2: r.s1Id });
                             }
                         }
                     }
@@ -4083,12 +4148,22 @@
                 let stepCount = 0; // Cầu dao tự động (Circuit Breaker) chống treo máy
                 
                 function solve(idx) {
-                    if (stepCount++ > 1500) return false; 
+                    if (stepCount++ > 2000) return false; 
                     if (idx === remaining.length) return true;
                     let st = remaining[idx];
                     let validSeats = seatsCopy.filter(s => !testPlacement[s]);
                     if (allowedSeatsPerStudent[st]) {
                         validSeats = validSeats.filter(s => allowedSeatsPerStudent[st].has(s));
+                    }
+                    // Lọc nhanh theo ràng buộc surround_must nếu bạn liên quan đã được xếp
+                    for (let r of rules.surround_must) {
+                        let partnerId = (r.s1Id === st) ? r.targetVal : ((r.targetVal === st) ? r.s1Id : null);
+                        if (partnerId) {
+                            let partnerSeat = Object.keys(testPlacement).find(k => testPlacement[k] === partnerId);
+                            if (partnerSeat) {
+                                validSeats = validSeats.filter(s => isSurrounding(s, partnerSeat));
+                            }
+                        }
                     }
                     for (let s of validSeats) {
                         testPlacement[s] = st;
@@ -4186,23 +4261,121 @@
             });
         }
 
+        let rigSelectedTargets = new Set();
+        let rigTargetSearchQuery = '';
+
+        function normalizeViText(str) {
+            return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+        }
+
+        function isMultiTargetRuleType(type) {
+            return type === 'separate' || type === 'surround_must' || type === 'surround_not';
+        }
+
+        function onRigStudent1Change() {
+            const type = document.getElementById('rigRuleType').value;
+            const s1Id = document.getElementById('rigStudent1').value;
+            rigSelectedTargets.delete(s1Id);
+            if (isMultiTargetRuleType(type)) {
+                renderRigTargetCheckboxList();
+            } else if (type === 'together') {
+                onRigRuleTypeChange();
+            }
+        }
+
         function onRigRuleTypeChange() {
             const type = document.getElementById('rigRuleType').value;
+            const s1Id = document.getElementById('rigStudent1')?.value;
             const container = document.getElementById('rigTargetContainer');
             container.innerHTML = '';
+            rigSelectedTargets.clear();
+            rigTargetSearchQuery = '';
             
             if (type === 'area_only') {
                 container.innerHTML = `<div class="text-xs font-bold text-indigo-600 bg-indigo-50 p-2.5 rounded-lg border border-indigo-200 w-full text-center">Hãy bấm chọn các ghế trên Sơ đồ thu nhỏ bên phải <i class="fa-solid fa-arrow-right ml-1"></i></div>`;
                 rigSelectedSeats = []; 
+            } else if (isMultiTargetRuleType(type)) {
+                container.innerHTML = `
+                    <div class="border border-slate-300 rounded-xl bg-white overflow-hidden shadow-sm">
+                        <div class="p-2 bg-slate-100/80 border-b border-slate-200 flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-magnifying-glass text-slate-400 text-[10px] absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+                                <input type="text" id="rigTargetSearchInput" oninput="filterRigTargets(this.value)" placeholder="Tìm nhanh học sinh..." class="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <span id="rigSelectedCountBadge" class="text-[11px] font-extrabold text-indigo-700 bg-indigo-100 px-2 py-1 rounded-md shrink-0">Đã chọn: 0</span>
+                            <button type="button" onclick="clearRigTargetSelections()" class="text-[11px] font-bold text-slate-600 hover:text-rose-600 bg-white border border-slate-300 px-2 py-1 rounded-lg transition shrink-0" title="Bỏ chọn tất cả">Bỏ chọn</button>
+                        </div>
+                        <div id="rigTargetCheckboxList" class="max-h-44 overflow-y-auto divide-y divide-slate-100 p-1"></div>
+                    </div>
+                `;
+                renderRigTargetCheckboxList();
             } else {
                 let stSelect = `<select id="rigTargetVal" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">`;
                 students.forEach(s => {
-                    stSelect += `<option value="${s.id}">${s.name}</option>`;
+                    if (s.id !== s1Id) {
+                        stSelect += `<option value="${s.id}">${s.name}</option>`;
+                    }
                 });
                 stSelect += `</select>`;
                 container.innerHTML = stSelect;
             }
             renderMiniClassroom();
+        }
+
+        function filterRigTargets(query) {
+            rigTargetSearchQuery = query || '';
+            renderRigTargetCheckboxList();
+        }
+
+        function toggleRigTarget(studentId, checked) {
+            if (checked) rigSelectedTargets.add(studentId);
+            else rigSelectedTargets.delete(studentId);
+            updateRigSelectedCountBadge();
+        }
+
+        function clearRigTargetSelections() {
+            rigSelectedTargets.clear();
+            renderRigTargetCheckboxList();
+        }
+
+        function updateRigSelectedCountBadge() {
+            const badge = document.getElementById('rigSelectedCountBadge');
+            if (badge) badge.innerText = `Đã chọn: ${rigSelectedTargets.size}`;
+        }
+
+        function renderRigTargetCheckboxList() {
+            const listEl = document.getElementById('rigTargetCheckboxList');
+            if (!listEl) return;
+            const type = document.getElementById('rigRuleType').value;
+            const s1Id = document.getElementById('rigStudent1').value;
+            const normQuery = normalizeViText(rigTargetSearchQuery.trim());
+
+            const filtered = students.filter(s => {
+                if (s.id === s1Id) return false;
+                if (!normQuery) return true;
+                return normalizeViText(s.name).includes(normQuery);
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-xs text-slate-400 italic text-center py-4">Không tìm thấy học sinh phù hợp.</div>`;
+                updateRigSelectedCountBadge();
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(s => {
+                const isChecked = rigSelectedTargets.has(s.id);
+                const alreadyExists = rigRulesList.some(r => r.type === type && r.s1Id === s1Id && r.targetVal === s.id);
+                return `
+                    <label class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-indigo-50/70 cursor-pointer transition select-none">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <input type="checkbox" value="${s.id}" ${isChecked ? 'checked' : ''} onchange="toggleRigTarget('${s.id}', this.checked)" class="accent-indigo-600 w-3.5 h-3.5 rounded cursor-pointer shrink-0">
+                            <span class="text-xs font-medium text-slate-700 truncate">${s.name}</span>
+                        </div>
+                        ${alreadyExists ? `<span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-2 shrink-0">Đã có</span>` : ''}
+                    </label>
+                `;
+            }).join('');
+            updateRigSelectedCountBadge();
         }
 
         function renderMiniClassroom() {
@@ -4263,6 +4436,27 @@
                 rigRulesList.push({ type, s1Id, seats: [...rigSelectedSeats] });
                 rigSelectedSeats = [];
                 renderMiniClassroom();
+            } else if (isMultiTargetRuleType(type)) {
+                const targets = Array.from(rigSelectedTargets).filter(id => id !== s1Id);
+                if (targets.length === 0) return showToast("Vui lòng tích chọn ít nhất 1 học sinh!");
+                let addedCount = 0;
+                targets.forEach(targetVal => {
+                    const exists = rigRulesList.some(r => r.type === type && r.s1Id === s1Id && r.targetVal === targetVal);
+                    if (!exists) {
+                        rigRulesList.push({ type, s1Id, targetVal });
+                        addedCount++;
+                    }
+                });
+                rigSelectedTargets.clear();
+                rigTargetSearchQuery = '';
+                const searchInput = document.getElementById('rigTargetSearchInput');
+                if (searchInput) searchInput.value = '';
+                renderRigTargetCheckboxList();
+                if (addedCount > 0) {
+                    showToast(`Đã thêm ${addedCount} quy tắc mới!`);
+                } else {
+                    showToast("Các quy tắc đã chọn đều đã tồn tại!");
+                }
             } else {
                 const targetVal = document.getElementById('rigTargetVal').value;
                 if (s1Id === targetVal) return showToast("Không thể chọn cùng 1 người! Vui lòng chọn người khác.");
@@ -4275,6 +4469,8 @@
             rigRulesList = [];
             riggedArrangement = null;
             renderRigRuleList();
+            const typeEl = document.getElementById('rigRuleType');
+            if (typeEl && isMultiTargetRuleType(typeEl.value)) renderRigTargetCheckboxList();
         }
 
         function getStudentName(id) {
@@ -4322,6 +4518,8 @@
         function removeRigRule(idx) {
             rigRulesList.splice(idx, 1);
             renderRigRuleList();
+            const typeEl = document.getElementById('rigRuleType');
+            if (typeEl && isMultiTargetRuleType(typeEl.value)) renderRigTargetCheckboxList();
         }
 
         function getSeatCoords(seatId) {
@@ -4436,7 +4634,8 @@
             });
             stScores.sort((a,b) => b.score - a.score);
             
-            let orderedStudents = stScores.map(x => x.id).filter(id => !Object.values(placement).includes(id));
+            let constrainedStudents = stScores.filter(x => x.score > 0).map(x => x.id).filter(id => !Object.values(placement).includes(id));
+            let freeStudents = stScores.filter(x => x.score === 0).map(x => x.id).filter(id => !Object.values(placement).includes(id));
             let allSeats = generateSeatOrderList('random_any');
 
             let bestPlacement = null;
@@ -4519,17 +4718,27 @@
                 }
                 if (failedPreplace) continue;
 
-                let unplaced = orderedStudents.filter(id => !Object.values(testPlacement).includes(id));
+                let unplaced = constrainedStudents.filter(id => !Object.values(testPlacement).includes(id));
                 let stepCount = 0; // Tích hợp Circuit Breaker
                 
                 function solve(idx) {
-                    if (stepCount++ > 1500) return false; 
+                    if (stepCount++ > 2000) return false; 
                     if (idx === unplaced.length) return true;
                     let stId = unplaced[idx];
                     
                     let validSeats = seatList.filter(s => !testPlacement[s]);
                     if (allowedSeatsPerStudent[stId]) {
                         validSeats = validSeats.filter(s => allowedSeatsPerStudent[stId].has(s));
+                    }
+                    // Lọc nhanh theo ràng buộc surround_must nếu bạn liên quan đã được xếp
+                    for (let r of rules.surround_must) {
+                        let partnerId = (r.s1Id === stId) ? r.targetVal : ((r.targetVal === stId) ? r.s1Id : null);
+                        if (partnerId) {
+                            let partnerSeat = Object.keys(testPlacement).find(k => testPlacement[k] === partnerId);
+                            if (partnerSeat) {
+                                validSeats = validSeats.filter(s => isSurrounding(s, partnerSeat));
+                            }
+                        }
                     }
 
                     for (let i = 0; i < validSeats.length; i++) {
@@ -4544,6 +4753,12 @@
                 }
                 
                 if (solve(0)) {
+                    // Điền các học sinh không có ràng buộc vào các ghế trống còn lại (ưu tiên Bàn 1->5 trước)
+                    let remainingFreeSeats = seatList.filter(s => !testPlacement[s]);
+                    let shuffledFree = [...freeStudents].sort(() => Math.random() - 0.5);
+                    for (let i = 0; i < shuffledFree.length && i < remainingFreeSeats.length; i++) {
+                        testPlacement[remainingFreeSeats[i]] = shuffledFree[i];
+                    }
                     bestPlacement = testPlacement;
                     break;
                 }
