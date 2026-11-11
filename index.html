@@ -390,7 +390,7 @@
                             <i class="fa-solid fa-shuffle"></i> Đổi Làn
                         </button>
                         <!-- Nút Auto kế bên Đổi Làn -->
-                        <button id="btnAutoDuck" onclick="toggleAutoDuckRace()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động đua liên tục đến khi xếp xong cả lớp">
+                        <button id="btnAutoDuck" onclick="toggleAutoMode()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động đua liên tục đến khi xếp xong cả lớp">
                             <i class="fa-solid fa-play"></i> <span>Auto</span>
                         </button>
                     </div>
@@ -418,6 +418,9 @@
                         <button id="btnStartPlinko" onclick="startPlinko()" class="px-8 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black rounded-xl shadow-lg shadow-indigo-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
                             <i class="fa-solid fa-bowling-ball"></i> THẢ BI MAY MẮN (XẾP CHỖ NGAY)
                         </button>
+                        <button id="btnAutoPlinko" onclick="toggleAutoMode()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động thả bi liên tục đến khi xếp xong cả lớp">
+                            <i class="fa-solid fa-play"></i> <span>Auto</span>
+                        </button>
                     </div>
                 </div>
 
@@ -444,9 +447,14 @@
                         <div class="bg-slate-800/90 border border-slate-700 px-5 py-1 rounded-full text-xs font-bold text-amber-300">
                             Đang trỏ vào: <span id="wheelCurrentHover" class="text-white font-extrabold">---</span>
                         </div>
-                        <button id="btnStartWheel" onclick="startWheel()" class="px-8 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-black rounded-xl shadow-lg shadow-rose-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
-                            <i class="fa-solid fa-dharmachakra"></i> QUAY VÒNG QUAY (XẾP CHỖ NGAY)
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <button id="btnStartWheel" onclick="startWheel()" class="px-8 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-black rounded-xl shadow-lg shadow-rose-900/40 transition transform active:scale-95 text-sm flex items-center gap-2 tracking-wide">
+                                <i class="fa-solid fa-dharmachakra"></i> QUAY VÒNG QUAY (XẾP CHỖ NGAY)
+                            </button>
+                            <button id="btnAutoWheel" onclick="toggleAutoMode()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5" title="Tự động quay liên tục đến khi xếp xong cả lớp">
+                                <i class="fa-solid fa-play"></i> <span>Auto</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -958,9 +966,9 @@
         let isRigOneTimeUse = false; // Biến kiểm soát cơ cấu dùng 1 lần rồi tắt
         let toggleOffOnce = false;
 
-        // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO ĐUA VỊT
-        let isAutoDuck = false;
-        let autoDuckTimer = null;
+        // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO CHUNG
+        let isAutoMode = false;
+        let autoTimer = null;
 
         let rigRulesList = []; 
         let activePresetIndex = 0; // Lưu vị trí mẫu cơ cấu đang chọn
@@ -1601,7 +1609,7 @@
 
         function resetAllSeats() {
             if (isAnyGameRunning()) return showToast("Đang trong lượt chơi, vui lòng đợi!");
-            stopAutoDuck(); // Hủy Auto nếu đang bật
+            stopAutoMode(); // Hủy Auto nếu đang bật
             
             // Lưu lại vị trí các bạn vừa ngồi trước khi reset để chống lặp lại ở lần xếp kế tiếp
             students.forEach(s => {
@@ -2379,21 +2387,7 @@
                     // Điền thẳng con vịt chiến thắng vào ghế ngồi đã khóa trên sơ đồ!
                     assignWinnerToTargetSeat(winnerDuck.student, duckGame.targetSeatForThisTurn);
 
-                    // Xử lý chế độ Auto liên tục nếu đang bật
-                    if (isAutoDuck) {
-                        const remaining = students.filter(s => !s.seatId);
-                        const nextSeat = findNextEmptySeatId();
-                        if (remaining.length > 0 && nextSeat) {
-                            autoDuckTimer = setTimeout(() => {
-                                if (isAutoDuck && activeGame === 'duck') {
-                                    startDuckRace();
-                                }
-                            }, 1400);
-                        } else {
-                            stopAutoDuck();
-                            showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
-                        }
-                    }
+                    handleAutoNextTurn();
                 }
             }
 
@@ -2401,45 +2395,67 @@
         }
 
         // ==========================================
-        // CÁC HÀM XỬ LÝ CHẾ ĐỘ AUTO ĐUA VỊT
+        // CÁC HÀM XỬ LÝ CHẾ ĐỘ AUTO
         // ==========================================
-        function toggleAutoDuckRace() {
-            if (isAutoDuck) {
-                stopAutoDuck();
-                showToast("Đã dừng chế độ Đua Tự Động!");
+        function toggleAutoMode() {
+            if (isAutoMode) {
+                stopAutoMode();
+                showToast("Đã dừng chế độ Tự Động!");
             } else {
                 const unassigned = students.filter(s => !s.seatId);
                 if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
                 if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
 
-                isAutoDuck = true;
-                updateAutoDuckUI();
-                showToast("🚀 Đã BẬT Auto! Vịt sẽ đua liên tục cho tới khi xếp hết học sinh.");
+                isAutoMode = true;
+                updateAutoUI();
+                showToast("🚀 Đã BẬT Auto! Hệ thống sẽ tự động chơi cho tới khi xếp hết học sinh.");
 
-                if (!duckGame.isRacing) {
-                    startDuckRace();
+                if (activeGame === 'duck' && !duckGame.isRacing) startDuckRace();
+                else if (activeGame === 'plinko' && !plinkoGame.isPlaying) startPlinko();
+                else if (activeGame === 'wheel' && !wheelGame.isSpinning) startWheel();
+            }
+        }
+
+        function stopAutoMode() {
+            isAutoMode = false;
+            if (autoTimer) {
+                clearTimeout(autoTimer);
+                autoTimer = null;
+            }
+            updateAutoUI();
+        }
+
+        function updateAutoUI() {
+            const btns = ['btnAutoDuck', 'btnAutoPlinko', 'btnAutoWheel'];
+            btns.forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                if (isAutoMode) {
+                    btn.className = "px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl border border-amber-400 text-xs transition flex items-center gap-1.5 shadow-md shadow-amber-900/40 animate-pulse";
+                    btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Dừng Auto</span>';
+                } else {
+                    btn.className = "px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5";
+                    btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Auto</span>';
                 }
-            }
+            });
         }
 
-        function stopAutoDuck() {
-            isAutoDuck = false;
-            if (autoDuckTimer) {
-                clearTimeout(autoDuckTimer);
-                autoDuckTimer = null;
-            }
-            updateAutoDuckUI();
-        }
-
-        function updateAutoDuckUI() {
-            const btn = document.getElementById('btnAutoDuck');
-            if (!btn) return;
-            if (isAutoDuck) {
-                btn.className = "px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl border border-amber-400 text-xs transition flex items-center gap-1.5 shadow-md shadow-amber-900/40 animate-pulse";
-                btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Dừng Auto</span>';
-            } else {
-                btn.className = "px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition flex items-center gap-1.5";
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Auto</span>';
+        function handleAutoNextTurn() {
+            if (isAutoMode) {
+                const remaining = students.filter(s => !s.seatId);
+                const nextSeat = findNextEmptySeatId();
+                if (remaining.length > 0 && nextSeat) {
+                    autoTimer = setTimeout(() => {
+                        if (isAutoMode) {
+                            if (activeGame === 'duck') startDuckRace();
+                            else if (activeGame === 'plinko') startPlinko();
+                            else if (activeGame === 'wheel') startWheel();
+                        }
+                    }, 1400);
+                } else {
+                    stopAutoMode();
+                    showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
+                }
             }
         }
 
@@ -2909,6 +2925,7 @@
                         assignWinnerToTargetSeat(plinkoGame.winner.student, plinkoGame.targetSeatForThisTurn);
                         
                         renderPlinkoScene();
+                        handleAutoNextTurn();
                         return; 
                     }
                 }
@@ -3126,6 +3143,7 @@
                     if (winResult && winResult.student) {
                         assignWinnerToTargetSeat(winResult.student, wheelGame.targetSeatForThisTurn);
                     }
+                    handleAutoNextTurn();
                 }
             }
 
@@ -3154,7 +3172,7 @@
 
         function switchGame(gameId) {
             if (isAnyGameRunning()) return showToast("Vui lòng đợi lượt chơi hiện tại hoàn tất!");
-            if (gameId !== 'duck') stopAutoDuck(); // Tự động ngắt Auto nếu rời khỏi Đua Vịt
+            stopAutoMode(); // Tự động ngắt Auto nếu đổi màn chơi
             activeGame = gameId;
 
             ['duck', 'plinko', 'wheel'].forEach(id => {
