@@ -608,7 +608,7 @@
 
     <!-- MODAL CƠ CẤU (RIGGING) -->
     <div id="rigModal" class="fixed inset-0 bg-slate-900/80 z-[60] hidden items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-[1000px] w-full p-6 border border-slate-200 flex flex-col max-h-[95vh]">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-[1140px] w-full p-6 border border-slate-200 flex flex-col max-h-[95vh]">
             <div class="flex justify-between items-center pb-3 border-b border-slate-100 flex-wrap gap-3">
                 <div>
                     <h3 class="text-lg font-extrabold text-indigo-900 flex items-center gap-2">
@@ -661,42 +661,59 @@
                 </div>
             </div>
 
-            <div class="my-2 flex-1 overflow-hidden flex flex-col lg:flex-row gap-6">
-                <!-- Cột trái: Form thêm luật -->
-                <div class="w-full lg:w-[45%] flex flex-col gap-4 overflow-y-auto pr-2">
+            <div class="my-2 flex-1 overflow-hidden flex flex-col lg:flex-row gap-5">
+                <!-- Cột trái: Form thêm luật (tự động mở rộng khi không chọn khu vực) -->
+                <div id="rigLeftCol" class="w-full lg:w-[60%] flex flex-col gap-3 overflow-y-auto pr-1">
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <h4 class="text-sm font-bold text-slate-700 mb-3">Tạo quy tắc mới</h4>
-                        <div class="flex flex-col gap-3 mb-3">
-                            <select id="rigRuleType" onchange="onRigRuleTypeChange()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-bold text-slate-700 outline-none shadow-sm cursor-pointer">
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <h4 class="text-sm font-bold text-slate-700">Thiết lập quy tắc</h4>
+                            <span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Tự động đối chiếu 2 chiều</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-3">
+                            <select id="rigRuleType" onchange="onRigRuleTypeChange()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-bold text-slate-700 outline-none shadow-sm cursor-pointer bg-white">
                                 <option value="together">🤝 BẮT BUỘC ngồi cùng bàn với</option>
                                 <option value="separate">🚫 KHÔNG ĐƯỢC ngồi cùng bàn với</option>
                                 <option value="area_only">📍 BẮT BUỘC ngồi trong Khu vực chọn (Bấm vào bản đồ)</option>
                                 <option value="surround_must">🔄 Xung quanh PHẢI CÓ người này</option>
                                 <option value="surround_not">⛔ Xung quanh KHÔNG ĐƯỢC CÓ người này</option>
                             </select>
-                            <select id="rigStudent1" onchange="onRigStudent1Change()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">
+                            <select id="rigStudent1" onchange="onRigStudent1Change()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-bold text-indigo-900 outline-none shadow-sm cursor-pointer bg-white">
                                 <!-- Options added dynamically -->
                             </select>
-                            <div id="rigTargetContainer" class="flex flex-col gap-2 w-full">
-                                <!-- Container cho Chọn người thứ 2 / Hoặc Chọn nhiều người / Hoặc Chọn ghế -->
-                            </div>
                         </div>
+
+                        <!-- Khung đối chiếu nhanh tất cả quan hệ hiện có của học sinh đang chọn -->
+                        <div id="rigStudentRelationBox" class="mb-3 bg-white border border-indigo-100 rounded-xl p-2.5 shadow-sm">
+                            <!-- Render via JS -->
+                        </div>
+
+                        <div id="rigTargetContainer" class="flex flex-col gap-2 w-full mb-3">
+                            <!-- Container cho Chọn người thứ 2 / Hoặc Chọn nhiều người / Hoặc Chọn ghế -->
+                        </div>
+
                         <button id="addRigRuleBtn" onclick="addRigRule()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition w-full shadow-md flex justify-center items-center gap-2">
                             <i class="fa-solid fa-plus"></i> THÊM VÀO CƠ CẤU
                         </button>
                     </div>
+                </div>
 
-                    <!-- Danh sách luật -->
-                    <div class="flex-1 flex flex-col min-h-[150px]">
-                        <h4 class="text-sm font-bold text-slate-700 mb-2">Quy tắc hiện tại (<span id="rigRuleCount">0</span>):</h4>
-                        <div id="rigRuleList" class="flex flex-col gap-2 text-xs overflow-y-auto pr-1 flex-1 pb-4">
+                <!-- Cột phải 1: Danh sách quy tắc mở rộng (hiện khi không chọn khu vực) -->
+                <div id="rigRulesCol" class="w-full lg:w-[40%] bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col min-h-[200px] overflow-hidden">
+                    <div id="rigRulesSection" class="flex-1 flex flex-col min-h-[150px] overflow-hidden">
+                        <div class="flex items-center justify-between gap-2 mb-2 shrink-0">
+                            <h4 class="text-sm font-bold text-slate-700">Quy tắc hiện tại (<span id="rigRuleCount">0</span>)</h4>
+                            <button type="button" id="rigFilterSelectedBtn" onclick="toggleRigRuleFilter()" class="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition">
+                                Chỉ xem người đang chọn
+                            </button>
+                        </div>
+                        <div id="rigRuleList" class="flex flex-col gap-2 text-xs overflow-y-auto pr-1 flex-1 pb-2">
                             <!-- Danh sách hiển thị -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Cột phải: Mini Map sơ đồ lớp -->
-                <div class="w-full lg:w-[55%] bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col h-[400px] lg:h-auto shadow-inner">
+                <!-- Cột phải 2: Mini Map sơ đồ lớp (CHỈ hiện khi chọn Khu vực) -->
+                <div id="rigMiniMapCol" class="hidden w-full lg:w-[58%] bg-slate-50 p-4 rounded-xl border border-slate-200 flex-col h-[400px] lg:h-auto shadow-inner">
                     <h4 class="text-sm font-bold text-slate-700 mb-4 text-center flex items-center justify-center gap-2">
                         <i class="fa-solid fa-map-location-dot text-indigo-500"></i> Bấm vào ghế dưới đây để gài người ngay lập tức
                     </h4>
@@ -860,7 +877,8 @@
             }
             isCloudLoading = true;
             try {
-                const res = await fetch(APPS_SCRIPT_URL);
+                const sep = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
+                const res = await fetch(APPS_SCRIPT_URL + sep + "t=" + Date.now());
                 const result = await res.json();
                 
                 let fetchedData = result && result.data ? result.data : result;
@@ -909,7 +927,6 @@
                 console.error("Lỗi đồng bộ Sheet:", err);
             } finally {
                 isCloudLoading = false;
-                hasInitialCloudSyncDone = true;
             }
             return false;
         }
@@ -1876,6 +1893,20 @@
         // ============================================================================
         // 5. TRÒ CHƠI 1: ĐUA VỊT (DUCK RACE 60FPS CHUẨN ONLINE-STOPWATCH XỊN)
         // ============================================================================
+        if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                const radius = typeof r === 'number' ? r : (Array.isArray(r) ? r[0] || 0 : 0);
+                const rad = Math.min(radius, Math.abs(w) / 2, Math.abs(h) / 2);
+                this.moveTo(x + rad, y);
+                this.arcTo(x + w, y, x + w, y + h, rad);
+                this.arcTo(x + w, y + h, x, y + h, rad);
+                this.arcTo(x, y + h, x, y, rad);
+                this.arcTo(x, y, x + w, y, rad);
+                this.closePath();
+                return this;
+            };
+        }
+
         const DUCK_THEMES = [
             { body: '#facc15', wing: '#eab308', hat: 'crown' },
             { body: '#38bdf8', wing: '#0284c7', hat: 'police' },
@@ -2310,7 +2341,13 @@
             if (unassigned.length === 0) return showToast("Tất cả học sinh đã có chỗ ngồi!");
             if (!currentTargetSeatId && !findNextEmptySeatId()) return showToast("Không còn ghế trống nào!");
 
+            if (!duckGame.canvas || !duckGame.ctx) {
+                initDuckCanvas();
+            }
             rebuildDuckCandidates();
+            if (!duckGame.ducks || duckGame.ducks.length === 0) {
+                return showToast("Chưa có danh sách học sinh để đua!");
+            }
             duckGame.isRacing = true;
             const btn = document.getElementById('btnStartDuck');
             btn.disabled = true;
@@ -2350,10 +2387,11 @@
             const leaderboardEl = document.getElementById('duckLeaderboard');
 
             function stepRace(now) {
+                try {
                 const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
                 lastFrameTime = now;
-                const elapsed = now - startTime;
-                const progress = Math.min(elapsed / durationMs, 1);
+                const elapsed = Math.max(0, now - startTime);
+                const progress = Math.max(0, Math.min(elapsed / durationMs, 1));
                 const remainSec = Math.max(0, (durationMs - elapsed) / 1000);
                 const timerStr = `00:${remainSec.toFixed(1).padStart(4, '0')}`;
                 if (timerStr !== lastTimerStr) {
@@ -2450,6 +2488,13 @@
                             showToast("🎉 Đã xếp xong toàn bộ chỗ ngồi của lớp!");
                         }
                     }
+                }
+                } catch (err) {
+                    console.error("Lỗi trong lúc đua vịt:", err);
+                    duckGame.isRacing = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    showToast("⚠️ Có lỗi khi chạy Đua Vịt: " + (err && err.message ? err.message : "Không xác định"));
                 }
             }
 
@@ -3318,6 +3363,7 @@
             riggedArrangement = null;
             
             updateClassDropdown(); 
+            hasInitialCloudSyncDone = true;
             closeStudentModal();
             renderGrid();
             saveDataToSheet(true); 
@@ -4199,7 +4245,7 @@
             saveClassData();
             
             updateRigPresetUI();
-            renderRigRuleList();
+            refreshRigUI();
             renderMiniClassroom();
             showToast("Đã chuyển sang: " + classDataDict[currentClassName].rigPresets[activePresetIndex].name);
         }
@@ -4251,7 +4297,7 @@
                 rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[0].rules));
                 saveClassData();
                 updateRigPresetUI();
-                renderRigRuleList();
+                refreshRigUI();
                 showToast("Đã xóa mẫu cơ cấu!");
             });
         }
@@ -4261,16 +4307,10 @@
             document.getElementById('rigModal').classList.remove('flex');
         }
 
-        function populateRigStudentSelects() {
-            const s1 = document.getElementById('rigStudent1');
-            s1.innerHTML = '';
-            students.forEach(s => {
-                s1.innerHTML += `<option value="${s.id}">${s.name}</option>`;
-            });
-        }
-
         let rigSelectedTargets = new Set();
         let rigTargetSearchQuery = '';
+        let rigHideExistingTargets = false;
+        let rigFilterBySelectedStudent = false;
 
         function normalizeViText(str) {
             return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
@@ -4280,54 +4320,191 @@
             return type === 'separate' || type === 'surround_must' || type === 'surround_not';
         }
 
+        function countStudentRules(studentId) {
+            return rigRulesList.filter(r => r.s1Id === studentId || r.targetVal === studentId).length;
+        }
+
+        function populateRigStudentSelects() {
+            const s1 = document.getElementById('rigStudent1');
+            if (!s1) return;
+            const prevVal = s1.value;
+            s1.innerHTML = '';
+            students.forEach(s => {
+                const cnt = countStudentRules(s.id);
+                const label = cnt > 0 ? `${s.name} (${cnt} luật)` : s.name;
+                s1.innerHTML += `<option value="${s.id}">${label}</option>`;
+            });
+            if (prevVal && students.some(s => s.id === prevVal)) {
+                s1.value = prevVal;
+            }
+        }
+
+        // Đối chiếu 2 chiều: Lấy toàn bộ các luật hiện có giữa học sinh A và học sinh B
+        function getPairRelations(idA, idB) {
+            const rels = [];
+            rigRulesList.forEach((r, idx) => {
+                if (r.type === 'area_only') return;
+                const matchDirect = (r.s1Id === idA && r.targetVal === idB);
+                const matchReverse = (r.s1Id === idB && r.targetVal === idA);
+                if (matchDirect || matchReverse) {
+                    rels.push({ ...r, idx, reverse: matchReverse });
+                }
+            });
+            return rels;
+        }
+
+        // Kiểm tra xem học sinh đã được ghép cùng bàn với ai chưa
+        function getTogetherPartner(studentId) {
+            const found = rigRulesList.find(r => r.type === 'together' && (r.s1Id === studentId || r.targetVal === studentId));
+            if (!found) return null;
+            return found.s1Id === studentId ? found.targetVal : found.s1Id;
+        }
+
+        function getRuleBadgeMeta(type) {
+            switch (type) {
+                case 'together': return { icon: '🤝', label: 'Cùng bàn', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+                case 'separate': return { icon: '🚫', label: 'Cấm cùng bàn', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
+                case 'surround_must': return { icon: '🔄', label: 'Phải ở xung quanh', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+                case 'surround_not': return { icon: '⛔', label: 'Tránh xung quanh', cls: 'bg-orange-50 text-orange-700 border-orange-200' };
+                default: return { icon: '📍', label: 'Khu vực', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+            }
+        }
+
+        function updateRigModalLayout(type) {
+            const leftCol = document.getElementById('rigLeftCol');
+            const rulesCol = document.getElementById('rigRulesCol');
+            const miniMapCol = document.getElementById('rigMiniMapCol');
+            const rulesSection = document.getElementById('rigRulesSection');
+            if (!leftCol || !rulesCol || !miniMapCol || !rulesSection) return;
+
+            if (type === 'area_only') {
+                leftCol.className = 'w-full lg:w-[42%] flex flex-col gap-3 overflow-y-auto pr-1';
+                rulesCol.classList.add('hidden');
+                miniMapCol.classList.remove('hidden');
+                miniMapCol.classList.add('flex');
+                if (rulesSection.parentElement !== leftCol) {
+                    leftCol.appendChild(rulesSection);
+                }
+            } else {
+                leftCol.className = 'w-full lg:w-[60%] flex flex-col gap-3 overflow-y-auto pr-1';
+                rulesCol.classList.remove('hidden');
+                miniMapCol.classList.add('hidden');
+                miniMapCol.classList.remove('flex');
+                if (rulesSection.parentElement !== rulesCol) {
+                    rulesCol.appendChild(rulesSection);
+                }
+            }
+        }
+
+        function renderRigStudentRelationBox() {
+            const box = document.getElementById('rigStudentRelationBox');
+            const s1Id = document.getElementById('rigStudent1')?.value;
+            if (!box || !s1Id) return;
+
+            const s1Name = getStudentName(s1Id);
+            const related = [];
+            rigRulesList.forEach((r, idx) => {
+                if (r.s1Id === s1Id || r.targetVal === s1Id) {
+                    related.push({ ...r, idx, isReverse: r.targetVal === s1Id });
+                }
+            });
+
+            if (related.length === 0) {
+                box.innerHTML = `<div class="text-[11px] text-slate-500 flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-indigo-400"></i> <span><b>${s1Name}</b> hiện chưa có ràng buộc nào (cả 2 chiều).</span></div>`;
+                return;
+            }
+
+            const chips = related.map(r => {
+                const meta = getRuleBadgeMeta(r.type);
+                let desc = '';
+                if (r.type === 'area_only') {
+                    desc = `${meta.icon} ${r.seats.length} ghế`;
+                } else {
+                    const otherId = r.isReverse ? r.s1Id : r.targetVal;
+                    const otherName = getShortName(getStudentName(otherId));
+                    desc = `${meta.icon} ${meta.label}: <b>${otherName}</b>`;
+                }
+                return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] ${meta.cls}">
+                    <span>${desc}</span>
+                    <button type="button" onclick="removeRigRule(${r.idx})" class="hover:text-rose-600 font-black ml-0.5 leading-none" title="Xóa quy tắc này">&times;</button>
+                </span>`;
+            }).join('');
+
+            box.innerHTML = `
+                <div class="text-[11px] font-bold text-slate-600 mb-1.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-arrows-left-right text-indigo-500 mr-1"></i> Đối chiếu của <b class="text-indigo-800">${s1Name}</b> (${related.length} luật):</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">${chips}</div>
+            `;
+        }
+
         function onRigStudent1Change() {
             const type = document.getElementById('rigRuleType').value;
             const s1Id = document.getElementById('rigStudent1').value;
             rigSelectedTargets.delete(s1Id);
+            renderRigStudentRelationBox();
             if (isMultiTargetRuleType(type)) {
                 renderRigTargetCheckboxList();
             } else if (type === 'together') {
-                onRigRuleTypeChange();
+                renderTogetherSelect();
             }
+            if (rigFilterBySelectedStudent) {
+                renderRigRuleList();
+            }
+        }
+
+        function renderTogetherSelect() {
+            const container = document.getElementById('rigTargetContainer');
+            const s1Id = document.getElementById('rigStudent1')?.value;
+            if (!container || !s1Id) return;
+            let stSelect = `<select id="rigTargetVal" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer bg-white">`;
+            students.forEach(s => {
+                if (s.id === s1Id) return;
+                const rels = getPairRelations(s1Id, s.id);
+                const partner = getTogetherPartner(s.id);
+                let hints = [];
+                rels.forEach(r => hints.push(getRuleBadgeMeta(r.type).icon + ' ' + getRuleBadgeMeta(r.type).label));
+                if (partner && partner !== s1Id) hints.push('🔒 Đã ghép với ' + getShortName(getStudentName(partner)));
+                const suffix = hints.length > 0 ? ` — [${hints.join(' | ')}]` : '';
+                stSelect += `<option value="${s.id}">${s.name}${suffix}</option>`;
+            });
+            stSelect += `</select>`;
+            container.innerHTML = stSelect;
         }
 
         function onRigRuleTypeChange() {
             const type = document.getElementById('rigRuleType').value;
-            const s1Id = document.getElementById('rigStudent1')?.value;
             const container = document.getElementById('rigTargetContainer');
             container.innerHTML = '';
             rigSelectedTargets.clear();
             rigTargetSearchQuery = '';
+            updateRigModalLayout(type);
+            renderRigStudentRelationBox();
             
             if (type === 'area_only') {
                 container.innerHTML = `<div class="text-xs font-bold text-indigo-600 bg-indigo-50 p-2.5 rounded-lg border border-indigo-200 w-full text-center">Hãy bấm chọn các ghế trên Sơ đồ thu nhỏ bên phải <i class="fa-solid fa-arrow-right ml-1"></i></div>`;
                 rigSelectedSeats = []; 
+                renderMiniClassroom();
             } else if (isMultiTargetRuleType(type)) {
                 container.innerHTML = `
                     <div class="border border-slate-300 rounded-xl bg-white overflow-hidden shadow-sm">
-                        <div class="p-2 bg-slate-100/80 border-b border-slate-200 flex items-center gap-2">
-                            <div class="relative flex-1">
+                        <div class="p-2 bg-slate-100/80 border-b border-slate-200 flex flex-wrap items-center gap-1.5">
+                            <div class="relative flex-1 min-w-[140px]">
                                 <i class="fa-solid fa-magnifying-glass text-slate-400 text-[10px] absolute left-2.5 top-1/2 -translate-y-1/2"></i>
                                 <input type="text" id="rigTargetSearchInput" oninput="filterRigTargets(this.value)" placeholder="Tìm nhanh học sinh..." class="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500">
                             </div>
                             <span id="rigSelectedCountBadge" class="text-[11px] font-extrabold text-indigo-700 bg-indigo-100 px-2 py-1 rounded-md shrink-0">Đã chọn: 0</span>
+                            <button type="button" onclick="selectAllVisibleRigTargets()" class="text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-lg transition shrink-0" title="Chọn nhanh các bạn đang hiện mà chưa có luật này">Chọn hết</button>
                             <button type="button" onclick="clearRigTargetSelections()" class="text-[11px] font-bold text-slate-600 hover:text-rose-600 bg-white border border-slate-300 px-2 py-1 rounded-lg transition shrink-0" title="Bỏ chọn tất cả">Bỏ chọn</button>
+                            <button type="button" id="rigHideExistingBtn" onclick="toggleHideExistingTargets()" class="text-[11px] font-bold ${rigHideExistingTargets ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300'} border px-2 py-1 rounded-lg transition shrink-0" title="Ẩn những bạn đã có sẵn quy tắc này">Ẩn đã có</button>
                         </div>
-                        <div id="rigTargetCheckboxList" class="max-h-44 overflow-y-auto divide-y divide-slate-100 p-1"></div>
+                        <div id="rigTargetCheckboxList" class="max-h-64 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1 p-2"></div>
                     </div>
                 `;
                 renderRigTargetCheckboxList();
             } else {
-                let stSelect = `<select id="rigTargetVal" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer">`;
-                students.forEach(s => {
-                    if (s.id !== s1Id) {
-                        stSelect += `<option value="${s.id}">${s.name}</option>`;
-                    }
-                });
-                stSelect += `</select>`;
-                container.innerHTML = stSelect;
+                renderTogetherSelect();
             }
-            renderMiniClassroom();
         }
 
         function filterRigTargets(query) {
@@ -4335,10 +4512,35 @@
             renderRigTargetCheckboxList();
         }
 
+        function toggleHideExistingTargets() {
+            rigHideExistingTargets = !rigHideExistingTargets;
+            const btn = document.getElementById('rigHideExistingBtn');
+            if (btn) {
+                btn.className = `text-[11px] font-bold ${rigHideExistingTargets ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300'} border px-2 py-1 rounded-lg transition shrink-0`;
+            }
+            renderRigTargetCheckboxList();
+        }
+
         function toggleRigTarget(studentId, checked) {
             if (checked) rigSelectedTargets.add(studentId);
             else rigSelectedTargets.delete(studentId);
             updateRigSelectedCountBadge();
+        }
+
+        function selectAllVisibleRigTargets() {
+            const type = document.getElementById('rigRuleType').value;
+            const s1Id = document.getElementById('rigStudent1').value;
+            const normQuery = normalizeViText(rigTargetSearchQuery.trim());
+            students.forEach(s => {
+                if (s.id === s1Id) return;
+                if (normQuery && !normalizeViText(s.name).includes(normQuery)) return;
+                const rels = getPairRelations(s1Id, s.id);
+                const alreadyThisRule = rels.some(r => r.type === type);
+                if (!alreadyThisRule) {
+                    rigSelectedTargets.add(s.id);
+                }
+            });
+            renderRigTargetCheckboxList();
         }
 
         function clearRigTargetSelections() {
@@ -4360,26 +4562,42 @@
 
             const filtered = students.filter(s => {
                 if (s.id === s1Id) return false;
-                if (!normQuery) return true;
-                return normalizeViText(s.name).includes(normQuery);
+                if (normQuery && !normalizeViText(s.name).includes(normQuery)) return false;
+                if (rigHideExistingTargets) {
+                    const rels = getPairRelations(s1Id, s.id);
+                    if (rels.some(r => r.type === type)) return false;
+                }
+                return true;
             });
 
             if (filtered.length === 0) {
-                listEl.innerHTML = `<div class="text-xs text-slate-400 italic text-center py-4">Không tìm thấy học sinh phù hợp.</div>`;
+                listEl.innerHTML = `<div class="col-span-full text-xs text-slate-400 italic text-center py-4">Không tìm thấy học sinh phù hợp.</div>`;
                 updateRigSelectedCountBadge();
                 return;
             }
 
             listEl.innerHTML = filtered.map(s => {
                 const isChecked = rigSelectedTargets.has(s.id);
-                const alreadyExists = rigRulesList.some(r => r.type === type && r.s1Id === s1Id && r.targetVal === s.id);
+                const rels = getPairRelations(s1Id, s.id);
+                const partner = getTogetherPartner(s.id);
+
+                let badgesHtml = rels.map(r => {
+                    const meta = getRuleBadgeMeta(r.type);
+                    const isSameRule = r.type === type;
+                    return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${meta.cls} ${isSameRule ? 'ring-1 ring-indigo-400' : ''}" title="${r.reverse ? 'Đã thiết lập từ phía bạn này' : 'Đã thiết lập'}">${meta.icon} ${meta.label}</span>`;
+                }).join('');
+
+                if (partner && partner !== s1Id && !rels.some(r => r.type === 'together')) {
+                    badgesHtml += `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">🔒 Cặp ${getShortName(getStudentName(partner))}</span>`;
+                }
+
                 return `
-                    <label class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-indigo-50/70 cursor-pointer transition select-none">
+                    <label class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${isChecked ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50/60 border-slate-200/80 hover:bg-indigo-50/50'} cursor-pointer transition select-none">
                         <div class="flex items-center gap-2 min-w-0">
                             <input type="checkbox" value="${s.id}" ${isChecked ? 'checked' : ''} onchange="toggleRigTarget('${s.id}', this.checked)" class="accent-indigo-600 w-3.5 h-3.5 rounded cursor-pointer shrink-0">
-                            <span class="text-xs font-medium text-slate-700 truncate">${s.name}</span>
+                            <span class="text-xs font-semibold text-slate-700 truncate">${s.name}</span>
                         </div>
-                        ${alreadyExists ? `<span class="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded ml-2 shrink-0">Đã có</span>` : ''}
+                        ${badgesHtml ? `<div class="flex flex-wrap items-center justify-end gap-1 shrink-0">${badgesHtml}</div>` : ''}
                     </label>
                 `;
             }).join('');
@@ -4435,6 +4653,17 @@
             }
         }
 
+        function refreshRigUI() {
+            populateRigStudentSelects();
+            renderRigStudentRelationBox();
+            renderRigRuleList();
+            const typeEl = document.getElementById('rigRuleType');
+            if (typeEl) {
+                if (isMultiTargetRuleType(typeEl.value)) renderRigTargetCheckboxList();
+                else if (typeEl.value === 'together') renderTogetherSelect();
+            }
+        }
+
         function addRigRule() {
             const type = document.getElementById('rigRuleType').value;
             const s1Id = document.getElementById('rigStudent1').value;
@@ -4449,7 +4678,8 @@
                 if (targets.length === 0) return showToast("Vui lòng tích chọn ít nhất 1 học sinh!");
                 let addedCount = 0;
                 targets.forEach(targetVal => {
-                    const exists = rigRulesList.some(r => r.type === type && r.s1Id === s1Id && r.targetVal === targetVal);
+                    // Kiểm tra trùng theo cả 2 chiều
+                    const exists = rigRulesList.some(r => r.type === type && ((r.s1Id === s1Id && r.targetVal === targetVal) || (r.s1Id === targetVal && r.targetVal === s1Id)));
                     if (!exists) {
                         rigRulesList.push({ type, s1Id, targetVal });
                         addedCount++;
@@ -4459,26 +4689,25 @@
                 rigTargetSearchQuery = '';
                 const searchInput = document.getElementById('rigTargetSearchInput');
                 if (searchInput) searchInput.value = '';
-                renderRigTargetCheckboxList();
                 if (addedCount > 0) {
                     showToast(`Đã thêm ${addedCount} quy tắc mới!`);
                 } else {
-                    showToast("Các quy tắc đã chọn đều đã tồn tại!");
+                    showToast("Các quy tắc đã chọn đều đã tồn tại (kể cả chiều ngược lại)!");
                 }
             } else {
                 const targetVal = document.getElementById('rigTargetVal').value;
                 if (s1Id === targetVal) return showToast("Không thể chọn cùng 1 người! Vui lòng chọn người khác.");
+                const exists = rigRulesList.some(r => r.type === type && ((r.s1Id === s1Id && r.targetVal === targetVal) || (r.s1Id === targetVal && r.targetVal === s1Id)));
+                if (exists) return showToast("Quy tắc này đã tồn tại rồi!");
                 rigRulesList.push({ type, s1Id, targetVal });
             }
-            renderRigRuleList();
+            refreshRigUI();
         }
 
         function clearRigRules() {
             rigRulesList = [];
             riggedArrangement = null;
-            renderRigRuleList();
-            const typeEl = document.getElementById('rigRuleType');
-            if (typeEl && isMultiTargetRuleType(typeEl.value)) renderRigTargetCheckboxList();
+            refreshRigUI();
         }
 
         function getStudentName(id) {
@@ -4486,15 +4715,36 @@
             return s ? s.name : id;
         }
 
+        function toggleRigRuleFilter() {
+            rigFilterBySelectedStudent = !rigFilterBySelectedStudent;
+            const btn = document.getElementById('rigFilterSelectedBtn');
+            if (btn) {
+                btn.className = rigFilterBySelectedStudent
+                    ? 'text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-500 bg-indigo-600 text-white transition'
+                    : 'text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition';
+            }
+            renderRigRuleList();
+        }
+
         function renderRigRuleList() {
             const list = document.getElementById('rigRuleList');
+            const s1Id = document.getElementById('rigStudent1')?.value;
             document.getElementById('rigRuleCount').innerText = rigRulesList.length;
             list.innerHTML = '';
-            if (rigRulesList.length === 0) {
-                list.innerHTML = '<div class="text-slate-400 italic text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-300">Chưa có quy tắc nào. Hãy thêm luật phía trên.</div>';
+
+            const items = rigRulesList.map((r, idx) => ({ r, idx })).filter(item => {
+                if (!rigFilterBySelectedStudent || !s1Id) return true;
+                return item.r.s1Id === s1Id || item.r.targetVal === s1Id;
+            });
+
+            if (items.length === 0) {
+                const msg = rigRulesList.length === 0
+                    ? 'Chưa có quy tắc nào. Hãy thêm luật bên trái.'
+                    : 'Học sinh đang chọn chưa có quy tắc nào.';
+                list.innerHTML = `<div class="text-slate-400 italic text-center py-4 bg-white rounded-lg border border-dashed border-slate-300">${msg}</div>`;
                 return;
             }
-            rigRulesList.forEach((r, idx) => {
+            items.forEach(({ r, idx }) => {
                 let text = '';
                 const name1 = getStudentName(r.s1Id);
                 
@@ -4525,9 +4775,7 @@
 
         function removeRigRule(idx) {
             rigRulesList.splice(idx, 1);
-            renderRigRuleList();
-            const typeEl = document.getElementById('rigRuleType');
-            if (typeEl && isMultiTargetRuleType(typeEl.value)) renderRigTargetCheckboxList();
+            refreshRigUI();
         }
 
         function getSeatCoords(seatId) {
@@ -4832,9 +5080,8 @@
 
             showToast("☁️ Đang kiểm tra dữ liệu từ Google Sheet...");
             const cloudSuccess = await loadDataFromSheet(true);
-            if (!cloudSuccess && !storedData) {
-                hasInitialCloudSyncDone = true;
-                saveClassData();
+            if (!cloudSuccess) {
+                showToast("⚠️ Không tải được từ Sheet (giữ nguyên dữ liệu hiện tại, không ghi đè).");
             }
 
             if (!hasChosenWelcomeMode) {
