@@ -324,16 +324,22 @@
             
             <!-- Thanh chọn 3 Trò Chơi & Mục Tiêu Ghế -->
             <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex flex-wrap justify-between items-center gap-2 z-20 shrink-0">
-                <!-- 3 Nút Chuyển Game -->
-                <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/80 gap-1">
-                    <button onclick="switchGame('duck')" id="tab-duck" class=" px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow flex items-center gap-1.5 transition">
-                        <span>🦆</span> Đua Vịt
-                    </button>
-                    <button onclick="switchGame('plinko')" id="tab-plinko" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
-                        <span>🔮</span> Thả Bi Plinko
-                    </button>
-                    <button onclick="switchGame('wheel')" id="tab-wheel" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
-                        <span>🎡</span> Vòng Quay
+                <!-- 3 Nút Chuyển Game + Nút Đồng bộ trò chơi (ẩn cho Admin khi khóa 1 lần) -->
+                <div class="flex items-center gap-2">
+                    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/80 gap-1">
+                        <button onclick="switchGame('duck')" id="tab-duck" class=" px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 text-white shadow flex items-center gap-1.5 transition">
+                            <span>🦆</span> Đua Vịt
+                        </button>
+                        <button onclick="switchGame('plinko')" id="tab-plinko" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+                            <span>🔮</span> Thả Bi Plinko
+                        </button>
+                        <button onclick="switchGame('wheel')" id="tab-wheel" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+                            <span>🎡</span> Vòng Quay
+                        </button>
+                    </div>
+                    <button id="quickGameSyncUnlockBtn" onclick="quickSyncUnlockFromGame()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition shadow-sm" title="Đồng bộ trò chơi">
+                        <i class="fa-solid fa-rotate text-indigo-400"></i>
+                        <span>Đồng bộ trò chơi</span>
                     </button>
                 </div>
 
@@ -1476,13 +1482,72 @@
             });
         }
 
+        let isDraggingStudent = false;
+        let dragAutoScrollSpeed = 0;
+        let dragAutoScrollRaf = null;
+
+        function startDragAutoScrollLoop() {
+            if (dragAutoScrollRaf) cancelAnimationFrame(dragAutoScrollRaf);
+            function step() {
+                if (!isDraggingStudent) {
+                    dragAutoScrollRaf = null;
+                    return;
+                }
+                if (dragAutoScrollSpeed !== 0) {
+                    if (dragAutoScrollSpeed < 0) {
+                        const sec = document.getElementById('classroomSection');
+                        const minTop = sec ? Math.max(0, sec.offsetTop - 68) : 0;
+                        const curY = window.scrollY || window.pageYOffset || 0;
+                        if (curY > minTop) {
+                            const nextY = Math.max(minTop, curY + dragAutoScrollSpeed);
+                            window.scrollTo(0, nextY);
+                        }
+                    } else {
+                        window.scrollBy(0, dragAutoScrollSpeed);
+                    }
+                }
+                dragAutoScrollRaf = requestAnimationFrame(step);
+            }
+            dragAutoScrollRaf = requestAnimationFrame(step);
+        }
+
+        function stopDragAutoScroll() {
+            isDraggingStudent = false;
+            dragAutoScrollSpeed = 0;
+            if (dragAutoScrollRaf) {
+                cancelAnimationFrame(dragAutoScrollRaf);
+                dragAutoScrollRaf = null;
+            }
+        }
+
+        document.addEventListener('dragover', (e) => {
+            if (!isDraggingStudent) return;
+            const y = e.clientY;
+            const vh = window.innerHeight || document.documentElement.clientHeight || 800;
+            const topZone = 155;
+            const bottomZone = vh - 100;
+            if (y < topZone) {
+                const ratio = Math.min(1, (topZone - y) / 100);
+                dragAutoScrollSpeed = -Math.round(5 + ratio * 13);
+            } else if (y > bottomZone) {
+                const ratio = Math.min(1, (y - bottomZone) / 100);
+                dragAutoScrollSpeed = Math.round(5 + ratio * 13);
+            } else {
+                dragAutoScrollSpeed = 0;
+            }
+        }, { passive: true });
+
         function handleDragStart(e, studentId, sourceId) {
             e.dataTransfer.setData('application/json', JSON.stringify({ studentId, sourceId }));
             e.dataTransfer.effectAllowed = 'move';
             e.target.style.opacity = '0.4';
+            isDraggingStudent = true;
+            dragAutoScrollSpeed = 0;
+            startDragAutoScrollLoop();
         }
 
         function handleDragEnd(e) {
+            stopDragAutoScroll();
             e.target.style.opacity = '1';
             if (currentDragOverEl) {
                 currentDragOverEl.classList.remove('drag-over');
@@ -1515,6 +1580,7 @@
 
         function handleDrop(e, targetId) {
             e.preventDefault();
+            stopDragAutoScroll();
             if (currentDragOverEl) {
                 currentDragOverEl.classList.remove('drag-over');
                 currentDragOverEl = null;
@@ -3454,15 +3520,38 @@
         }
         
         function updateOneTimeLockUI() {
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
             const lockBadge = document.getElementById('rigOneTimeLockBadge');
-            if (!lockBadge) return;
-            if (isRigLockedByOneTimeUse) {
-                lockBadge.classList.remove('hidden');
-                lockBadge.classList.add('flex');
-            } else {
-                lockBadge.classList.add('hidden');
-                lockBadge.classList.remove('flex');
+            if (lockBadge) {
+                if (isRigLockedByOneTimeUse) {
+                    lockBadge.classList.remove('hidden');
+                    lockBadge.classList.add('flex');
+                } else {
+                    lockBadge.classList.add('hidden');
+                    lockBadge.classList.remove('flex');
+                }
             }
+            const quickSyncBtn = document.getElementById('quickGameSyncUnlockBtn');
+            if (quickSyncBtn) {
+                if (isAdmin && isRigLockedByOneTimeUse) {
+                    quickSyncBtn.classList.remove('hidden');
+                    quickSyncBtn.classList.add('flex');
+                } else {
+                    quickSyncBtn.classList.add('hidden');
+                    quickSyncBtn.classList.remove('flex');
+                }
+            }
+        }
+
+        function quickSyncUnlockFromGame() {
+            if (sessionStorage.getItem('isAdmin') !== 'true') return;
+            isRigLockedByOneTimeUse = false;
+            ensureCurrentClassExists();
+            classDataDict[currentClassName].isRigLockedByOneTimeUse = false;
+            saveClassData();
+            updateOneTimeLockUI();
+            updateSecretDotIndicator();
+            showToast("🔄 Đã đồng bộ lại trò chơi!");
         }
 
         function unlockOneTimeRig() {
@@ -3566,6 +3655,7 @@
                     viewSubBtn.classList.remove('flex');
                 }
             }
+            updateOneTimeLockUI();
         }
 
         function requireAdmin(actionFunc) {
