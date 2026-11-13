@@ -1174,7 +1174,7 @@
                 rigScope = data.rigMasterEnabled ? 'all' : 'admin';
             } else {
                 const storedScope = localStorage.getItem('classroom_rig_scope');
-                rigScope = storedScope || 'all';
+                rigScope = storedScope || 'admin';
             }
             
             // Nạp cờ "Dùng 1 lần" & trạng thái khóa cứng
@@ -1185,8 +1185,9 @@
             rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
             riggedArrangement = null;
             
-            // Xử lý nạp chế độ Gửi Admin nếu đang được Bật
-            if (sessionMode === 'submit' && canUseRig()) {
+            // Bên phía Admin cơ cấu mặc định là TẮT; chỉ tự bật cho người dùng ngoài khi phạm vi là "all"
+            const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
+            if (sessionMode === 'submit' && !isAdminNow && canUseRig()) {
                 isRigActive = true;
                 calculateRiggingSilently();
             } else {
@@ -1260,7 +1261,7 @@
                     students: sampleNames,
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
-                    rigScope: 'all',
+                    rigScope: 'admin',
                     isRigOneTimeUse: false,
                     isRigLockedByOneTimeUse: false
                 };
@@ -3621,6 +3622,11 @@
             const pwd = input ? input.value.trim() : '';
             if (pwd === ADMIN_PASSWORD) {
                 sessionStorage.setItem('isAdmin', 'true');
+                isRigActive = false;
+                riggedArrangement = null;
+                const toggleEl = document.getElementById('instantFillToggle');
+                if (toggleEl) toggleEl.checked = true;
+                updateSecretDotIndicator();
                 closePasswordModal();
                 updateAdminUI();
                 if (pendingAdminAction) {
@@ -3728,7 +3734,8 @@
             const submitBtn = document.getElementById('submitToAdminBtn');
             
             if (mode === 'submit') {
-                if (canUseRig()) {
+                const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
+                if (!isAdminNow && canUseRig()) {
                     isRigActive = true;
                     const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
                     if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
@@ -3736,6 +3743,10 @@
                     }
                     calculateRiggingSilently();
                     document.getElementById('instantFillToggle').checked = false; 
+                } else if (isAdminNow) {
+                    isRigActive = false;
+                    riggedArrangement = null;
+                    document.getElementById('instantFillToggle').checked = true;
                 }
                 
                 if (submitBtn) {
@@ -3785,8 +3796,9 @@
                 });
                 
                 let successMsg = "🚀 Đã gửi cấu hình thành công cho Admin!";
-                // Tự động KHÓA CỨNG cơ cấu vĩnh viễn nếu chế độ "Dùng 1 lần" đang được bật
-                if (isRigOneTimeUse) {
+                // Tự động KHÓA CỨNG cơ cấu nếu chế độ "Dùng 1 lần" đang bật (KHÔNG kích hoạt nếu người gửi đang là Admin)
+                const isAdminSender = sessionStorage.getItem('isAdmin') === 'true';
+                if (isRigOneTimeUse && !isAdminSender) {
                     isRigActive = false;
                     riggedArrangement = null;
                     isRigLockedByOneTimeUse = true; // KHÓA CỨNG VĨNH VIỄN CHO TỚI KHI ADMIN MỞ LẠI
