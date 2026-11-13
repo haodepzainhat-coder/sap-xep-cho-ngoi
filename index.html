@@ -15,17 +15,20 @@
         .game-font { font-family: 'Nunito', sans-serif; }
         
         /* Hiệu ứng ghế ngồi chuẩn theo hình mẫu */
+        .desk-wrap {
+            contain: layout style;
+        }
         .desk-box {
             background-color: #fffbeb;
             border: 2px solid #fde68a;
             border-radius: 12px;
             padding: 8px;
-            transition: all 0.2s ease;
+            transition: border-color 0.18s ease, background-color 0.18s ease;
         }
         .seat-box {
             height: 54px;
             border-radius: 8px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.18s ease, background-color 0.18s ease;
         }
         .seat-empty {
             background-color: #ffffff;
@@ -47,8 +50,8 @@
             animation: pulse-target 1.8s infinite;
         }
         @keyframes pulse-target {
-            0%, 100% { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25); }
-            50% { box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.45); }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.72; }
         }
         .seat-occupied {
             background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
@@ -78,7 +81,7 @@
             transform: scale(1.02);
         }
         .student-pool-pill {
-            transition: all 0.2s;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .student-pool-pill:hover {
             transform: translateY(-2px);
@@ -314,7 +317,7 @@
     </header>
 
     <!-- NỘI DUNG CHÍNH: CHIA LÀM 2 TẦNG (TRÊN: TRÒ CHƠI - DƯỚI: SƠ ĐỒ CHỖ NGỒI) -->
-    <main class="flex-1 flex flex-col overflow-y-auto scroll-smooth">
+    <main id="mainScrollContainer" class="flex-1 flex flex-col overflow-y-auto overscroll-y-contain">
         
         <!-- PHẦN 1: KHU VỰC 3 TRÒ CHƠI XỊN & MƯỢT (CHIẾM TRỌN 100% CHIỀU CAO MÀN HÌNH VIEWPORT) -->
         <div id="gameContainer" class="w-full h-[calc(100vh-61px)] shrink-0 flex flex-col bg-[#0f172a] text-white no-print relative select-none border-b-4 border-slate-800 shadow-2xl z-10">
@@ -364,7 +367,7 @@
                         <!-- HUD Đồng hồ & Xếp hạng Trực tiếp -->
                         <div class="absolute top-3 left-3 right-3 flex justify-between items-start z-10 pointer-events-none">
                             <!-- Bảng Top 3 Dẫn Đầu -->
-                            <div class="bg-slate-900/80 backdrop-blur-md border border-white/15 px-3.5 py-2 rounded-xl shadow-lg min-w-[175px]">
+                            <div class="bg-slate-900/90 border border-white/15 px-3.5 py-2 rounded-xl shadow-lg min-w-[175px]">
                                 <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 mb-1 flex items-center gap-1">
                                     <i class="fa-solid fa-trophy"></i> Dẫn đầu đường đua
                                 </div>
@@ -403,7 +406,7 @@
                     <div class="relative flex-1 w-full rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl bg-[#090d16]">
                         <!-- HUD Thông tin Bi đang rơi -->
                         <div class="absolute top-3 left-3 right-3 flex justify-between items-center z-10 pointer-events-none">
-                            <div class="bg-slate-900/85 backdrop-blur border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-300">
+                            <div class="bg-slate-900/90 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-300">
                                 <i class="fa-solid fa-circle-nodes mr-1"></i> Tháp Plinko 14 Tầng • Tự động dò camera
                             </div>
                             <div id="plinkoStatusBadge" class="bg-amber-500/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-xl text-xs font-extrabold">
@@ -462,7 +465,7 @@
 
                 <!-- BANNER THÔNG BÁO NHANH KHI ĐIỀN THẲNG VÀO BÀN -->
                 <div id="quickWinBanner" class="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 z-40 transform -translate-y-10 opacity-0 transition-all duration-300">
-                    <div class="bg-slate-900/95 backdrop-blur-md border-2 border-emerald-400 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
+                    <div class="bg-slate-900/95 border-2 border-emerald-400 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4">
                         <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-2xl">
                             🎉
                         </div>
@@ -961,6 +964,7 @@
         let currentTargetSeatId = 'D1_B1_L';
         let lastAssignedSeatId = null;
         let isGameVisible = true; // Biến kiểm soát hiển thị để chống lag
+        let isPageScrolling = false; // Tạm dừng vẽ idle canvas trong lúc đang lăn chuột
         let currentPerspective = 'teacher'; // 'teacher' hoặc 'student'
 
         // LƯU TRỮ LỚP HỌC & CƠ CẤU (Class Management & Rigging State)
@@ -1532,6 +1536,9 @@
                     lastAssignedSeatId = targetId;
                 }
 
+                if (isRigActive && canUseRig()) {
+                    calculateRiggingSilently();
+                }
                 renderGrid();
                 saveClassData();
                 playPegPing(1.2); // Phát âm thanh nhỏ báo hiệu đổi thành công
@@ -1614,6 +1621,9 @@
             if (st) st.seatId = null;
             currentTargetSeatId = seatId;
             lastAssignedSeatId = null;
+            if (isRigActive && canUseRig()) {
+                calculateRiggingSilently();
+            }
             renderGrid();
         }
 
@@ -1952,9 +1962,17 @@
 
         function startDuckIdleLoop() {
             if (duckGame.idleAnimId) cancelAnimationFrame(duckGame.idleAnimId);
+            let lastIdleRender = 0;
+            // Vẽ ngay khung hình đầu tiên
+            if (!duckGame.isRacing && activeGame === 'duck') {
+                renderDuckScene(performance.now(), 0);
+            }
             function loop(now) {
-                if (!duckGame.isRacing && activeGame === 'duck' && isGameVisible) {
-                    renderDuckScene(now, 0);
+                if (!duckGame.isRacing && activeGame === 'duck' && isGameVisible && !isPageScrolling) {
+                    if (now - lastIdleRender >= 48) { // ~20fps khi đứng yên để nhường GPU/CPU cho cuộn trang mượt
+                        lastIdleRender = now;
+                        renderDuckScene(now, 0);
+                    }
                 }
                 duckGame.idleAnimId = requestAnimationFrame(loop);
             }
@@ -2576,8 +2594,9 @@
 
         function startPlinkoIdleLoop() {
             if (plinkoGame.idleId) cancelAnimationFrame(plinkoGame.idleId);
+            renderPlinkoScene();
             function loop() {
-                if (!plinkoGame.isPlaying && activeGame === 'plinko' && isGameVisible) {
+                if (!plinkoGame.isPlaying && activeGame === 'plinko' && isGameVisible && !isPageScrolling && plinkoGame.ripples.length > 0) {
                     renderPlinkoScene();
                 }
                 plinkoGame.idleId = requestAnimationFrame(loop);
@@ -4796,11 +4815,23 @@
             updateAdminUI();
             updateSecretDotIndicator();
 
+            const mainScroll = document.getElementById('mainScrollContainer');
+            if (mainScroll) {
+                let scrollStopTimer = null;
+                mainScroll.addEventListener('scroll', () => {
+                    isPageScrolling = true;
+                    clearTimeout(scrollStopTimer);
+                    scrollStopTimer = setTimeout(() => {
+                        isPageScrolling = false;
+                    }, 120);
+                }, { passive: true });
+            }
+
             const container = document.getElementById('gameContainer');
             if (container && window.IntersectionObserver) {
                 const observer = new IntersectionObserver((entries) => {
                     entries.forEach(e => isGameVisible = e.isIntersecting);
-                }, { threshold: 0.05 });
+                }, { threshold: 0.1 });
                 observer.observe(container);
             }
 
