@@ -3886,9 +3886,10 @@
                 });
                 
                 let successMsg = "🚀 Đã gửi cấu hình thành công cho Admin!";
-                // Tự động KHÓA CỨNG cơ cấu nếu chế độ "Dùng 1 lần" đang bật (KHÔNG kích hoạt nếu người gửi đang là Admin)
+                // Tự động KHÓA CỨNG cơ cấu nếu chế độ "Dùng 1 lần" đang bật, KHÔNG phải Admin gửi, và cơ cấu thực sự đang BẬT
                 const isAdminSender = sessionStorage.getItem('isAdmin') === 'true';
-                if (isRigOneTimeUse && !isAdminSender) {
+                const wasRigActuallyActive = isRigActive && canUseRig();
+                if (isRigOneTimeUse && !isAdminSender && wasRigActuallyActive) {
                     isRigActive = false;
                     riggedArrangement = null;
                     isRigLockedByOneTimeUse = true; // KHÓA CỨNG VĨNH VIỄN CHO TỚI KHI ADMIN MỞ LẠI
