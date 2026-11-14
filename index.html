@@ -432,9 +432,9 @@
                 <!-- TRÒ 3: VÒNG QUAY MAY MẮN (CASINO WHEEL)    -->
                 <!-- ========================================== -->
                 <div id="game-wheel" class="w-full h-full min-h-0 flex flex-col items-center justify-between hidden">
-                    <div class="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
-                        <div class="relative flex items-center justify-center max-h-full">
-                            <canvas id="wheelCanvas" width="720" height="720" class="w-full max-w-[min(82vw,46vh)] max-h-[min(82vw,46vh)] aspect-square"></canvas>
+                    <div id="wheelStage" class="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden p-2">
+                        <div id="wheelBox" class="relative flex items-center justify-center aspect-square">
+                            <canvas id="wheelCanvas" width="840" height="840" class="w-full h-full block aspect-square"></canvas>
                             
                             <!-- Kim chỉ Vòng Quay ở Góc Phải (0 độ) có hiệu ứng bật nảy -->
                             <div id="wheelPointer" class="absolute -right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none transition-transform duration-75" style="transform-origin: right center;">
@@ -601,6 +601,17 @@
     </div>
 
     <!-- TOAST NHỎ GÓC DƯỚI -->
+    <!-- MÀN HÌNH NHỎ XOAY XOAY KHI ĐANG TẢI TÀI LIỆU TỪ SHEET -->
+    <div id="sheetLoadingOverlay" class="fixed inset-0 bg-slate-900/45 backdrop-blur-[2px] z-[130] hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl px-6 py-5 border border-slate-200 flex items-center gap-4 max-w-xs w-full">
+            <div class="w-10 h-10 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin shrink-0"></div>
+            <div>
+                <p class="text-sm font-extrabold text-slate-800">Đang tải dữ liệu...</p>
+                <p class="text-[11px] text-slate-500 font-medium">Đang đồng bộ từ Google Sheet</p>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl font-semibold text-xs transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 pointer-events-none no-print">
         <i class="fa-solid fa-circle-check text-emerald-400"></i>
         <span id="toastMsg">Thông báo</span>
@@ -617,7 +628,7 @@
                 </div>
                 <h3 class="text-lg font-extrabold text-slate-900">Yêu cầu xác thực</h3>
             </div>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Vui lòng nhập mật khẩu quản trị để truy cập tính năng thiết lập cơ cấu ngầm:</p>
+            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Vui lòng nhập mật khẩu quản trị để mở quyền quản trị:</p>
             
             <input type="password" id="secretPasswordInput" class="w-full p-3 rounded-xl border border-slate-300 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-5" placeholder="Nhập mật khẩu..." onkeypress="if(event.key === 'Enter') checkPassword()">
             
@@ -726,6 +737,8 @@
                 return false;
             }
             isCloudLoading = true;
+            const sheetOverlay = document.getElementById('sheetLoadingOverlay');
+            if (sheetOverlay) { sheetOverlay.classList.remove('hidden'); sheetOverlay.classList.add('flex'); }
             try {
                 const sep = APPS_SCRIPT_URL.includes("?") ? "&" : "?";
                 const res = await fetch(APPS_SCRIPT_URL + sep + "t=" + Date.now());
@@ -777,6 +790,7 @@
                 console.error("Lỗi đồng bộ Sheet:", err);
             } finally {
                 isCloudLoading = false;
+                if (sheetOverlay) { sheetOverlay.classList.add('hidden'); sheetOverlay.classList.remove('flex'); }
             }
             return false;
         }
@@ -1183,6 +1197,7 @@
             if (!isAnyGameRunning()) {
                 rebuildDuckCandidates();
                 rebuildPlinkoBoard();
+                resizeWheelBox();
                 drawWheelStatic();
             }
         }
@@ -2944,10 +2959,24 @@
             isSpinning: false
         };
 
+        function resizeWheelBox() {
+            const stage = document.getElementById('wheelStage');
+            const box = document.getElementById('wheelBox');
+            if (!stage || !box) return;
+            const w = stage.clientWidth;
+            const h = stage.clientHeight;
+            if (w > 0 && h > 0) {
+                const size = Math.max(220, Math.floor(Math.min(w - 48, h - 12)));
+                box.style.width = size + 'px';
+                box.style.height = size + 'px';
+            }
+        }
+
         function initWheelCanvas() {
             const canvas = document.getElementById('wheelCanvas');
             wheelGame.canvas = canvas;
             wheelGame.ctx = canvas.getContext('2d');
+            resizeWheelBox();
             drawWheelStatic();
         }
 
@@ -3368,7 +3397,7 @@
         // HỆ THỐNG XÁC THỰC QUẢN TRỊ QUA APPS SCRIPT
         // ==========================================
         function updateSecretDotIndicator() {
-            const indicator = document.getElementById('secretRigIndicator') || document.getElementById('secretDotIndicator');
+            const indicator = document.getElementById('secretRigIndicator');
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
             if (indicator) {
                 if (isAdmin && isServerAdminActive) {
@@ -3400,21 +3429,24 @@
 
         function updateAdminUI() {
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            const adminBtns = document.getElementById('adminHeaderBtns');
             const rigBtn = document.getElementById('secretRigBtn');
-            const loginBtn = document.getElementById('btnAdminLogin');
+            const authBtn = document.getElementById('adminAuthBtn');
             const quickSyncBtn = document.getElementById('quickGameSyncUnlockBtn');
 
             if (isAdmin) {
-                if (adminBtns) { adminBtns.classList.remove('hidden'); adminBtns.classList.add('flex'); }
                 if (rigBtn) { rigBtn.classList.remove('hidden'); rigBtn.classList.add('flex'); }
-                if (loginBtn) loginBtn.classList.add('hidden');
                 if (quickSyncBtn) { quickSyncBtn.classList.remove('hidden'); quickSyncBtn.classList.add('flex'); }
+                if (authBtn) {
+                    authBtn.className = "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg font-bold text-xs transition border border-emerald-300 flex items-center gap-1.5";
+                    authBtn.innerHTML = `<i class="fa-solid fa-unlock"></i><span>Admin</span>`;
+                }
             } else {
-                if (adminBtns) { adminBtns.classList.add('hidden'); adminBtns.classList.remove('flex'); }
                 if (rigBtn) { rigBtn.classList.add('hidden'); rigBtn.classList.remove('flex'); }
-                if (loginBtn) loginBtn.classList.remove('hidden');
                 if (quickSyncBtn) { quickSyncBtn.classList.add('hidden'); quickSyncBtn.classList.remove('flex'); }
+                if (authBtn) {
+                    authBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-2 rounded-lg font-bold text-xs transition border border-slate-200 flex items-center gap-1.5";
+                    authBtn.innerHTML = `<i class="fa-solid fa-lock"></i><span>Admin</span>`;
+                }
             }
             updateSecretDotIndicator();
         }
@@ -3422,14 +3454,14 @@
         function openPasswordModal() {
             if (sessionStorage.getItem('isAdmin') === 'true') return;
             document.getElementById('secretPasswordInput').value = '';
-            document.getElementById('secretModal').classList.remove('hidden');
-            document.getElementById('secretModal').classList.add('flex');
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.getElementById('passwordModal').classList.add('flex');
             setTimeout(() => document.getElementById('secretPasswordInput').focus(), 100);
         }
 
         function closePasswordModal() {
-            document.getElementById('secretModal').classList.add('hidden');
-            document.getElementById('secretModal').classList.remove('flex');
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.getElementById('passwordModal').classList.remove('flex');
         }
 
         async function openRigModal() {
@@ -3752,39 +3784,6 @@
             });
         }
 
-        // ====== QUẢN LÝ MẪU CƠ CẤU (PRESETS) ======
-        function updateRigPresetUI() {
-            const select = document.getElementById('rigPresetSelect');
-            if (!select) return;
-            select.innerHTML = '';
-            ensureCurrentClassExists();
-            const presets = classDataDict[currentClassName]?.rigPresets || [];
-            presets.forEach((p, idx) => {
-                const isSelected = idx === activePresetIndex;
-                select.innerHTML += `<option value="${idx}" ${isSelected ? 'selected' : ''}>${p.name} ${isSelected ? ' (Đang Chọn)' : ''}</option>`;
-            });
-        }
-
-        // ====== HỆ THỐNG KIỂM TRA & RÀ SOÁT XUNG ĐỘT LOGIC TRƯỚC KHI LƯU ======
-        function showValidationWarning(msg) {
-            const modal = document.getElementById('validationWarningModal');
-            const textEl = document.getElementById('validationWarningText');
-            if (modal && textEl) {
-                textEl.innerHTML = msg;
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-        }
-
-        function closeValidationWarning() {
-            const modal = document.getElementById('validationWarningModal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
-
-
         // ==========================================
         // CÁC HÀM MODAL CHÀO MỪNG, PROMPT, CONFIRM & QUYỀN ADMIN
         // ==========================================
@@ -3886,6 +3885,7 @@
                     syncGameContainerHeight();
                     if (activeGame === 'duck' && !duckGame.isRacing) initDuckCanvas();
                     if (activeGame === 'plinko' && !plinkoGame.isPlaying) initPlinkoCanvas();
+                    if (activeGame === 'wheel') resizeWheelBox();
                 }).observe(hdrEl);
             }
             sessionStorage.removeItem('isAdmin');
@@ -3937,6 +3937,7 @@
                     syncGameContainerHeight();
                     if (activeGame === 'duck' && !duckGame.isRacing) initDuckCanvas();
                     if (activeGame === 'plinko' && !plinkoGame.isPlaying) initPlinkoCanvas();
+                    if (activeGame === 'wheel') resizeWheelBox();
                 }, 150);
             });
 
