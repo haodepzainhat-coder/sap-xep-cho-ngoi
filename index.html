@@ -889,10 +889,20 @@
         }
 
         async function refreshServerStatusIndicator() {
-            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            if (!isAdmin) {
+            if (sessionMode !== 'submit') {
                 isServerAdminActive = false;
-                isServerRigLocked = false;
+                const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+                if (isAdmin) {
+                    const res = await callAppsScript({
+                        action: 'checkStatus',
+                        className: currentClassName,
+                        mode: sessionMode,
+                        password: sessionStorage.getItem('adminPwd') || ''
+                    }, 2500);
+                    isServerRigLocked = !!(res && res.locked);
+                } else {
+                    isServerRigLocked = false;
+                }
                 updateAdminUI();
                 return;
             }
@@ -903,7 +913,7 @@
                 password: sessionStorage.getItem('adminPwd') || ''
             }, 2500);
             isServerRigLocked = !!(res && res.locked);
-            isServerAdminActive = !!(res && res.active && sessionMode === 'submit');
+            isServerAdminActive = !!(res && res.active && !isServerRigLocked);
             updateAdminUI();
         }
 
@@ -3437,9 +3447,8 @@
         // ==========================================
         function updateSecretDotIndicator() {
             const indicator = document.getElementById('secretRigIndicator');
-            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
             if (indicator) {
-                if (isAdmin && isServerAdminActive && sessionMode === 'submit') {
+                if (isServerAdminActive && !isServerRigLocked && sessionMode === 'submit') {
                     indicator.innerText = "v2.1.";
                     indicator.className = "w-12 text-center text-[11px] font-extrabold text-emerald-600 bg-emerald-100 border border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.55)] px-1 py-0.5 rounded-md tracking-normal select-none transition-all duration-200";
                 } else {
@@ -3644,6 +3653,7 @@
             } else {
                 sessionMode = 'test';
                 isServerAdminActive = false;
+                refreshServerStatusIndicator();
                 submitFileName = '';
                         if (submitBtn) {
                     submitBtn.classList.add('hidden');
