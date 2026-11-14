@@ -89,111 +89,134 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        /* Chế độ In Ấn / Xuất PDF */
+        /* Chế độ In Ấn / Xuất PDF (1 trang A4 ngang, xoay theo góc nhìn GV & chữ xuôi dễ đọc) */
         @media print {
-            body, html { 
-                background: white !important; 
-                height: 100vh !important; 
-                overflow: hidden !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
+            body, html, #mainScrollContainer {
+                background: white !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             .no-print { display: none !important; }
-            
-            .print-area { 
-                width: 100% !important; 
-                height: 100% !important; 
+
+            .print-area {
+                width: 100% !important;
+                height: auto !important;
                 max-width: none !important;
-                padding: 5mm !important; 
+                padding: 2mm !important;
                 margin: 0 !important;
-                border: none !important; 
+                border: none !important;
+                background: white !important;
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: center !important;
-                justify-content: center !important;
-                box-sizing: border-box;
+                justify-content: flex-start !important;
+                box-sizing: border-box !important;
             }
-            
-            .classroom-card { 
+
+            .classroom-card {
                 display: flex !important;
-                flex-direction: column !important;
-                box-shadow: none !important; 
-                border: none !important; 
-                width: 100% !important; 
+                flex-direction: column-reverse !important;
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
                 max-width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                gap: 6px !important;
                 page-break-inside: avoid !important;
-                transform: scale(0.92);
-                transform-origin: top center;
+                break-inside: avoid !important;
+                transform: none !important;
             }
-            
-            /* Giữ nguyên thanh Bảng/Bàn GV/Cửa đúng thứ tự trên màn hình */
-            #classroomTopBoard { 
-                display: flex !important;
-                flex-direction: row !important;
-                justify-content: space-between !important;
-                margin-bottom: 1rem !important; 
-                margin-top: 0 !important;
-                width: 100% !important;
-            }
-            #classroomTopBoard > div { width: 32% !important; }
-            #classroomTopBoard > div:nth-child(2) { width: 36% !important; justify-content: center !important; }
-            #classroomTopBoard > div:nth-child(1) { justify-content: flex-start !important; }
-            #classroomTopBoard > div:nth-child(3) { justify-content: flex-end !important; }
 
-            /* Lưới Sơ đồ giữ chuẩn Dãy 1->4, Bàn 1->6, Trái->Phải */
-            #classroomGrid { 
+            /* Đưa Bảng/Bàn GV/Cửa xuống dưới & đảo Trái-Phải theo góc nhìn GV nhìn xuống lớp */
+            #classroomTopBoard {
+                display: flex !important;
+                flex-direction: row-reverse !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                margin: 4px 0 0 0 !important;
+                padding: 6px 10px !important;
+                width: 100% !important;
+                gap: 8px !important;
+            }
+            #classroomTopBoard > div {
+                width: 31% !important;
+                order: 0 !important;
+            }
+            #classroomTopBoard > div:nth-child(2) {
+                width: 36% !important;
+                justify-content: center !important;
+            }
+            #classroomTopBoard > div:nth-child(1) { justify-content: flex-end !important; }
+            #classroomTopBoard > div:nth-child(3) { justify-content: flex-start !important; }
+
+            /* Ép đủ 4 dãy trên 1 hàng, đảo thứ tự Dãy 4->1 và Bàn 6->1 theo chiều GV, chữ giữ nguyên chiều xuôi */
+            #classroomGrid {
+                display: flex !important;
+                flex-direction: row-reverse !important;
+                flex-wrap: nowrap !important;
+                width: 100% !important;
+                gap: 8px !important;
+                margin: 0 !important;
                 direction: ltr !important;
-                gap: 0.5rem !important; 
-                margin-bottom: 0.5rem !important;
             }
             #classroomGrid > div {
-                direction: ltr !important;
+                flex: 1 1 0% !important;
+                min-width: 0 !important;
                 display: flex !important;
-                flex-direction: column !important;
+                flex-direction: column-reverse !important;
+                gap: 4px !important;
             }
             .desk-wrap {
                 display: flex !important;
-                flex-direction: column !important;
+                flex-direction: column-reverse !important;
+                gap: 1px !important;
             }
 
-            /* Ẩn các thành phần không cần thiết */
             .classroom-bottom-bar, #perspectiveIndicator { display: none !important; }
-            
-            .desk-box { 
+
+            .desk-box {
                 display: flex !important;
-                flex-direction: row !important;
+                flex-direction: row-reverse !important;
                 direction: ltr !important;
-                padding: 4px !important; 
-                border-width: 1.5px !important; 
+                padding: 3px !important;
+                gap: 4px !important;
+                border-width: 1.5px !important;
+                border-radius: 8px !important;
             }
-            .seat-box { 
+            .seat-box {
                 flex: 1 1 0% !important;
-                width: 50% !important;
-                height: 42px !important; 
+                min-width: 0 !important;
+                height: 36px !important;
+                border-radius: 6px !important;
             }
-            
-            .seat-occupied { 
-                background: #f1f5f9 !important; 
-                color: #0f172a !important; 
-                border: 1.5px solid #334155 !important; 
-                box-shadow: none !important; 
-                -webkit-print-color-adjust: exact; 
+            .seat-box span {
+                font-size: 10px !important;
+                line-height: 1.15 !important;
+            }
+
+            .seat-occupied {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1.5px solid #334155 !important;
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
-            /* Ẩn hoàn toàn các ô trống và ô mục tiêu khi in (tàng hình) */
             .seat-empty, .seat-target {
                 border: none !important;
                 background: transparent !important;
                 box-shadow: none !important;
             }
-            .seat-empty *, .seat-target * { 
-                display: none !important; 
+            .seat-empty *, .seat-target * {
+                display: none !important;
             }
-            
-            @page { size: landscape; margin: 5mm; }
+
+            @page { size: A4 landscape; margin: 6mm; }
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -3432,17 +3455,21 @@
             const rigBtn = document.getElementById('secretRigBtn');
             const authBtn = document.getElementById('adminAuthBtn');
             const quickSyncBtn = document.getElementById('quickGameSyncUnlockBtn');
+            const viewSubBtn = document.getElementById('viewSubmissionsBtn');
 
             if (isAdmin) {
                 if (rigBtn) { rigBtn.classList.remove('hidden'); rigBtn.classList.add('flex'); }
                 if (quickSyncBtn) { quickSyncBtn.classList.remove('hidden'); quickSyncBtn.classList.add('flex'); }
+                if (viewSubBtn) { viewSubBtn.classList.remove('hidden'); viewSubBtn.classList.add('flex'); }
                 if (authBtn) {
                     authBtn.className = "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg font-bold text-xs transition border border-emerald-300 flex items-center gap-1.5";
                     authBtn.innerHTML = `<i class="fa-solid fa-unlock"></i><span>Admin</span>`;
                 }
+                updateSubmissionBadge();
             } else {
                 if (rigBtn) { rigBtn.classList.add('hidden'); rigBtn.classList.remove('flex'); }
                 if (quickSyncBtn) { quickSyncBtn.classList.add('hidden'); quickSyncBtn.classList.remove('flex'); }
+                if (viewSubBtn) { viewSubBtn.classList.add('hidden'); viewSubBtn.classList.remove('flex'); }
                 if (authBtn) {
                     authBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-2 rounded-lg font-bold text-xs transition border border-slate-200 flex items-center gap-1.5";
                     authBtn.innerHTML = `<i class="fa-solid fa-lock"></i><span>Admin</span>`;
