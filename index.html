@@ -833,6 +833,7 @@
         let hasAutoSubmittedThisSession = false;
         let submitFileName = '';
         let isServerAdminActive = false;
+        let isServerRigLocked = false;
         function getClientUid() {
             let uid = localStorage.getItem('classroom_client_uid');
             if (!uid) {
@@ -864,6 +865,7 @@
         async function fetchTurnSelection(targetSeatId) {
             if (typeof sessionMode !== 'undefined' && sessionMode === 'test') {
                 isServerAdminActive = false;
+            isServerRigLocked = false;
                 updateSecretDotIndicator();
                 return null;
             }
@@ -878,8 +880,9 @@
                 password: sessionStorage.getItem('adminPwd') || ''
             }, 2500);
             if (res && res.status === 'success') {
+                isServerRigLocked = !!res.locked;
                 isServerAdminActive = !!res.active;
-                updateSecretDotIndicator();
+                updateAdminUI();
                 return res.studentId || null;
             }
             return null;
@@ -887,18 +890,21 @@
 
         async function refreshServerStatusIndicator() {
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            if (!isAdmin || sessionMode !== 'submit') {
+            if (!isAdmin) {
                 isServerAdminActive = false;
-                updateSecretDotIndicator();
+                isServerRigLocked = false;
+                updateAdminUI();
                 return;
             }
             const res = await callAppsScript({
                 action: 'checkStatus',
+                className: currentClassName,
                 mode: sessionMode,
                 password: sessionStorage.getItem('adminPwd') || ''
             }, 2500);
-            isServerAdminActive = !!(res && res.active);
-            updateSecretDotIndicator();
+            isServerRigLocked = !!(res && res.locked);
+            isServerAdminActive = !!(res && res.active && sessionMode === 'submit');
+            updateAdminUI();
         }
 
         let hasPendingSheetSync = false;
@@ -3452,9 +3458,11 @@
                 className: currentClassName
             }, 4000);
             if (res && res.status === 'success') {
+                isServerRigLocked = false;
                 isServerAdminActive = (sessionMode === 'submit');
-                updateSecretDotIndicator();
-                showToast("🔄 Đã đồng bộ lại trò chơi!");
+                if (window._admCfg) window._admCfg.isRigLockedByOneTimeUse = false;
+                updateAdminUI();
+                showToast("🔄 Đã đồng bộ lại trò chơi & bật lại cơ cấu!");
             } else {
                 showToast("Không thể kết nối máy chủ đồng bộ!");
             }
@@ -3469,7 +3477,10 @@
 
             if (isAdmin) {
                 if (rigBtn) { rigBtn.classList.remove('hidden'); rigBtn.classList.add('flex'); }
-                if (quickSyncBtn) { quickSyncBtn.classList.remove('hidden'); quickSyncBtn.classList.add('flex'); }
+                if (quickSyncBtn) {
+                    quickSyncBtn.classList.toggle('hidden', !isServerRigLocked);
+                    quickSyncBtn.classList.toggle('flex', isServerRigLocked);
+                }
                 if (viewSubBtn) { viewSubBtn.classList.remove('hidden'); viewSubBtn.classList.add('flex'); }
                 if (authBtn) {
                     authBtn.className = "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg font-bold text-xs transition border border-emerald-300 flex items-center gap-1.5";
@@ -3557,7 +3568,8 @@
                 sessionStorage.setItem('isAdmin', 'true');
                 sessionStorage.setItem('adminPwd', pwd);
                 injectAdminPanel(res);
-                isServerAdminActive = (sessionMode === 'submit');
+                isServerRigLocked = !!(res.classConfig && res.classConfig.isRigLockedByOneTimeUse);
+                isServerAdminActive = (sessionMode === 'submit') && !isServerRigLocked;
                 closePasswordModal();
                 updateAdminUI();
                 showToast("Đăng nhập Admin thành công!");
@@ -3679,7 +3691,14 @@
                 : `🚀 Đã gửi file "${finalName}" thành công cho Admin!`;
 
             const isAdminSender = sessionStorage.getItem('isAdmin') === 'true';
-            callAppsScript({ action: 'markSubmitted', className: currentClassName, isAdmin: isAdminSender }, 2500);
+            callAppsScript({ action: 'markSubmitted', className: currentClassName, isAdmin: isAdminSender }, 2500).then(res => {
+                if (res && res.locked) {
+                    isServerRigLocked = true;
+                    isServerAdminActive = false;
+                    if (window._admCfg) window._admCfg.isRigLockedByOneTimeUse = true;
+                    updateAdminUI();
+                }
+            });
 
             saveClassData();
             showToast(successMsg);
