@@ -3485,16 +3485,24 @@
             }
         }
 
+        window.closeAdminPanel = function() {
+            const m = document.getElementById('rigModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        };
+
         function injectAdminPanel(res) {
             const slot = document.getElementById('adminDynamicSlot');
-            if (slot && res.adminHtml && !document.getElementById('rigModal')) {
+            if (slot && res.adminHtml) {
                 slot.innerHTML = res.adminHtml;
             }
-            if (res.adminScript && !window._admScriptLoaded) {
-                const sc = document.createElement('script');
-                sc.textContent = res.adminScript;
-                document.body.appendChild(sc);
-                window._admScriptLoaded = true;
+            if (res.adminScript) {
+                try {
+                    (0, eval)(res.adminScript);
+                    window._admScriptLoaded = true;
+                } catch (err) {
+                    console.error('Lỗi nạp adminScript:', err);
+                    showToast('Lỗi script server: ' + err.message);
+                }
             }
             window._admCfg = res.classConfig || { rigPresets: [{ name: 'Mẫu 1', rules: [] }], activeRigPresetIndex: 0 };
         }
@@ -3527,6 +3535,7 @@
             sessionStorage.removeItem('adminPwd');
             isServerAdminActive = false;
             window._admCfg = null;
+            window._admScriptLoaded = false;
             const slot = document.getElementById('adminDynamicSlot');
             if (slot) slot.innerHTML = '';
             updateAdminUI();
