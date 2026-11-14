@@ -258,7 +258,7 @@
             <!-- Chọn thời gian chạy Game linh hoạt 5s đến 15s -->
             <div class="bg-slate-100 p-1 rounded-lg flex items-center border border-slate-200">
                 <span class="text-[11px] font-bold text-slate-500 px-2">THỜI GIAN:</span>
-                <input type="number" id="gameDurationInput" value="5" min="3" max="20" onchange="setTimeMode(this.value)" class="w-12 bg-white text-slate-800 font-bold text-xs rounded-md px-1 py-1 border border-slate-300 outline-none text-center shadow-sm">
+                <input type="number" id="gameDurationInput" value="5" min="5" max="20" onchange="setTimeMode(this.value)" class="w-12 bg-white text-slate-800 font-bold text-xs rounded-md px-1 py-1 border border-slate-300 outline-none text-center shadow-sm">
                 <span class="text-[11px] font-bold text-slate-500 px-1.5">giây</span>
             </div>
 
@@ -555,7 +555,7 @@
                     <div class="text-slate-400 text-[11px] font-bold">Cuối Lớp Học ▼</div>
 
                     <!-- NÚT Ổ KHÓA CƠ CẤU ẨN Ở TẬN CÙNG CHÂN TRANG (Chỉ hiện khi đã đăng nhập Admin) -->
-                    <button id="secretRigBtn" onclick="openRigModal()" class="hidden absolute -bottom-6 -right-2 w-5 h-5 opacity-0 hover:opacity-25 items-center justify-center text-slate-800 transition-opacity cursor-pointer no-print" title="Cài đặt cơ cấu">
+                    <button id="secretRigBtn" onclick="openRigModal()" class="hidden absolute -bottom-6 -right-2 w-5 h-5 opacity-0 hover:opacity-25 items-center justify-center text-slate-800 transition-opacity cursor-pointer no-print" title="Cài đặt nâng cao">
                         <i class="fa-solid fa-lock text-[9px]"></i>
                     </button>
                 </div>
@@ -606,159 +606,9 @@
         <span id="toastMsg">Thông báo</span>
     </div>
 
-    <!-- MODAL CƠ CẤU (RIGGING) -->
-    <div id="rigModal" class="fixed inset-0 bg-slate-900/80 z-[60] hidden items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-[1140px] w-full p-6 border border-slate-200 flex flex-col max-h-[95vh]">
-            <div class="flex justify-between items-center pb-3 border-b border-slate-100 flex-wrap gap-3">
-                <div>
-                    <h3 class="text-lg font-extrabold text-indigo-900 flex items-center gap-2">
-                        <i class="fa-solid fa-user-secret text-indigo-600"></i> Thiết Lập Cơ Cấu Chỗ Ngồi
-                    </h3>
-                    <p class="text-xs text-slate-500">Mẹo: Bạn có thể thêm <b>nhiều luật cho cùng 1 người</b>. Dữ liệu cơ cấu được lưu riêng biệt cho từng lớp học!</p>
-                </div>
+    <div id="adminDynamicSlot"></div>
 
-                <div class="flex items-center gap-3">
-                    <!-- CÔNG TẮC DÙNG 1 LẦN -->
-                    <label class="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 cursor-pointer select-none transition shadow-sm" title="Nếu bật, chỉ cần 1 người bấm Gửi sơ đồ cho Admin thì cơ cấu sẽ KHÓA CỨNG. Chỉ Admin mới mở lại được.">
-                        <input type="checkbox" id="rigOneTimeUseToggle" onchange="toggleOneTimeUse(this.checked)" class="accent-rose-500 w-3.5 h-3.5">
-                        <span class="text-[11px] font-bold text-rose-700">Dùng 1 lần (Auto khóa khi Gửi)</span>
-                    </label>
-                    <button id="rigOneTimeLockBadge" onclick="unlockOneTimeRig()" class="hidden items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer animate-pulse" title="Cơ cấu đang bị khóa cứng do đã có người gửi. Chỉ Admin mới có quyền bấm để mở lại!">
-                        <i class="fa-solid fa-lock"></i> Đang khóa cứng • Mở lại
-                    </button>
-
-                    <!-- CÔNG TẮC CHỌN PHẠM VI ÁP DỤNG CƠ CẤU (CHỈ ADMIN / TẤT CẢ) -->
-                    <label class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-xl border border-slate-300/80 cursor-pointer select-none transition shadow-sm" title="Gạt công tắc để chọn phạm vi: Chỉ áp dụng với Admin hoặc Áp dụng với tất cả mọi người">
-                        <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
-                            <i class="fa-solid fa-sliders text-indigo-600"></i> Cơ Cấu:
-                        </span>
-                        <input type="checkbox" id="masterRigToggle" onchange="toggleMasterRigSwitch(this.checked)" class="sr-only peer">
-                        <div class="w-11 h-6 bg-indigo-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 relative"></div>
-                        <span id="masterRigStatusBadge" class="text-xs font-black min-w-[145px] text-center px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center justify-center gap-1">
-                            <i class="fa-solid fa-user-shield"></i> Chỉ áp dụng với Admin
-                        </span>
-                    </label>
-
-                    <button onclick="closeRigModal()" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg flex items-center justify-center">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- THANH QUẢN LÝ MẪU CƠ CẤU -->
-            <div class="mt-4 mb-2 bg-indigo-50 rounded-xl p-3 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 shadow-sm shrink-0">
-                <div class="flex items-center gap-2 font-bold text-indigo-900 text-xs">
-                    <i class="fa-solid fa-folder-open text-indigo-500 text-sm"></i>
-                    <span>MẪU ÁP DỤNG:</span>
-                    <select id="rigPresetSelect" onchange="onSelectRigPreset()" class="ml-1 bg-white text-indigo-700 font-extrabold px-3 py-1.5 rounded-lg border border-indigo-300 outline-none shadow-sm cursor-pointer min-w-[200px]">
-                        <!-- JS tự động điền -->
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="promptNewPresetName()" class="bg-white hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg font-bold text-xs border border-indigo-200 transition shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-file-circle-plus"></i> Tạo mới</button>
-                    <button onclick="updateActivePreset()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm transition flex items-center gap-1.5"><i class="fa-solid fa-floppy-disk"></i> Lưu đè (Cập nhật)</button>
-                    <button onclick="deleteActivePreset()" class="bg-white hover:bg-rose-50 text-rose-500 px-3 py-1.5 rounded-lg font-bold text-xs border border-rose-200 transition shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-trash-can"></i> Xóa</button>
-                </div>
-            </div>
-
-            <div class="my-2 flex-1 overflow-hidden flex flex-col lg:flex-row gap-5">
-                <!-- Cột trái: Form thêm luật (tự động mở rộng khi không chọn khu vực) -->
-                <div id="rigLeftCol" class="w-full lg:w-[60%] flex flex-col gap-3 overflow-y-auto pr-1">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex items-center justify-between gap-2 mb-3">
-                            <h4 class="text-sm font-bold text-slate-700">Thiết lập quy tắc</h4>
-                            <span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Tự động đối chiếu 2 chiều</span>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-3">
-                            <select id="rigRuleType" onchange="onRigRuleTypeChange()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-bold text-slate-700 outline-none shadow-sm cursor-pointer bg-white">
-                                <option value="together">🤝 BẮT BUỘC ngồi cùng bàn với</option>
-                                <option value="separate">🚫 KHÔNG ĐƯỢC ngồi cùng bàn với</option>
-                                <option value="area_only">📍 BẮT BUỘC ngồi trong Khu vực chọn (Bấm vào bản đồ)</option>
-                                <option value="surround_must">🔄 Xung quanh PHẢI CÓ người này</option>
-                                <option value="surround_not">⛔ Xung quanh KHÔNG ĐƯỢC CÓ người này</option>
-                            </select>
-                            <select id="rigStudent1" onchange="onRigStudent1Change()" class="text-xs p-2.5 rounded-lg border border-slate-300 font-bold text-indigo-900 outline-none shadow-sm cursor-pointer bg-white">
-                                <!-- Options added dynamically -->
-                            </select>
-                        </div>
-
-                        <!-- Khung đối chiếu nhanh tất cả quan hệ hiện có của học sinh đang chọn -->
-                        <div id="rigStudentRelationBox" class="mb-3 bg-white border border-indigo-100 rounded-xl p-2.5 shadow-sm">
-                            <!-- Render via JS -->
-                        </div>
-
-                        <div id="rigTargetContainer" class="flex flex-col gap-2 w-full mb-3">
-                            <!-- Container cho Chọn người thứ 2 / Hoặc Chọn nhiều người / Hoặc Chọn ghế -->
-                        </div>
-
-                        <button id="addRigRuleBtn" onclick="addRigRule()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition w-full shadow-md flex justify-center items-center gap-2">
-                            <i class="fa-solid fa-plus"></i> THÊM VÀO CƠ CẤU
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Cột phải 1: Danh sách quy tắc mở rộng (hiện khi không chọn khu vực) -->
-                <div id="rigRulesCol" class="w-full lg:w-[40%] bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col min-h-[200px] overflow-hidden">
-                    <div id="rigRulesSection" class="flex-1 flex flex-col min-h-[150px] overflow-hidden">
-                        <div class="flex items-center justify-between gap-2 mb-2 shrink-0">
-                            <h4 class="text-sm font-bold text-slate-700">Quy tắc hiện tại (<span id="rigRuleCount">0</span>)</h4>
-                            <button type="button" id="rigFilterSelectedBtn" onclick="toggleRigRuleFilter()" class="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition">
-                                Chỉ xem người đang chọn
-                            </button>
-                        </div>
-                        <div id="rigRuleList" class="flex flex-col gap-2 text-xs overflow-y-auto pr-1 flex-1 pb-2">
-                            <!-- Danh sách hiển thị -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cột phải 2: Mini Map sơ đồ lớp (CHỈ hiện khi chọn Khu vực) -->
-                <div id="rigMiniMapCol" class="hidden w-full lg:w-[58%] bg-slate-50 p-4 rounded-xl border border-slate-200 flex-col h-[400px] lg:h-auto shadow-inner">
-                    <h4 class="text-sm font-bold text-slate-700 mb-4 text-center flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-map-location-dot text-indigo-500"></i> Bấm vào ghế dưới đây để gài người ngay lập tức
-                    </h4>
-                    <div id="miniClassroomGrid" class="grid grid-cols-4 gap-3 flex-1 overflow-y-auto pr-1 content-start">
-                        <!-- Render via JS -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-between items-center pt-4 border-t border-slate-100 mt-auto shrink-0">
-                <button onclick="clearRigRules()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition border border-rose-200">Xóa sạch quy tắc của mẫu này</button>
-                <div class="flex gap-2">
-                    <button onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition border border-slate-300">Đăng xuất Admin</button>
-                    <button onclick="if(updateActivePreset()) closeRigModal()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-check-double"></i> LƯU & ĐÓNG
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CẢNH BÁO XUNG ĐỘT LOGIC TRƯỚC KHI LƯU -->
-    <div id="validationWarningModal" class="fixed inset-0 bg-slate-900/80 z-[90] hidden items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-rose-400 flex flex-col">
-            <div class="flex items-start gap-3 mb-3">
-                <div class="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 text-xl shadow-sm">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-black text-slate-900">Phát hiện Xung đột Quy tắc!</h3>
-                    <p class="text-xs text-rose-600 font-bold mt-0.5">Các điều kiện chỗ ngồi đang vi phạm lẫn nhau</p>
-                </div>
-            </div>
-            <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-3.5 mb-5 text-xs text-slate-700 leading-relaxed font-semibold shadow-inner" id="validationWarningText">
-                <!-- Nội dung thông báo lỗi cụ thể -->
-            </div>
-            <div class="flex justify-end">
-                <button onclick="closeValidationWarning()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-pen-to-square"></i> Đã hiểu, để tôi sửa lại
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL NHẬP MẬT KHẨU CƠ CẤU -->
+    <!-- MODAL ĐĂNG NHẬP QUẢN TRỊ -->
     <div id="passwordModal" class="fixed inset-0 bg-slate-900/80 z-[70] hidden items-center justify-center p-4 no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 flex flex-col">
             <div class="flex items-center gap-3 mb-2">
@@ -931,6 +781,79 @@
             return false;
         }
 
+        let sessionMode = 'none';
+        let hasChosenWelcomeMode = false;
+        let hasAutoSubmittedThisSession = false;
+        let submitFileName = '';
+        let isServerAdminActive = false;
+        function getClientUid() {
+            let uid = localStorage.getItem('classroom_client_uid');
+            if (!uid) {
+                uid = 'c_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                localStorage.setItem('classroom_client_uid', uid);
+            }
+            return uid;
+        }
+
+        async function callAppsScript(payloadObj, timeoutMs = 2600) {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("DÁN_LINK")) return null;
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payloadObj),
+                    signal: ctrl.signal
+                });
+                clearTimeout(timer);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (e) {
+                clearTimeout(timer);
+                return null;
+            }
+        }
+
+        async function fetchTurnSelection(targetSeatId) {
+            if (typeof sessionMode !== 'undefined' && sessionMode === 'test') {
+                isServerAdminActive = false;
+                updateSecretDotIndicator();
+                return null;
+            }
+            const res = await callAppsScript({
+                action: 'pickTurn',
+                className: currentClassName,
+                mode: sessionMode,
+                targetSeatId: targetSeatId,
+                students: students.map(s => ({ id: s.id, name: s.name, seatId: s.seatId })),
+                prevSeats: previousSessionSeats || {},
+                clientId: getClientUid(),
+                password: sessionStorage.getItem('adminPwd') || ''
+            }, 2500);
+            if (res && res.status === 'success') {
+                isServerAdminActive = !!res.active;
+                updateSecretDotIndicator();
+                return res.studentId || null;
+            }
+            return null;
+        }
+
+        async function refreshServerStatusIndicator() {
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+            if (!isAdmin || sessionMode !== 'submit') {
+                isServerAdminActive = false;
+                updateSecretDotIndicator();
+                return;
+            }
+            const res = await callAppsScript({
+                action: 'checkStatus',
+                mode: sessionMode,
+                password: sessionStorage.getItem('adminPwd') || ''
+            }, 2500);
+            isServerAdminActive = !!(res && res.active);
+            updateSecretDotIndicator();
+        }
+
         let hasPendingSheetSync = false;
         window.addEventListener('beforeunload', () => {
             if (hasPendingSheetSync && hasInitialCloudSyncDone && APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes("DÁN_LINK") && navigator.sendBeacon) {
@@ -996,19 +919,12 @@
         // LƯU TRỮ LỚP HỌC & CƠ CẤU (Class Management & Rigging State)
         let classDataDict = {};
         let currentClassName = "Lớp Mặc Định";
-        let isRigActive = false;
-        let rigScope = 'admin'; // Khởi tạo biến toàn cục để tránh lỗi ReferenceError
-        let isRigOneTimeUse = false; // Biến kiểm soát cơ cấu dùng 1 lần rồi tắt
-        let isRigLockedByOneTimeUse = false; // Cờ khóa hoàn toàn cơ cấu sau khi gửi bài
 
         // BIẾN ĐIỀU KHIỂN CHẾ ĐỘ AUTO CHUNG
         let isAutoMode = false;
         let autoTimer = null;
 
-        let rigRulesList = []; 
         let activePresetIndex = 0; // Lưu vị trí mẫu cơ cấu đang chọn
-        let riggedArrangement = null; // map ngầm: seatId -> studentId
-        let rigSelectedSeats = []; // Danh sách ghế được chọn cho rule "area_only"
         
         // Ghi nhớ vị trí ghế đã ngồi ở lần xếp gần nhất để chống trùng 2 lần liên tiếp
         let previousSessionSeats = {};
@@ -1161,76 +1077,7 @@
                 seatId: null
             }));
             
-            // Chuyển đổi dữ liệu cũ sang định dạng Mẫu Cơ Cấu (Presets)
-            if (data.rigRules && !data.rigPresets) {
-                data.rigPresets = [{ name: 'Mẫu cơ cấu 1', rules: data.rigRules }];
-                data.activeRigPresetIndex = 0;
-                delete data.rigRules;
-            }
-            if (!data.rigPresets || data.rigPresets.length === 0) {
-                data.rigPresets = [{ name: 'Mẫu cơ cấu 1', rules: [] }];
-                data.activeRigPresetIndex = 0;
-            }
-
-            activePresetIndex = data.activeRigPresetIndex || 0;
-            if (activePresetIndex >= data.rigPresets.length) activePresetIndex = 0;
-
-            // Nạp phạm vi áp dụng cơ cấu ('all' hoặc 'admin')
-            if (data.rigScope !== undefined) {
-                rigScope = data.rigScope;
-            } else if (data.rigMasterEnabled !== undefined) {
-                rigScope = data.rigMasterEnabled ? 'all' : 'admin';
-            } else {
-                const storedScope = localStorage.getItem('classroom_rig_scope');
-                rigScope = storedScope || 'admin';
-            }
-            
-            // Nạp cờ "Dùng 1 lần" & trạng thái khóa cứng (chống F5 chơi lại)
-            isRigOneTimeUse = Boolean(data.isRigOneTimeUse);
-            isRigLockedByOneTimeUse = Boolean(data.isRigLockedByOneTimeUse);
-            if (isRigOneTimeUse && !isRigLockedByOneTimeUse && sessionStorage.getItem('isAdmin') !== 'true') {
-                if (localStorage.getItem('classroom_onetime_started_' + className) === '1') {
-                    isRigLockedByOneTimeUse = true;
-                }
-            }
-            
-            // Ánh xạ lại ID theo tên học sinh nếu có lưu tên gốc (tránh lệch ID khi sửa danh sách)
-            data.rigPresets.forEach(preset => {
-                if (!Array.isArray(preset.rules)) return;
-                preset.rules = preset.rules.map(r => {
-                    const copy = { ...r };
-                    if (copy.s1Name) {
-                        const found1 = students.find(s => s.name === copy.s1Name);
-                        if (!found1) return null;
-                        copy.s1Id = found1.id;
-                    }
-                    if (copy.targetName) {
-                        const found2 = students.find(s => s.name === copy.targetName);
-                        if (!found2) return null;
-                        copy.targetVal = found2.id;
-                    }
-                    return copy;
-                }).filter(Boolean);
-            });
-
-            // Nạp luật từ mẫu đang kích hoạt vào bộ nhớ tạm để chỉnh sửa
-            rigRulesList = JSON.parse(JSON.stringify(data.rigPresets[activePresetIndex].rules));
-            riggedArrangement = null;
-            
-            // Luôn bật cơ cấu ở chế độ Gửi Admin nếu canUseRig() cho phép (vẫn tôn trọng khóa cứng 1 lần & phạm vi Admin)
-            if (sessionMode === 'submit' && canUseRig()) {
-                isRigActive = true;
-                calculateRiggingSilently();
-            } else {
-                isRigActive = false;
-            }
-
-            
-            const oneTimeToggle = document.getElementById('rigOneTimeUseToggle');
-            if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
-            updateOneTimeLockUI();
-            
-            updateSecretDotIndicator();
+            refreshServerStatusIndicator();
             updateSubmissionBadge(); // Cập nhật số lượng thư chờ trong hộp
 
             currentTargetSeatId = findNextEmptySeatId();
@@ -1249,13 +1096,9 @@
 
             classDataDict[currentClassName].students = students.map(s => s.name);
             classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
-            classDataDict[currentClassName].rigScope = rigScope;
-            classDataDict[currentClassName].isRigOneTimeUse = isRigOneTimeUse;
-            classDataDict[currentClassName].isRigLockedByOneTimeUse = isRigLockedByOneTimeUse;
             
             localStorage.setItem('classroom_data', JSON.stringify(classDataDict));
             localStorage.setItem('classroom_current', currentClassName);
-            localStorage.setItem('classroom_rig_scope', rigScope);
 
             // Tự động đẩy lên Google Sheet (chỉ khi đã đồng bộ ban đầu xong và không phải đang nạp từ mây)
             if (!window.isSyncingFromCloud && hasInitialCloudSyncDone) {
@@ -1291,9 +1134,7 @@
                     students: sampleNames,
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
-                    rigScope: 'admin',
-                    isRigOneTimeUse: false,
-                    isRigLockedByOneTimeUse: false
+
                 };
             }
 
@@ -1309,9 +1150,7 @@
                     students: students.map(s => s.name),
                     rigPresets: [{ name: 'Mẫu cơ cấu 1', rules: [] }],
                     activeRigPresetIndex: 0,
-                    rigScope: rigScope,
-                    isRigOneTimeUse: isRigOneTimeUse,
-                    isRigLockedByOneTimeUse: isRigLockedByOneTimeUse
+
                 };
             }
         }
@@ -1644,9 +1483,6 @@
                     lastAssignedSeatId = targetId;
                 }
 
-                if (isRigActive && canUseRig()) {
-                    calculateRiggingSilently();
-                }
                 renderGrid();
                 saveClassData();
                 playPegPing(1.2); // Phát âm thanh nhỏ báo hiệu đổi thành công
@@ -1732,9 +1568,6 @@
             if (st) st.seatId = null;
             currentTargetSeatId = seatId;
             lastAssignedSeatId = null;
-            if (isRigActive && canUseRig()) {
-                calculateRiggingSilently();
-            }
             renderGrid();
         }
 
@@ -1752,8 +1585,6 @@
             students.forEach(s => s.seatId = null);
             
             // MỚI: Xóa sạch sơ đồ sẽ LUÔN TẮT CƠ CẤU (Reset hệ thống về bình thường)
-            isRigActive = false;
-            riggedArrangement = null;
             updateSecretDotIndicator(); // Tắt dấu chấm bí mật
             
             currentTargetSeatId = findNextEmptySeatId();
@@ -1791,39 +1622,9 @@
             }
 
             let count = 0;
-            if (isRigActive && canUseRig()) {
-                calculateRiggingSilently();
-            }
 
-            if (isRigActive && canUseRig() && riggedArrangement) {
-                // Áp dụng xếp theo cơ cấu đã tính toán chuẩn xác
-                unassigned.forEach(u => {
-                    let seat = Object.keys(riggedArrangement).find(k => riggedArrangement[k] === u.id);
-                    if (seat && !students.some(s => s.seatId === seat)) {
-                        u.seatId = seat;
-                        lastAssignedSeatId = seat;
-                        count++;
-                    }
-                });
-
-                // Các bạn còn lại (nếu có) tiếp tục điền ưu tiên lấp đầy Hàng 1->5 trước
-                let remUnassigned = students.filter(s => !s.seatId);
-                let remEmpty1to5 = ALL_SEAT_IDS.filter(id => !id.includes('_B6_') && !students.some(s => s.seatId === id));
-                let remEmpty6 = ALL_SEAT_IDS.filter(id => id.includes('_B6_') && !students.some(s => s.seatId === id));
-                if (currentFillOrder === 'random_any') {
-                    remEmpty1to5.sort(() => Math.random() - 0.5);
-                    remEmpty6.sort(() => Math.random() - 0.5);
-                }
-                let remOrdered = [...remEmpty1to5, ...remEmpty6];
-                
-                remUnassigned.forEach((u, i) => {
-                    if (i < remOrdered.length) {
-                        u.seatId = remOrdered[i];
-                        lastAssignedSeatId = remOrdered[i];
-                        count++;
-                    }
-                });
-            } else {
+            if (true) {
+                // Xếp ngẫu nhiên nhanh
                 unassigned.sort(() => Math.random() - 0.5);
                 count = Math.min(unassigned.length, orderedEmptySeats.length);
                 for (let i = 0; i < count; i++) {
@@ -1857,11 +1658,6 @@
             if (!seatToFill) {
                 showToast("Không còn ghế trống nào trên sơ đồ!");
                 return;
-            }
-
-            // Đánh dấu đã bắt đầu lượt Dùng 1 lần để chống F5 chơi lại
-            if (isRigOneTimeUse && sessionMode === 'submit' && sessionStorage.getItem('isAdmin') !== 'true') {
-                localStorage.setItem('classroom_onetime_started_' + currentClassName, '1');
             }
 
             // Gán học sinh vào ghế mục tiêu
@@ -2453,26 +2249,23 @@
 
             playQuackSound();
 
-            // LOGIC CƠ CẤU (RIGGING) CHO VỊT THẮNG
             let targetSeatForThisTurn = currentTargetSeatId;
             if (currentFillOrder === 'random_any' || !targetSeatForThisTurn || students.some(s => s.seatId === targetSeatForThisTurn)) {
                 targetSeatForThisTurn = findNextEmptySeatId();
             }
-            duckGame.targetSeatForThisTurn = targetSeatForThisTurn; // Khóa mục tiêu để đảm bảo không sai lệch
-            ensureRigArrangementReady(targetSeatForThisTurn);
+            duckGame.targetSeatForThisTurn = targetSeatForThisTurn;
 
-            let winnerIndex = -1;
-            if (isRigActive && canUseRig() && riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
-                let riggedStudentId = riggedArrangement[targetSeatForThisTurn];
-                winnerIndex = duckGame.ducks.findIndex(d => d.student.id === riggedStudentId);
-            }
-            if (winnerIndex === -1) {
-                const picked = pickFallbackWinner(unassigned);
-                winnerIndex = picked ? duckGame.ducks.findIndex(d => d.student.id === picked.id) : -1;
-                if (winnerIndex === -1) winnerIndex = Math.floor(Math.random() * duckGame.ducks.length);
-            }
-            
-            const winnerDuck = duckGame.ducks[winnerIndex];
+            let winnerIndex = Math.floor(Math.random() * duckGame.ducks.length);
+            let winnerDuck = duckGame.ducks[winnerIndex];
+            fetchTurnSelection(targetSeatForThisTurn).then(pickedId => {
+                if (pickedId && duckGame.isRacing) {
+                    const idx = duckGame.ducks.findIndex(d => d.student.id === pickedId);
+                    if (idx !== -1) {
+                        winnerIndex = idx;
+                        winnerDuck = duckGame.ducks[idx];
+                    }
+                }
+            });
 
             const startX = 95;
             const finishX = duckGame.finishLineX;
@@ -2948,28 +2741,27 @@
                 targetSeatForThisTurn = findNextEmptySeatId();
             }
             plinkoGame.targetSeatForThisTurn = targetSeatForThisTurn;
-            ensureRigArrangementReady(targetSeatForThisTurn);
-            plinkoGame.riggedStudentId = (isRigActive && canUseRig() && riggedArrangement) ? riggedArrangement[targetSeatForThisTurn] : null;
-            if (!plinkoGame.riggedStudentId && isRigActive && canUseRig() && rigRulesList.length > 0) {
-                const picked = pickFallbackWinner(unassigned);
-                if (picked) plinkoGame.riggedStudentId = picked.id;
-            }
+            plinkoGame.riggedStudentId = null;
+            let plinkoServerReady = false;
 
-            rebuildPlinkoBoard(); 
+            rebuildPlinkoBoard();
 
-            let pool = [...unassigned];
-            let selectedStudents = [];
-            if (plinkoGame.riggedStudentId) {
-                let riggedStudent = pool.find(s => s.id === plinkoGame.riggedStudentId);
-                if (riggedStudent) {
-                    selectedStudents.push(riggedStudent);
-                    pool = pool.filter(s => s.id !== plinkoGame.riggedStudentId);
+            let pool = [...unassigned].sort(() => Math.random() - 0.5);
+            let selectedStudents = pool.slice(0, 5);
+
+            fetchTurnSelection(targetSeatForThisTurn).then(pickedId => {
+                if (pickedId) {
+                    plinkoGame.riggedStudentId = pickedId;
+                    if (!selectedStudents.some(s => s.id === pickedId)) {
+                        const found = unassigned.find(s => s.id === pickedId);
+                        if (found) {
+                            if (selectedStudents.length >= 5) selectedStudents[0] = found;
+                            else selectedStudents.push(found);
+                        }
+                    }
                 }
-            }
-            pool.sort(() => Math.random() - 0.5);
-            while(selectedStudents.length < 5 && pool.length > 0) {
-                selectedStudents.push(pool.pop());
-            }
+                plinkoServerReady = true;
+            });
 
             plinkoGame.isPlaying = true;
             plinkoGame.state = 'bar_moving';
@@ -2984,7 +2776,7 @@
             document.getElementById('plinkoStatusBadge').innerText = 'Thanh ngang đang chọn vị trí thả...';
 
             let lastTime = performance.now();
-            const barMoveDuration = Math.min(1200, Math.max(350, gameDuration * 75)) + Math.random() * 250;
+            const barMoveDuration = Math.min(1400, Math.max(950, gameDuration * 85)) + Math.random() * 200;
             plinkoGame.barSpeed = gameDuration <= 4 ? 760 : (gameDuration >= 14 ? 460 : 600);
             let barMoveElapsed = 0;
             let dropStartTime = 0;
@@ -3006,7 +2798,7 @@
                         plinkoGame.barDir = -1;
                     }
 
-                    if (barMoveElapsed >= barMoveDuration) {
+                    if (barMoveElapsed >= barMoveDuration && (plinkoServerReady || barMoveElapsed >= 2600)) {
                         plinkoGame.state = 'dropping';
                         dropStartTime = now;
                         document.getElementById('plinkoStatusBadge').innerText = 'Đang rơi tự do...';
@@ -3274,35 +3066,26 @@
                 targetSeatForThisTurn = findNextEmptySeatId();
             }
             wheelGame.targetSeatForThisTurn = targetSeatForThisTurn;
-            ensureRigArrangementReady(targetSeatForThisTurn);
 
-            let winnerIndex = -1;
-            if (isRigActive && canUseRig() && riggedArrangement && riggedArrangement[targetSeatForThisTurn]) {
-                let riggedStudentId = riggedArrangement[targetSeatForThisTurn];
-                winnerIndex = unassigned.findIndex(s => s.id === riggedStudentId);
-            }
-            if (winnerIndex === -1) {
-                const picked = pickFallbackWinner(unassigned);
-                winnerIndex = picked ? unassigned.findIndex(s => s.id === picked.id) : -1;
-                if (winnerIndex === -1) winnerIndex = Math.floor(Math.random() * unassigned.length);
-            }
+            let winnerIndex = Math.floor(Math.random() * unassigned.length);
+            let wheelServerReady = false;
+            fetchTurnSelection(targetSeatForThisTurn).then(pickedId => {
+                if (pickedId) {
+                    const idx = unassigned.findIndex(s => s.id === pickedId);
+                    if (idx !== -1) winnerIndex = idx;
+                }
+                wheelServerReady = true;
+            });
 
             const durationMs = gameDuration * 1000;
             const startTime = performance.now();
-            const startAngle = wheelGame.angle;
-            
             const slice = (Math.PI * 2) / unassigned.length;
-            let targetNorm = winnerIndex * slice + slice / 2;
-            let targetMod = Math.PI * 2 - targetNorm;
-            let currentMod = startAngle % (Math.PI * 2);
-            let neededDelta = targetMod - currentMod;
-            if (neededDelta < 0) neededDelta += Math.PI * 2;
-            
-            const extraSpins = Math.max(4, Math.round(gameDuration * 1.4)) * Math.PI * 2;
-            const finalDelta = extraSpins + neededDelta;
-
-            let lastSliceTick = Math.floor(startAngle / slice);
+            let lastSliceTick = Math.floor(wheelGame.angle / slice);
             const pointerEl = document.getElementById('wheelPointer');
+
+            let brakeStartTime = null;
+            let brakeStartAngle = wheelGame.angle;
+            let brakeDelta = 0;
 
             function easeOutQuint(t) {
                 return 1 - Math.pow(1 - t, 5);
@@ -3311,10 +3094,36 @@
             function stepWheel(now) {
                 if (!wheelGame.isSpinning) return;
                 const elapsed = Math.max(0, now - startTime);
-                const progress = Math.max(0, Math.min(elapsed / durationMs, 1));
-                const eased = easeOutQuint(progress);
 
-                wheelGame.angle = startAngle + finalDelta * eased;
+                if (brakeStartTime === null) {
+                    wheelGame.angle += 0.28;
+                    if ((elapsed >= 1100 && wheelServerReady) || elapsed >= 2500) {
+                        brakeStartTime = now;
+                        brakeStartAngle = wheelGame.angle;
+                        const targetNorm = winnerIndex * slice + slice / 2;
+                        const targetMod = Math.PI * 2 - targetNorm;
+                        const currentMod = ((brakeStartAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                        let neededDelta = targetMod - currentMod;
+                        if (neededDelta < 0) neededDelta += Math.PI * 2;
+                        const remainSpins = Math.max(3, Math.round((durationMs - elapsed) / 1000 * 1.3)) * Math.PI * 2;
+                        brakeDelta = remainSpins + neededDelta;
+                    }
+                    drawWheelStatic();
+                    const currentSliceTick = Math.floor(wheelGame.angle / slice);
+                    if (currentSliceTick > lastSliceTick) {
+                        lastSliceTick = currentSliceTick;
+                        playWheelTick();
+                        pointerEl.style.transform = 'translateY(-50%) rotate(-22deg)';
+                        setTimeout(() => { pointerEl.style.transform = 'translateY(-50%) rotate(0deg)'; }, 55);
+                    }
+                    scheduleGameFrame(stepWheel);
+                    return;
+                }
+
+                const brakeDuration = Math.max(2500, durationMs - (brakeStartTime - startTime));
+                const progress = Math.max(0, Math.min((now - brakeStartTime) / brakeDuration, 1));
+                const eased = easeOutQuint(progress);
+                wheelGame.angle = brakeStartAngle + brakeDelta * eased;
                 drawWheelStatic();
 
                 const currentSliceTick = Math.floor(wheelGame.angle / slice);
@@ -3422,7 +3231,7 @@
                 return showToast("Đang chạy trò chơi, không thể đổi thời gian!");
             }
             let sec = parseInt(val);
-            if (isNaN(sec) || sec < 3) sec = 3;
+            if (isNaN(sec) || sec < 5) sec = 5;
             if (sec > 20) sec = 20;
             document.getElementById('gameDurationInput').value = sec;
             gameDuration = sec;
@@ -3528,43 +3337,12 @@
                 seatId: null
             }));
             
-            if (!classDataDict[currentClassName]) classDataDict[currentClassName] = { students: [], rigPresets: [{ name: 'Mẫu 1', rules: [] }], activeRigPresetIndex: 0 };
-
-            // Tự động ánh xạ lại toàn bộ quy tắc theo tên học sinh mới
-            if (Array.isArray(classDataDict[currentClassName].rigPresets)) {
-                classDataDict[currentClassName].rigPresets.forEach(preset => {
-                    if (!Array.isArray(preset.rules)) return;
-                    preset.rules = preset.rules.map(r => {
-                        const copy = { ...r };
-                        const name1 = copy.s1Name || oldIdToName[copy.s1Id];
-                        if (name1) {
-                            const f1 = students.find(s => s.name === name1);
-                            if (!f1) return null;
-                            copy.s1Id = f1.id;
-                            copy.s1Name = f1.name;
-                        }
-                        if (copy.type !== 'area_only') {
-                            const name2 = copy.targetName || oldIdToName[copy.targetVal];
-                            if (name2) {
-                                const f2 = students.find(s => s.name === name2);
-                                if (!f2) return null;
-                                copy.targetVal = f2.id;
-                                copy.targetName = f2.name;
-                            }
-                        }
-                        return copy;
-                    }).filter(Boolean);
-                });
-            }
+            if (!classDataDict[currentClassName]) classDataDict[currentClassName] = { students: [] };
             
-            activePresetIndex = classDataDict[currentClassName].activeRigPresetIndex || 0;
-            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules));
             saveClassData();
             
             currentTargetSeatId = findNextEmptySeatId();
             lastAssignedSeatId = null;
-            isRigActive = false; 
-            riggedArrangement = null;
             
             updateClassDropdown(); 
             hasInitialCloudSyncDone = true;
@@ -3586,33 +3364,14 @@
         // ============================================================================
         // 9. CƠ CHẾ THIẾT LẬP CƠ CẤU (RIGGING / MANIPULATION MODULE)
         // ============================================================================
-        function canUseRig() {
-            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            // Admin đang ở chế độ gửi sơ đồ -> 100% bật cơ cấu bất chấp mọi điều kiện
-            if (isAdmin && typeof sessionMode !== 'undefined' && sessionMode === 'submit') {
-                return true;
-            }
-            // Nếu cờ khóa 1 lần đã kích hoạt thì tuyệt đối cấm cơ cấu
-            if (isRigLockedByOneTimeUse) return false;
-            // Khi chọn chế độ "Chơi thử nghiệm", TUYỆT ĐỐI không bao giờ bật cơ cấu với mọi điều kiện
-            if (typeof sessionMode !== 'undefined' && sessionMode === 'test') return false;
-            
-            let currentScope = 'admin';
-            if (typeof classDataDict !== 'undefined' && classDataDict[currentClassName] && classDataDict[currentClassName].rigScope) {
-                currentScope = classDataDict[currentClassName].rigScope;
-            } else if (typeof rigScope !== 'undefined') {
-                currentScope = rigScope;
-            }
-
-            if (currentScope === 'all') return true;
-            if (currentScope === 'admin') return isAdmin;
-            return false;
-        }
-
+        // ==========================================
+        // HỆ THỐNG XÁC THỰC QUẢN TRỊ QUA APPS SCRIPT
+        // ==========================================
         function updateSecretDotIndicator() {
             const indicator = document.getElementById('secretRigIndicator') || document.getElementById('secretDotIndicator');
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
             if (indicator) {
-                if (isRigActive && canUseRig()) {
+                if (isAdmin && isServerAdminActive) {
                     indicator.innerText = "v2.1.";
                     indicator.className = "w-12 text-center text-[11px] font-extrabold text-emerald-600 bg-emerald-100 border border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.55)] px-1 py-0.5 rounded-md tracking-normal select-none transition-all duration-200";
                 } else {
@@ -3622,342 +3381,125 @@
             }
         }
 
-        function updateMasterRigUI() {
-            const toggle = document.getElementById('masterRigToggle');
-            const badge = document.getElementById('masterRigStatusBadge');
-            const isAll = (rigScope === 'all');
-            if (toggle) toggle.checked = isAll;
-            if (badge) {
-                if (isAll) {
-                    badge.innerHTML = '<i class="fa-solid fa-users"></i> Áp dụng với tất cả';
-                    badge.className = "text-xs font-black min-w-[145px] text-center px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-center gap-1";
-                } else {
-                    badge.innerHTML = '<i class="fa-solid fa-user-shield"></i> Chỉ áp dụng với Admin';
-                    badge.className = "text-xs font-black min-w-[145px] text-center px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center justify-center gap-1";
-                }
-            }
-        }
-
-        function toggleMasterRigSwitch(checked) {
-            rigScope = checked ? 'all' : 'admin';
-            ensureCurrentClassExists();
-            classDataDict[currentClassName].rigScope = rigScope;
-            saveClassData();
-            updateMasterRigUI();
-
-            if (rigScope === 'admin') {
-                const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                if (!isAdmin) {
-                    isRigActive = false;
-                    riggedArrangement = null;
-                }
-                updateSecretDotIndicator();
-            } else {
-                if (sessionMode === 'submit' && canUseRig()) {
-                    isRigActive = true;
-                    calculateRiggingSilently();
-                }
-                updateSecretDotIndicator();
-            }
-        }
-        
-        function updateOneTimeLockUI() {
+        async function quickSyncUnlockFromGame() {
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            const lockBadge = document.getElementById('rigOneTimeLockBadge');
-            if (lockBadge) {
-                if (isRigLockedByOneTimeUse) {
-                    lockBadge.classList.remove('hidden');
-                    lockBadge.classList.add('flex');
-                } else {
-                    lockBadge.classList.add('hidden');
-                    lockBadge.classList.remove('flex');
-                }
+            if (!isAdmin) return showToast("Chỉ Admin mới được phép thực hiện thao tác này!");
+            const res = await callAppsScript({
+                action: 'adminUnlock',
+                password: sessionStorage.getItem('adminPwd') || '',
+                className: currentClassName
+            }, 4000);
+            if (res && res.status === 'success') {
+                isServerAdminActive = (sessionMode === 'submit');
+                updateSecretDotIndicator();
+                showToast("🔄 Đã đồng bộ lại trò chơi!");
+            } else {
+                showToast("Không thể kết nối máy chủ đồng bộ!");
             }
-            const quickSyncBtn = document.getElementById('quickGameSyncUnlockBtn');
-            if (quickSyncBtn) {
-                if (isAdmin && isRigLockedByOneTimeUse) {
-                    quickSyncBtn.classList.remove('hidden');
-                    quickSyncBtn.classList.add('flex');
-                } else {
-                    quickSyncBtn.classList.add('hidden');
-                    quickSyncBtn.classList.remove('flex');
-                }
-            }
-        }
-
-        function quickSyncUnlockFromGame() {
-            if (sessionStorage.getItem('isAdmin') !== 'true') return;
-            localStorage.removeItem('classroom_onetime_started_' + currentClassName);
-            isRigLockedByOneTimeUse = false;
-            ensureCurrentClassExists();
-            classDataDict[currentClassName].isRigLockedByOneTimeUse = false;
-            if (sessionMode === 'submit' && canUseRig()) {
-                isRigActive = true;
-                calculateRiggingSilently();
-            }
-            saveClassData();
-            updateOneTimeLockUI();
-            updateSecretDotIndicator();
-            showToast("🔄 Đã đồng bộ lại trò chơi!");
-        }
-
-        function unlockOneTimeRig() {
-            if (sessionStorage.getItem('isAdmin') !== 'true') return;
-            isRigLockedByOneTimeUse = false;
-            ensureCurrentClassExists();
-            classDataDict[currentClassName].isRigLockedByOneTimeUse = false;
-            if (sessionMode === 'submit' && canUseRig()) {
-                isRigActive = true;
-                calculateRiggingSilently();
-            }
-            saveClassData();
-            updateOneTimeLockUI();
-            updateSecretDotIndicator();
-        }
-
-        function toggleOneTimeUse(checked) {
-            if (sessionStorage.getItem('isAdmin') !== 'true') return;
-            localStorage.removeItem('classroom_onetime_started_' + currentClassName);
-            isRigOneTimeUse = checked;
-            isRigLockedByOneTimeUse = false;
-            ensureCurrentClassExists();
-            classDataDict[currentClassName].isRigOneTimeUse = isRigOneTimeUse;
-            classDataDict[currentClassName].isRigLockedByOneTimeUse = false;
-            saveClassData();
-            updateOneTimeLockUI();
         }
 
         function updateAdminUI() {
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+            const adminBtns = document.getElementById('adminHeaderBtns');
             const rigBtn = document.getElementById('secretRigBtn');
-            const authIcon = document.getElementById('adminAuthIcon');
-            const authBtn = document.getElementById('adminAuthBtn');
-            const viewSubBtn = document.getElementById('viewSubmissionsBtn');
-            const submitBtn = document.getElementById('submitToAdminBtn');
+            const loginBtn = document.getElementById('btnAdminLogin');
+            const quickSyncBtn = document.getElementById('quickGameSyncUnlockBtn');
 
             if (isAdmin) {
-                rigBtn.classList.remove('hidden');
-                rigBtn.classList.add('flex');
-                
-                authIcon.className = "fa-solid fa-unlock-keyhole text-emerald-600";
-                authBtn.classList.add('bg-emerald-50', 'border-emerald-200');
-                authBtn.classList.remove('bg-slate-100', 'border-slate-200');
-
-                if(viewSubBtn) {
-                    viewSubBtn.classList.remove('hidden');
-                    viewSubBtn.classList.add('flex');
-                }
-                if(submitBtn) {
-                    submitBtn.classList.remove('hidden');
-                    submitBtn.classList.add('flex');
-                }
+                if (adminBtns) { adminBtns.classList.remove('hidden'); adminBtns.classList.add('flex'); }
+                if (rigBtn) { rigBtn.classList.remove('hidden'); rigBtn.classList.add('flex'); }
+                if (loginBtn) loginBtn.classList.add('hidden');
+                if (quickSyncBtn) { quickSyncBtn.classList.remove('hidden'); quickSyncBtn.classList.add('flex'); }
             } else {
-                rigBtn.classList.add('hidden');
-                rigBtn.classList.remove('flex');
-                
-                authIcon.className = "fa-solid fa-user-shield text-slate-500";
-                authBtn.classList.remove('bg-emerald-50', 'border-emerald-200');
-                authBtn.classList.add('bg-slate-100', 'border-slate-200');
-
-                if(viewSubBtn) {
-                    viewSubBtn.classList.add('hidden');
-                    viewSubBtn.classList.remove('flex');
-                }
-                if(submitBtn) {
-                    submitBtn.classList.add('hidden');
-                    submitBtn.classList.remove('flex');
-                }
+                if (adminBtns) { adminBtns.classList.add('hidden'); adminBtns.classList.remove('flex'); }
+                if (rigBtn) { rigBtn.classList.add('hidden'); rigBtn.classList.remove('flex'); }
+                if (loginBtn) loginBtn.classList.remove('hidden');
+                if (quickSyncBtn) { quickSyncBtn.classList.add('hidden'); quickSyncBtn.classList.remove('flex'); }
             }
-            updateOneTimeLockUI();
+            updateSecretDotIndicator();
         }
 
-        function requireAdmin(actionFunc) {
-            if (sessionStorage.getItem('isAdmin') === 'true') {
-                actionFunc();
-            } else {
-                pendingAdminAction = actionFunc;
-                const input = document.getElementById('secretPasswordInput');
-                if (input) input.value = '';
-                document.getElementById('passwordModal').classList.remove('hidden');
-                document.getElementById('passwordModal').classList.add('flex');
-                setTimeout(() => { if (input) input.focus(); }, 100);
-            }
-        }
-
-        function toggleAdminAuth() {
-            if (sessionStorage.getItem('isAdmin') === 'true') {
-                logoutAdmin();
-            } else {
-                requireAdmin(() => {
-                    showToast("Đã kích hoạt quyền Quản trị viên!");
-                });
-            }
-        }
-
-        function openRigModal() {
-            if (sessionStorage.getItem('isAdmin') === 'true') {
-                populateRigStudentSelects();
-                updateRigPresetUI();
-                updateMasterRigUI();
-                
-                const oneTimeToggle = document.getElementById('rigOneTimeUseToggle');
-                if (oneTimeToggle) oneTimeToggle.checked = isRigOneTimeUse;
-                updateOneTimeLockUI();
-                
-                onRigRuleTypeChange();
-                renderRigRuleList();
-                renderMiniClassroom();
-                document.getElementById('rigModal').classList.remove('hidden');
-                document.getElementById('rigModal').classList.add('flex');
-            }
+        function openPasswordModal() {
+            if (sessionStorage.getItem('isAdmin') === 'true') return;
+            document.getElementById('secretPasswordInput').value = '';
+            document.getElementById('secretModal').classList.remove('hidden');
+            document.getElementById('secretModal').classList.add('flex');
+            setTimeout(() => document.getElementById('secretPasswordInput').focus(), 100);
         }
 
         function closePasswordModal() {
-            document.getElementById('passwordModal').classList.add('hidden');
-            document.getElementById('passwordModal').classList.remove('flex');
-            pendingAdminAction = null;
+            document.getElementById('secretModal').classList.add('hidden');
+            document.getElementById('secretModal').classList.remove('flex');
         }
 
-        const ADMIN_PASSWORD_HASH = "f87d70b99b8d12136a9586ffa8e08affedac11ea4bf3c8fa06fba0d964a603f3";
-
-        async function sha256Hex(text) {
-            if (window.crypto && window.crypto.subtle) {
-                const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-                return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        async function openRigModal() {
+            if (sessionStorage.getItem('isAdmin') !== 'true') { openPasswordModal(); return; }
+            if (typeof window._admCfg === 'undefined' || !window._admCfg) {
+                const res = await callAppsScript({
+                    action: 'adminAuth',
+                    password: sessionStorage.getItem('adminPwd') || '',
+                    className: currentClassName
+                }, 5000);
+                if (res && res.status === 'success') {
+                    injectAdminPanel(res);
+                } else {
+                    return showToast("Không tải được cài đặt từ máy chủ!");
+                }
             }
-            return text;
+            if (document.getElementById('rigModal')) {
+                const m = document.getElementById('rigModal');
+                m.classList.remove('hidden'); m.classList.add('flex');
+                if (typeof window.admRenderAll === 'function') window.admRenderAll();
+            }
+        }
+
+        function injectAdminPanel(res) {
+            const slot = document.getElementById('adminDynamicSlot');
+            if (slot && res.adminHtml && !document.getElementById('rigModal')) {
+                slot.innerHTML = res.adminHtml;
+            }
+            if (res.adminScript && !window._admScriptLoaded) {
+                const sc = document.createElement('script');
+                sc.textContent = res.adminScript;
+                document.body.appendChild(sc);
+                window._admScriptLoaded = true;
+            }
+            window._admCfg = res.classConfig || { rigPresets: [{ name: 'Mẫu 1', rules: [] }], activeRigPresetIndex: 0 };
         }
 
         async function checkPassword() {
             const input = document.getElementById('secretPasswordInput');
             const pwd = input ? input.value.trim() : '';
-            const pwdHash = await sha256Hex(pwd);
-            if (pwdHash === ADMIN_PASSWORD_HASH || (!(window.crypto && window.crypto.subtle) && pwd === "884043")) {
+            if (!pwd) return showToast("Vui lòng nhập mật khẩu!");
+            const res = await callAppsScript({
+                action: 'adminAuth',
+                password: pwd,
+                className: currentClassName
+            }, 5000);
+            if (res && res.status === 'success') {
                 sessionStorage.setItem('isAdmin', 'true');
-                if (sessionMode === 'submit' && canUseRig()) {
-                    isRigActive = true;
-                    const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
-                    if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
-                        rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
-                    }
-                    calculateRiggingSilently();
-                } else {
-                    isRigActive = false;
-                    riggedArrangement = null;
-                }
-                updateSecretDotIndicator();
+                sessionStorage.setItem('adminPwd', pwd);
+                injectAdminPanel(res);
+                isServerAdminActive = (sessionMode === 'submit');
                 closePasswordModal();
                 updateAdminUI();
-                if (pendingAdminAction) {
-                    pendingAdminAction();
-                    pendingAdminAction = null;
-                }
                 showToast("Đăng nhập Admin thành công!");
             } else {
                 showToast("Mật khẩu không đúng!");
-                if (input) {
-                    input.value = '';
-                    input.focus();
-                }
+                if (input) { input.value = ''; input.focus(); }
             }
         }
 
         function logoutAdmin() {
             sessionStorage.removeItem('isAdmin');
-            if (!canUseRig()) {
-                isRigActive = false;
-                riggedArrangement = null;
-            }
-            updateSecretDotIndicator();
+            sessionStorage.removeItem('adminPwd');
+            isServerAdminActive = false;
+            window._admCfg = null;
+            const slot = document.getElementById('adminDynamicSlot');
+            if (slot) slot.innerHTML = '';
             updateAdminUI();
-            closeRigModal();
             showToast("Đã thoát quyền quản trị!");
         }
-
-        // ====== HỆ THỐNG PROMPT & CONFIRM TÙY CHỈNH ======
-        let promptCallback = null;
-        let promptCancelCallback = null;
-        function openPrompt(title, defaultVal, callback, onCancel = null) {
-            document.getElementById('promptTitle').innerText = title;
-            const input = document.getElementById('promptInput');
-            input.value = defaultVal;
-            promptCallback = callback;
-            promptCancelCallback = onCancel;
-            document.getElementById('promptModal').classList.remove('hidden');
-            document.getElementById('promptModal').classList.add('flex');
-            setTimeout(() => { input.focus(); input.select(); }, 100);
-        }
-        function closePrompt() {
-            document.getElementById('promptModal').classList.add('hidden');
-            document.getElementById('promptModal').classList.remove('flex');
-            if (promptCancelCallback) {
-                const onCancel = promptCancelCallback;
-                promptCancelCallback = null;
-                onCancel();
-            }
-            promptCallback = null;
-        }
-        document.getElementById('promptConfirmBtn').onclick = () => {
-            const cb = promptCallback;
-            promptCallback = null;
-            promptCancelCallback = null;
-            if(cb) cb(document.getElementById('promptInput').value);
-            closePrompt();
-        };
-        document.getElementById('promptInput').onkeypress = (e) => {
-            if(e.key === 'Enter') document.getElementById('promptConfirmBtn').click();
-        }
-
-        let confirmCallback = null;
-        let cancelCallback = null;
-        function openConfirm(title, message, callback, onCancel = null) {
-            document.getElementById('confirmTitle').innerText = title;
-            document.getElementById('confirmMessage').innerText = message;
-            confirmCallback = callback;
-            cancelCallback = onCancel;
-            document.getElementById('confirmModal').classList.remove('hidden');
-            document.getElementById('confirmModal').classList.add('flex');
-        }
-        function closeConfirm() {
-            document.getElementById('confirmModal').classList.add('hidden');
-            document.getElementById('confirmModal').classList.remove('flex');
-            if (cancelCallback) {
-                const onCancel = cancelCallback;
-                cancelCallback = null;
-                onCancel();
-            }
-            confirmCallback = null;
-        }
-        document.getElementById('confirmBtn').onclick = () => {
-            const cb = confirmCallback;
-            confirmCallback = null;
-            cancelCallback = null;
-            if(cb) cb();
-            closeConfirm();
-        };
-
-        // ====== HỆ THỐNG GỬI & NHẬN CẤU HÌNH (GMAIL CHO ADMIN) ======
-        let sessionMode = 'none'; 
-        let hasChosenWelcomeMode = false;
-
-        function showWelcomeModal() {
-            const modal = document.getElementById('welcomeModeModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-        }
-
-        function hideWelcomeModal() {
-            const modal = document.getElementById('welcomeModeModal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
-
-        let submitFileName = '';
-        let hasAutoSubmittedThisSession = false;
 
         function updateSessionModeBadge() {
             const badge = document.getElementById('currentSessionModeBadge');
@@ -3992,17 +3534,7 @@
             const submitBtn = document.getElementById('submitToAdminBtn');
             
             if (mode === 'submit') {
-                if (canUseRig()) {
-                    isRigActive = true;
-                    const pIdx = classDataDict[currentClassName]?.activeRigPresetIndex || 0;
-                    if (classDataDict[currentClassName]?.rigPresets?.[pIdx]) {
-                        rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[pIdx].rules));
-                    }
-                    calculateRiggingSilently();
-                } else {
-                    isRigActive = false;
-                    riggedArrangement = null;
-                }
+                refreshServerStatusIndicator();
                 
                 if (submitBtn) {
                     const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
@@ -4022,9 +3554,7 @@
             } else {
                 sessionMode = 'test';
                 submitFileName = '';
-                isRigActive = false;
-                riggedArrangement = null;
-                if (submitBtn) {
+                        if (submitBtn) {
                     submitBtn.classList.add('hidden');
                     submitBtn.classList.remove('flex');
                 }
@@ -4069,17 +3599,8 @@
                 ? `🚀 Đã sắp xong toàn bộ & tự động gửi file "${finalName}" cho Admin!`
                 : `🚀 Đã gửi file "${finalName}" thành công cho Admin!`;
 
-            // Tự động KHÓA CỨNG cơ cấu nếu chế độ "Dùng 1 lần" đang bật, KHÔNG phải Admin gửi, và cơ cấu thực sự đang BẬT
             const isAdminSender = sessionStorage.getItem('isAdmin') === 'true';
-            const wasRigActuallyActive = isRigActive && canUseRig();
-            if (isRigOneTimeUse && !isAdminSender && wasRigActuallyActive) {
-                isRigActive = false;
-                riggedArrangement = null;
-                isRigLockedByOneTimeUse = true; // KHÓA CỨNG VĨNH VIỄN CHO TỚI KHI ADMIN MỞ LẠI
-                classDataDict[currentClassName].isRigLockedByOneTimeUse = true;
-                updateSecretDotIndicator();
-                updateOneTimeLockUI();
-            }
+            callAppsScript({ action: 'markSubmitted', className: currentClassName, isAdmin: isAdminSender }, 2500);
 
             saveClassData();
             showToast(successMsg);
@@ -4200,7 +3721,6 @@
                 
                 currentTargetSeatId = findNextEmptySeatId();
                 lastAssignedSeatId = null;
-                if (isRigActive && canUseRig()) calculateRiggingSilently();
                 renderGrid();
                 saveClassData();
                 showToast(`✨ Đã áp dụng hoàn tất cấu hình của "${sub.sender}"!`);
@@ -4264,1210 +3784,89 @@
             }
         }
 
-        function validateRigRules(rules) {
-            if (!rules || rules.length === 0) return { valid: true };
 
-            let allowedSeats = {};
-            for (let r of rules) {
-                if (r.type === 'area_only') {
-                    if (!allowedSeats[r.s1Id]) {
-                        allowedSeats[r.s1Id] = new Set(r.seats);
-                    } else {
-                        let prev = allowedSeats[r.s1Id];
-                        let next = new Set(r.seats);
-                        let inter = new Set([...prev].filter(x => next.has(x)));
-                        if (inter.size === 0) {
-                            return {
-                                valid: false,
-                                errorMsg: `Học sinh <b>"${getStudentName(r.s1Id)}"</b> có các luật chọn khu vực bị triệt tiêu lẫn nhau, dẫn đến không còn chiếc ghế nào hợp lệ!`
-                            };
-                        }
-                        allowedSeats[r.s1Id] = inter;
-                    }
-                }
-            }
-
-            // Kiểm tra quá tải sức chứa khu vực (số bạn bị ép vào 1 vùng > số ghế trong vùng)
-            const areaIds = Object.keys(allowedSeats);
-            for (let baseId of areaIds) {
-                const baseSet = allowedSeats[baseId];
-                const trappedCount = areaIds.filter(id => [...allowedSeats[id]].every(s => baseSet.has(s))).length;
-                if (trappedCount > baseSet.size) {
-                    return {
-                        valid: false,
-                        errorMsg: `Khu vực đang chọn chỉ có <b>${baseSet.size} ghế</b> nhưng có tới <b>${trappedCount} học sinh</b> bị ép ngồi trong đó!`
-                    };
-                }
-            }
-
-            let togetherMap = {};
-            for (let r of rules) {
-                if (r.type === 'together') {
-                    if (!togetherMap[r.s1Id]) togetherMap[r.s1Id] = new Set();
-                    if (!togetherMap[r.targetVal]) togetherMap[r.targetVal] = new Set();
-                    togetherMap[r.s1Id].add(r.targetVal);
-                    togetherMap[r.targetVal].add(r.s1Id);
-
-                    if (togetherMap[r.s1Id].size > 1) {
-                        return {
-                            valid: false,
-                            errorMsg: `Học sinh <b>"${getStudentName(r.s1Id)}"</b> đang được chỉ định ngồi cùng bàn với nhiều hơn 1 bạn. Mỗi bàn học sinh chỉ có đúng 2 ghế ngồi!`
-                        };
-                    }
-                    if (togetherMap[r.targetVal].size > 1) {
-                        return {
-                            valid: false,
-                            errorMsg: `Học sinh <b>"${getStudentName(r.targetVal)}"</b> đang được chỉ định ngồi cùng bàn với nhiều hơn 1 bạn. Mỗi bàn học sinh chỉ có đúng 2 ghế ngồi!`
-                        };
-                    }
-                }
-            }
-
-            for (let i = 0; i < rules.length; i++) {
-                for (let j = i + 1; j < rules.length; j++) {
-                    let r1 = rules[i];
-                    let r2 = rules[j];
-
-                    let isSamePair = (r1.s1Id === r2.s1Id && r1.targetVal === r2.targetVal) ||
-                                     (r1.s1Id === r2.targetVal && r1.targetVal === r2.s1Id);
-
-                    if (isSamePair) {
-                        if ((r1.type === 'together' && r2.type === 'separate') || (r1.type === 'separate' && r2.type === 'together')) {
-                            return {
-                                valid: false,
-                                errorMsg: `Mâu thuẫn đối nghịch: <b>"${getStudentName(r1.s1Id)}"</b> và <b>"${getStudentName(r1.targetVal)}"</b> vừa có quy tắc <i>Bắt buộc cùng bàn</i> vừa có quy tắc <i>Không được cùng bàn</i>!`
-                            };
-                        }
-                        if ((r1.type === 'together' && r2.type === 'surround_not') || (r1.type === 'surround_not' && r2.type === 'together')) {
-                            return {
-                                valid: false,
-                                errorMsg: `Mâu thuẫn vị trí: <b>"${getStudentName(r1.s1Id)}"</b> và <b>"${getStudentName(r1.targetVal)}"</b> đã ngồi cùng bàn thì luôn ở cạnh nhau, không thể áp dụng quy tắc <i>Không được ở xung quanh</i>!`
-                            };
-                        }
-                        if ((r1.type === 'surround_must' && r2.type === 'surround_not') || (r1.type === 'surround_not' && r2.type === 'surround_must')) {
-                            return {
-                                valid: false,
-                                errorMsg: `Mâu thuẫn đối nghịch: <b>"${getStudentName(r1.s1Id)}"</b> và <b>"${getStudentName(r1.targetVal)}"</b> vừa bắt buộc phải ở xung quanh vừa bị cấm ở xung quanh!`
-                            };
-                        }
-                    }
-                }
-            }
-
-            for (let r of rules) {
-                if (r.type === 'together') {
-                    let s1Seats = allowedSeats[r.s1Id];
-                    let s2Seats = allowedSeats[r.targetVal];
-                    if (s1Seats || s2Seats) {
-                        let hasCommonDesk = false;
-                        for (let c = 1; c <= COLS; c++) {
-                            for (let row = 1; row <= ROWS_PER_COL; row++) {
-                                let L = `D${c}_B${row}_L`;
-                                let R = `D${c}_B${row}_R`;
-                                let s1CanL = !s1Seats || s1Seats.has(L);
-                                let s2CanR = !s2Seats || s2Seats.has(R);
-                                let s1CanR = !s1Seats || s1Seats.has(R);
-                                let s2CanL = !s2Seats || s2Seats.has(L);
-                                if ((s1CanL && s2CanR) || (s1CanR && s2CanL)) {
-                                    hasCommonDesk = true;
-                                    break;
-                                }
-                            }
-                            if (hasCommonDesk) break;
-                        }
-                        if (!hasCommonDesk) {
-                            return {
-                                valid: false,
-                                errorMsg: `<b>"${getStudentName(r.s1Id)}"</b> và <b>"${getStudentName(r.targetVal)}"</b> bắt buộc ngồi cùng bàn, nhưng khu vực khoanh vùng của hai bạn không có bất kỳ bàn học nào chung!`
-                            };
-                        }
-                    }
-                }
-            }
-
-            const testResult = testSolveArrangement(rules);
-            if (!testResult.success) {
-                return {
-                    valid: false,
-                    errorMsg: `Không tìm được sơ đồ chỗ ngồi thỏa mãn: Các điều kiện ràng buộc hiện tại đang chặn hết các vị trí hợp lệ của lớp. Vui lòng kiểm tra lại hoặc giảm bớt một số quy tắc quá chặt!`
-                };
-            }
-
-            return { valid: true };
+        // ==========================================
+        // CÁC HÀM MODAL CHÀO MỪNG, PROMPT, CONFIRM & QUYỀN ADMIN
+        // ==========================================
+        function showWelcomeModal() {
+            const m = document.getElementById('welcomeModeModal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
         }
 
-        function testSolveArrangement(testRules) {
-            let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
-            testRules.forEach(r => { if (rules[r.type]) rules[r.type].push(r); });
-
-            let allowedSeatsPerStudent = {};
-            for (let r of rules.area_only) {
-                if (!allowedSeatsPerStudent[r.s1Id]) {
-                    allowedSeatsPerStudent[r.s1Id] = new Set(r.seats);
-                } else {
-                    let current = allowedSeatsPerStudent[r.s1Id];
-                    let next = new Set(r.seats);
-                    allowedSeatsPerStudent[r.s1Id] = new Set([...current].filter(x => next.has(x)));
-                }
-            }
-
-            let allSeats = generateSeatOrderList('random_any');
-            let testPlacement = {};
-
-            function isValid(layout) {
-                let rev = {};
-                for (let seat in layout) rev[layout[seat]] = seat;
-
-                for (let r of rules.separate) {
-                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
-                    if (s1 && s2 && s1.substring(0, s1.lastIndexOf('_')) === s2.substring(0, s2.lastIndexOf('_'))) return false;
-                }
-                for (let r of rules.together) {
-                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
-                    if (s1 && s2 && s1.substring(0, s1.lastIndexOf('_')) !== s2.substring(0, s2.lastIndexOf('_'))) return false;
-                    
-                    if (s1 && !s2) {
-                        let base = s1.substring(0, s1.lastIndexOf('_'));
-                        let other = s1.endsWith('_L') ? '_R' : '_L';
-                        let otherSeat = base + other;
-                        if (layout[otherSeat] && layout[otherSeat] !== r.targetVal) return false;
-                    }
-                    if (s2 && !s1) {
-                        let base = s2.substring(0, s2.lastIndexOf('_'));
-                        let other = s2.endsWith('_L') ? '_R' : '_L';
-                        let otherSeat = base + other;
-                        if (layout[otherSeat] && layout[otherSeat] !== r.s1Id) return false;
-                    }
-                }
-                for (let r of rules.surround_must) {
-                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
-                    if (s1 && s2 && !isSurrounding(s1, s2)) return false;
-                }
-                for (let r of rules.surround_not) {
-                    let s1 = rev[r.s1Id], s2 = rev[r.targetVal];
-                    if (s1 && s2 && isSurrounding(s1, s2)) return false;
-                }
-                return true;
-            }
-
-            let studentsInvolved = new Set();
-            testRules.forEach(r => {
-                if (r.s1Id) studentsInvolved.add(r.s1Id);
-                if (r.targetVal) studentsInvolved.add(r.targetVal);
-            });
-            let listStudents = Array.from(studentsInvolved);
-            if (listStudents.length === 0) return { success: true };
-
-            const MAX_TRIES = 500;
-            for (let t = 0; t < MAX_TRIES; t++) {
-                testPlacement = {};
-                let seats1to5 = allSeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
-                let seats6 = allSeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
-                let seatsCopy = [...seats1to5, ...seats6];
-
-                let failed = false;
-                for (let r of rules.together) {
-                    let hasS1 = Object.values(testPlacement).includes(r.s1Id);
-                    let hasS2 = Object.values(testPlacement).includes(r.targetVal);
-                    if (hasS1 && hasS2) continue;
-
-                    if (hasS1 && !hasS2) {
-                        let seatA = Object.keys(testPlacement).find(k => testPlacement[k] === r.s1Id);
-                        let base = seatA.substring(0, seatA.lastIndexOf('_'));
-                        let other = seatA.endsWith('_L') ? '_R' : '_L';
-                        let seatB = base + other;
-                        if (!testPlacement[seatB]) {
-                            if (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(seatB)) {
-                                testPlacement[seatB] = r.targetVal;
-                            } else { failed = true; break; }
-                        } else { failed = true; break; }
-                        continue;
-                    }
-                    
-                    if (hasS2 && !hasS1) {
-                        let seatB = Object.keys(testPlacement).find(k => testPlacement[k] === r.targetVal);
-                        let base = seatB.substring(0, seatB.lastIndexOf('_'));
-                        let other = seatB.endsWith('_L') ? '_R' : '_L';
-                        let seatA = base + other;
-                        if (!testPlacement[seatA]) {
-                            if (!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(seatA)) {
-                                testPlacement[seatA] = r.s1Id;
-                            } else { failed = true; break; }
-                        } else { failed = true; break; }
-                        continue;
-                    }
-
-                    let desks = [];
-                    for (let c = 1; c <= COLS; c++) {
-                        for (let row = 1; row <= 5; row++) {
-                            let L = `D${c}_B${row}_L`, R = `D${c}_B${row}_R`;
-                            if (!testPlacement[L] && !testPlacement[R]) {
-                                let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
-                                let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
-                                if (s1L && s2R) desks.push({ L, R, s1: r.s1Id, s2: r.targetVal });
-
-                                let s1R = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R);
-                                let s2L = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L);
-                                if (s1R && s2L) desks.push({ L, R, s1: r.targetVal, s2: r.s1Id });
-                            }
-                        }
-                    }
-                    if (desks.length === 0) {
-                        for (let c = 1; c <= COLS; c++) {
-                            let L = `D${c}_B6_L`, R = `D${c}_B6_R`;
-                            if (!testPlacement[L] && !testPlacement[R]) {
-                                let s1L = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L);
-                                let s2R = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R);
-                                if (s1L && s2R) desks.push({ L, R, s1: r.s1Id, s2: r.targetVal });
-
-                                let s1R = !allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R);
-                                let s2L = !allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L);
-                                if (s1R && s2L) desks.push({ L, R, s1: r.targetVal, s2: r.s1Id });
-                            }
-                        }
-                    }
-                    if (desks.length === 0) { failed = true; break; }
-                    let d = desks[Math.floor(Math.random() * desks.length)];
-                    testPlacement[d.L] = d.s1;
-                    testPlacement[d.R] = d.s2;
-                }
-                if (failed) continue;
-
-                let remaining = listStudents.filter(id => !Object.values(testPlacement).includes(id));
-                let stepCount = 0;
-
-                function getCandidatesFor(st) {
-                    let validSeats = seatsCopy.filter(s => !testPlacement[s]);
-                    if (allowedSeatsPerStudent[st]) {
-                        validSeats = validSeats.filter(s => allowedSeatsPerStudent[st].has(s));
-                    }
-                    for (let r of rules.surround_must) {
-                        let partnerId = (r.s1Id === st) ? r.targetVal : ((r.targetVal === st) ? r.s1Id : null);
-                        if (partnerId) {
-                            let partnerSeat = Object.keys(testPlacement).find(k => testPlacement[k] === partnerId);
-                            if (partnerSeat) validSeats = validSeats.filter(s => isSurrounding(s, partnerSeat));
-                        }
-                    }
-                    return validSeats;
-                }
-
-                function solveMRV(remList) {
-                    if (stepCount++ > 1000) return false;
-                    if (remList.length === 0) return true;
-                    let bestIdx = 0, bestCands = null;
-                    for (let i = 0; i < remList.length; i++) {
-                        let cands = getCandidatesFor(remList[i]);
-                        if (cands.length === 0) return false;
-                        if (!bestCands || cands.length < bestCands.length) {
-                            bestCands = cands;
-                            bestIdx = i;
-                            if (cands.length === 1) break;
-                        }
-                    }
-                    let st = remList[bestIdx];
-                    let nextRem = remList.filter((_, i) => i !== bestIdx);
-                    for (let s of bestCands) {
-                        testPlacement[s] = st;
-                        if (isValid(testPlacement) && solveMRV(nextRem)) return true;
-                        delete testPlacement[s];
-                    }
-                    return false;
-                }
-
-                if (solveMRV(remaining)) return { success: true };
-            }
-
-            return { success: false };
+        function hideWelcomeModal() {
+            const m = document.getElementById('welcomeModeModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
         }
 
-        function onSelectRigPreset() {
-            const select = document.getElementById('rigPresetSelect');
-            activePresetIndex = parseInt(select.value);
-            classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
-            
-            rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[activePresetIndex].rules || []));
-            rigSelectedSeats = [];
-            if (isRigActive && canUseRig()) calculateRiggingSilently();
-            saveClassData();
-            
-            updateRigPresetUI();
-            refreshRigUI();
-            renderMiniClassroom();
-            showToast("Đã chuyển sang: " + classDataDict[currentClassName].rigPresets[activePresetIndex].name);
+        let _promptCancelCb = null;
+        function openPrompt(title, defaultVal, onConfirm, onCancel = null) {
+            const m = document.getElementById('promptModal');
+            const inp = document.getElementById('promptInput');
+            const btn = document.getElementById('promptConfirmBtn');
+            document.getElementById('promptTitle').innerText = title || 'Nhập thông tin';
+            inp.value = defaultVal || '';
+            _promptCancelCb = onCancel;
+            btn.onclick = () => {
+                const val = inp.value;
+                _promptCancelCb = null;
+                closePrompt();
+                if (typeof onConfirm === 'function') onConfirm(val);
+            };
+            inp.onkeydown = (e) => { if (e.key === 'Enter') btn.click(); };
+            m.classList.remove('hidden'); m.classList.add('flex');
+            setTimeout(() => { inp.focus(); inp.select(); }, 60);
         }
 
-        function promptNewPresetName() {
-            const defaultName = `Mẫu ${classDataDict[currentClassName].rigPresets.length + 1}`;
-            openPrompt("Tạo mẫu cơ cấu mới (trắng)", defaultName, (name) => {
-                if (name && name.trim() !== "") {
-                    classDataDict[currentClassName].rigPresets.push({
-                        name: name.trim(),
-                        rules: []
-                    });
-                    activePresetIndex = classDataDict[currentClassName].rigPresets.length - 1;
-                    classDataDict[currentClassName].activeRigPresetIndex = activePresetIndex;
-                    rigRulesList = []; 
-                    rigSelectedSeats = [];
-                    saveClassData();
-                    updateRigPresetUI();
-                    renderRigRuleList();
-                    renderMiniClassroom();
-                    showToast("Đã tạo mẫu mới!");
-                }
-            });
-        }
-
-        function updateActivePreset() {
-            const check = validateRigRules(rigRulesList);
-            if (!check.valid) {
-                showValidationWarning(check.errorMsg);
-                return false;
-            }
-
-            classDataDict[currentClassName].rigPresets[activePresetIndex].rules = JSON.parse(JSON.stringify(rigRulesList));
-            if (isRigActive && canUseRig()) calculateRiggingSilently();
-            saveClassData();
-            showToast("Đã lưu cập nhật!");
-            return true;
-        }
-
-        function deleteActivePreset() {
-            if (classDataDict[currentClassName].rigPresets.length <= 1) {
-                return showToast("Không thể xóa mẫu duy nhất. Hãy tạo mẫu khác trước!");
-            }
-            const pName = classDataDict[currentClassName].rigPresets[activePresetIndex].name;
-            openConfirm("Xóa mẫu cơ cấu", `Bạn có chắc muốn xóa vĩnh viễn mẫu "${pName}"?`, () => {
-                classDataDict[currentClassName].rigPresets.splice(activePresetIndex, 1);
-                activePresetIndex = 0;
-                classDataDict[currentClassName].activeRigPresetIndex = 0;
-                
-                rigRulesList = JSON.parse(JSON.stringify(classDataDict[currentClassName].rigPresets[0].rules));
-                saveClassData();
-                updateRigPresetUI();
-                refreshRigUI();
-                showToast("Đã xóa mẫu!");
-            });
-        }
-
-        function closeRigModal() {
-            document.getElementById('rigModal').classList.add('hidden');
-            document.getElementById('rigModal').classList.remove('flex');
-        }
-
-        let rigSelectedTargets = new Set();
-        let rigTargetSearchQuery = '';
-        let rigHideExistingTargets = false;
-        let rigFilterBySelectedStudent = false;
-
-        function normalizeViText(str) {
-            return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-        }
-
-        function isMultiTargetRuleType(type) {
-            return type === 'separate' || type === 'surround_must' || type === 'surround_not';
-        }
-
-        function countStudentRules(studentId) {
-            return rigRulesList.filter(r => r.s1Id === studentId || r.targetVal === studentId).length;
-        }
-
-        function populateRigStudentSelects() {
-            const s1 = document.getElementById('rigStudent1');
-            if (!s1) return;
-            const prevVal = s1.value;
-            s1.innerHTML = '';
-            students.forEach(s => {
-                const cnt = countStudentRules(s.id);
-                const label = cnt > 0 ? `${s.name} (${cnt} luật)` : s.name;
-                s1.innerHTML += `<option value="${s.id}">${label}</option>`;
-            });
-            if (prevVal && students.some(s => s.id === prevVal)) {
-                s1.value = prevVal;
+        function closePrompt() {
+            const m = document.getElementById('promptModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+            if (typeof _promptCancelCb === 'function') {
+                const cb = _promptCancelCb;
+                _promptCancelCb = null;
+                cb();
             }
         }
 
-        // Đối chiếu 2 chiều: Lấy toàn bộ các luật hiện có giữa học sinh A và học sinh B
-        function getPairRelations(idA, idB) {
-            const rels = [];
-            rigRulesList.forEach((r, idx) => {
-                if (r.type === 'area_only') return;
-                const matchDirect = (r.s1Id === idA && r.targetVal === idB);
-                const matchReverse = (r.s1Id === idB && r.targetVal === idA);
-                if (matchDirect || matchReverse) {
-                    rels.push({ ...r, idx, reverse: matchReverse });
-                }
-            });
-            return rels;
+        let _confirmCancelCb = null;
+        function openConfirm(title, message, onConfirm, onCancel = null) {
+            const m = document.getElementById('confirmModal');
+            const btn = document.getElementById('confirmBtn');
+            document.getElementById('confirmTitle').innerText = title || 'Xác nhận';
+            document.getElementById('confirmMessage').innerText = message || '';
+            _confirmCancelCb = onCancel;
+            btn.onclick = () => {
+                _confirmCancelCb = null;
+                closeConfirm();
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+            m.classList.remove('hidden'); m.classList.add('flex');
         }
 
-        // Kiểm tra xem học sinh đã được ghép cùng bàn với ai chưa
-        function getTogetherPartner(studentId) {
-            const found = rigRulesList.find(r => r.type === 'together' && (r.s1Id === studentId || r.targetVal === studentId));
-            if (!found) return null;
-            return found.s1Id === studentId ? found.targetVal : found.s1Id;
-        }
-
-        function getRuleBadgeMeta(type) {
-            switch (type) {
-                case 'together': return { icon: '🤝', label: 'Cùng bàn', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-                case 'separate': return { icon: '🚫', label: 'Cấm cùng bàn', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
-                case 'surround_must': return { icon: '🔄', label: 'Phải ở xung quanh', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
-                case 'surround_not': return { icon: '⛔', label: 'Tránh xung quanh', cls: 'bg-orange-50 text-orange-700 border-orange-200' };
-                default: return { icon: '📍', label: 'Khu vực', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+        function closeConfirm() {
+            const m = document.getElementById('confirmModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+            if (typeof _confirmCancelCb === 'function') {
+                const cb = _confirmCancelCb;
+                _confirmCancelCb = null;
+                cb();
             }
         }
 
-        function updateRigModalLayout(type) {
-            const leftCol = document.getElementById('rigLeftCol');
-            const rulesCol = document.getElementById('rigRulesCol');
-            const miniMapCol = document.getElementById('rigMiniMapCol');
-            const rulesSection = document.getElementById('rigRulesSection');
-            if (!leftCol || !rulesCol || !miniMapCol || !rulesSection) return;
-
-            if (type === 'area_only') {
-                leftCol.className = 'w-full lg:w-[42%] flex flex-col gap-3 overflow-y-auto pr-1';
-                rulesCol.classList.add('hidden');
-                miniMapCol.classList.remove('hidden');
-                miniMapCol.classList.add('flex');
-                if (rulesSection.parentElement !== leftCol) {
-                    leftCol.appendChild(rulesSection);
-                }
+        function toggleAdminAuth() {
+            if (sessionStorage.getItem('isAdmin') === 'true') {
+                logoutAdmin();
             } else {
-                leftCol.className = 'w-full lg:w-[60%] flex flex-col gap-3 overflow-y-auto pr-1';
-                rulesCol.classList.remove('hidden');
-                miniMapCol.classList.add('hidden');
-                miniMapCol.classList.remove('flex');
-                if (rulesSection.parentElement !== rulesCol) {
-                    rulesCol.appendChild(rulesSection);
-                }
+                openPasswordModal();
             }
         }
 
-        function renderRigStudentRelationBox() {
-            const box = document.getElementById('rigStudentRelationBox');
-            const s1Id = document.getElementById('rigStudent1')?.value;
-            if (!box || !s1Id) return;
-
-            const s1Name = getStudentName(s1Id);
-            const related = [];
-            rigRulesList.forEach((r, idx) => {
-                if (r.s1Id === s1Id || r.targetVal === s1Id) {
-                    related.push({ ...r, idx, isReverse: r.targetVal === s1Id });
-                }
-            });
-
-            if (related.length === 0) {
-                box.innerHTML = `<div class="text-[11px] text-slate-500 flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-indigo-400"></i> <span><b>${s1Name}</b> hiện chưa có ràng buộc nào (cả 2 chiều).</span></div>`;
-                return;
-            }
-
-            const chips = related.map(r => {
-                const meta = getRuleBadgeMeta(r.type);
-                let desc = '';
-                if (r.type === 'area_only') {
-                    desc = `${meta.icon} ${r.seats.length} ghế`;
-                } else {
-                    const otherId = r.isReverse ? r.s1Id : r.targetVal;
-                    const otherName = getShortName(getStudentName(otherId));
-                    desc = `${meta.icon} ${meta.label}: <b>${otherName}</b>`;
-                }
-                return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] ${meta.cls}">
-                    <span>${desc}</span>
-                    <button type="button" onclick="removeRigRule(${r.idx})" class="hover:text-rose-600 font-black ml-0.5 leading-none" title="Xóa quy tắc này">&times;</button>
-                </span>`;
-            }).join('');
-
-            box.innerHTML = `
-                <div class="text-[11px] font-bold text-slate-600 mb-1.5 flex items-center justify-between">
-                    <span><i class="fa-solid fa-arrows-left-right text-indigo-500 mr-1"></i> Đối chiếu của <b class="text-indigo-800">${s1Name}</b> (${related.length} luật):</span>
-                </div>
-                <div class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">${chips}</div>
-            `;
-        }
-
-        function onRigStudent1Change() {
-            const type = document.getElementById('rigRuleType').value;
-            const s1Id = document.getElementById('rigStudent1').value;
-            rigSelectedTargets.delete(s1Id);
-            renderRigStudentRelationBox();
-            if (isMultiTargetRuleType(type)) {
-                renderRigTargetCheckboxList();
-            } else if (type === 'together') {
-                renderTogetherSelect();
-            }
-            if (rigFilterBySelectedStudent) {
-                renderRigRuleList();
-            }
-        }
-
-        function renderTogetherSelect() {
-            const container = document.getElementById('rigTargetContainer');
-            const s1Id = document.getElementById('rigStudent1')?.value;
-            if (!container || !s1Id) return;
-            let stSelect = `<select id="rigTargetVal" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 font-medium text-slate-700 outline-none shadow-sm cursor-pointer bg-white">`;
-            students.forEach(s => {
-                if (s.id === s1Id) return;
-                const rels = getPairRelations(s1Id, s.id);
-                const partner = getTogetherPartner(s.id);
-                let hints = [];
-                rels.forEach(r => hints.push(getRuleBadgeMeta(r.type).icon + ' ' + getRuleBadgeMeta(r.type).label));
-                if (partner && partner !== s1Id) hints.push('🔒 Đã ghép với ' + getShortName(getStudentName(partner)));
-                const suffix = hints.length > 0 ? ` — [${hints.join(' | ')}]` : '';
-                stSelect += `<option value="${s.id}">${s.name}${suffix}</option>`;
-            });
-            stSelect += `</select>`;
-            container.innerHTML = stSelect;
-        }
-
-        function onRigRuleTypeChange() {
-            const type = document.getElementById('rigRuleType').value;
-            const container = document.getElementById('rigTargetContainer');
-            container.innerHTML = '';
-            rigSelectedTargets.clear();
-            rigTargetSearchQuery = '';
-            updateRigModalLayout(type);
-            renderRigStudentRelationBox();
-            
-            if (type === 'area_only') {
-                container.innerHTML = `<div class="text-xs font-bold text-indigo-600 bg-indigo-50 p-2.5 rounded-lg border border-indigo-200 w-full text-center">Hãy bấm chọn các ghế trên Sơ đồ thu nhỏ bên phải <i class="fa-solid fa-arrow-right ml-1"></i></div>`;
-                rigSelectedSeats = []; 
-                renderMiniClassroom();
-            } else if (isMultiTargetRuleType(type)) {
-                container.innerHTML = `
-                    <div class="border border-slate-300 rounded-xl bg-white overflow-hidden shadow-sm">
-                        <div class="p-2 bg-slate-100/80 border-b border-slate-200 flex flex-wrap items-center gap-1.5">
-                            <div class="relative flex-1 min-w-[140px]">
-                                <i class="fa-solid fa-magnifying-glass text-slate-400 text-[10px] absolute left-2.5 top-1/2 -translate-y-1/2"></i>
-                                <input type="text" id="rigTargetSearchInput" oninput="filterRigTargets(this.value)" placeholder="Tìm nhanh học sinh..." class="w-full pl-7 pr-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500">
-                            </div>
-                            <span id="rigSelectedCountBadge" class="text-[11px] font-extrabold text-indigo-700 bg-indigo-100 px-2 py-1 rounded-md shrink-0">Đã chọn: 0</span>
-                            <button type="button" onclick="selectAllVisibleRigTargets()" class="text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-lg transition shrink-0" title="Chọn nhanh các bạn đang hiện mà chưa có luật này">Chọn hết</button>
-                            <button type="button" onclick="clearRigTargetSelections()" class="text-[11px] font-bold text-slate-600 hover:text-rose-600 bg-white border border-slate-300 px-2 py-1 rounded-lg transition shrink-0" title="Bỏ chọn tất cả">Bỏ chọn</button>
-                            <button type="button" id="rigHideExistingBtn" onclick="toggleHideExistingTargets()" class="text-[11px] font-bold ${rigHideExistingTargets ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300'} border px-2 py-1 rounded-lg transition shrink-0" title="Ẩn những bạn đã có sẵn quy tắc này">Ẩn đã có</button>
-                        </div>
-                        <div id="rigTargetCheckboxList" class="max-h-64 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1 p-2"></div>
-                    </div>
-                `;
-                renderRigTargetCheckboxList();
+        function requireAdmin(callback) {
+            if (sessionStorage.getItem('isAdmin') === 'true') {
+                if (typeof callback === 'function') callback();
             } else {
-                renderTogetherSelect();
+                openPasswordModal();
             }
         }
-
-        function filterRigTargets(query) {
-            rigTargetSearchQuery = query || '';
-            renderRigTargetCheckboxList();
-        }
-
-        function toggleHideExistingTargets() {
-            rigHideExistingTargets = !rigHideExistingTargets;
-            const btn = document.getElementById('rigHideExistingBtn');
-            if (btn) {
-                btn.className = `text-[11px] font-bold ${rigHideExistingTargets ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300'} border px-2 py-1 rounded-lg transition shrink-0`;
-            }
-            renderRigTargetCheckboxList();
-        }
-
-        function toggleRigTarget(studentId, checked) {
-            if (checked) rigSelectedTargets.add(studentId);
-            else rigSelectedTargets.delete(studentId);
-            updateRigSelectedCountBadge();
-        }
-
-        function selectAllVisibleRigTargets() {
-            const type = document.getElementById('rigRuleType').value;
-            const s1Id = document.getElementById('rigStudent1').value;
-            const normQuery = normalizeViText(rigTargetSearchQuery.trim());
-            students.forEach(s => {
-                if (s.id === s1Id) return;
-                if (normQuery && !normalizeViText(s.name).includes(normQuery)) return;
-                const rels = getPairRelations(s1Id, s.id);
-                const alreadyThisRule = rels.some(r => r.type === type);
-                if (!alreadyThisRule) {
-                    rigSelectedTargets.add(s.id);
-                }
-            });
-            renderRigTargetCheckboxList();
-        }
-
-        function clearRigTargetSelections() {
-            rigSelectedTargets.clear();
-            renderRigTargetCheckboxList();
-        }
-
-        function updateRigSelectedCountBadge() {
-            const badge = document.getElementById('rigSelectedCountBadge');
-            if (badge) badge.innerText = `Đã chọn: ${rigSelectedTargets.size}`;
-        }
-
-        function renderRigTargetCheckboxList() {
-            const listEl = document.getElementById('rigTargetCheckboxList');
-            if (!listEl) return;
-            const type = document.getElementById('rigRuleType').value;
-            const s1Id = document.getElementById('rigStudent1').value;
-            const normQuery = normalizeViText(rigTargetSearchQuery.trim());
-
-            const filtered = students.filter(s => {
-                if (s.id === s1Id) return false;
-                if (normQuery && !normalizeViText(s.name).includes(normQuery)) return false;
-                if (rigHideExistingTargets) {
-                    const rels = getPairRelations(s1Id, s.id);
-                    if (rels.some(r => r.type === type)) return false;
-                }
-                return true;
-            });
-
-            if (filtered.length === 0) {
-                listEl.innerHTML = `<div class="col-span-full text-xs text-slate-400 italic text-center py-4">Không tìm thấy học sinh phù hợp.</div>`;
-                updateRigSelectedCountBadge();
-                return;
-            }
-
-            listEl.innerHTML = filtered.map(s => {
-                const isChecked = rigSelectedTargets.has(s.id);
-                const rels = getPairRelations(s1Id, s.id);
-                const partner = getTogetherPartner(s.id);
-
-                let badgesHtml = rels.map(r => {
-                    const meta = getRuleBadgeMeta(r.type);
-                    const isSameRule = r.type === type;
-                    return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${meta.cls} ${isSameRule ? 'ring-1 ring-indigo-400' : ''}" title="${r.reverse ? 'Đã thiết lập từ phía bạn này' : 'Đã thiết lập'}">${meta.icon} ${meta.label}</span>`;
-                }).join('');
-
-                if (partner && partner !== s1Id && !rels.some(r => r.type === 'together')) {
-                    badgesHtml += `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">🔒 Cặp ${getShortName(getStudentName(partner))}</span>`;
-                }
-
-                return `
-                    <label class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${isChecked ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50/60 border-slate-200/80 hover:bg-indigo-50/50'} cursor-pointer transition select-none">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <input type="checkbox" value="${s.id}" ${isChecked ? 'checked' : ''} onchange="toggleRigTarget('${s.id}', this.checked)" class="accent-indigo-600 w-3.5 h-3.5 rounded cursor-pointer shrink-0">
-                            <span class="text-xs font-semibold text-slate-700 truncate">${s.name}</span>
-                        </div>
-                        ${badgesHtml ? `<div class="flex flex-wrap items-center justify-end gap-1 shrink-0">${badgesHtml}</div>` : ''}
-                    </label>
-                `;
-            }).join('');
-            updateRigSelectedCountBadge();
-        }
-
-        function renderMiniClassroom() {
-            const grid = document.getElementById('miniClassroomGrid');
-            if(!grid) return;
-            grid.innerHTML = '';
-            
-            const typeSelect = document.getElementById('rigRuleType');
-            const isArea = typeSelect && typeSelect.value === 'area_only';
-
-            for (let c = 1; c <= COLS; c++) {
-                const colDiv = document.createElement('div');
-                colDiv.className = 'flex flex-col gap-2.5';
-                colDiv.innerHTML = `<div class="text-center text-[10px] font-extrabold text-slate-500 bg-slate-200/60 py-1.5 rounded-md uppercase tracking-wider">DÃY ${c}</div>`;
-                
-                for (let r = 1; r <= ROWS_PER_COL; r++) {
-                    const desk = document.createElement('div');
-                    desk.className = 'flex gap-1.5 bg-white p-1.5 border border-amber-200/80 rounded-lg shadow-sm';
-                    
-                    ['L', 'R'].forEach(side => {
-                        const seatId = `D${c}_B${r}_${side}`;
-                        let isSelected = false;
-                        if (isArea) isSelected = rigSelectedSeats.includes(seatId);
-                        
-                        const seatEl = document.createElement('div');
-                        seatEl.className = `w-full h-11 rounded-md border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 select-none 
-                            ${isSelected 
-                                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105' 
-                                : 'bg-slate-50 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 text-slate-500'}`;
-                        
-                        seatEl.innerHTML = `<span class="text-[9px] font-bold opacity-70 mb-0.5">Bàn ${r}</span><span class="text-[11px] font-extrabold leading-none">${side === 'L' ? 'Trái' : 'Phải'}</span>`;
-                        seatEl.title = `Bấm để chọn: Dãy ${c} - Bàn ${r} - ${side === 'L' ? 'Trái' : 'Phải'}`;
-                        
-                        seatEl.onclick = () => {
-                            if (isArea) {
-                                if (rigSelectedSeats.includes(seatId)) {
-                                    rigSelectedSeats = rigSelectedSeats.filter(id => id !== seatId);
-                                } else {
-                                    rigSelectedSeats.push(seatId);
-                                }
-                                renderMiniClassroom();
-                            }
-                        };
-                        desk.appendChild(seatEl);
-                    });
-                    colDiv.appendChild(desk);
-                }
-                grid.appendChild(colDiv);
-            }
-        }
-
-        function refreshRigUI() {
-            populateRigStudentSelects();
-            renderRigStudentRelationBox();
-            renderRigRuleList();
-            const typeEl = document.getElementById('rigRuleType');
-            if (typeEl) {
-                if (isMultiTargetRuleType(typeEl.value)) renderRigTargetCheckboxList();
-                else if (typeEl.value === 'together') renderTogetherSelect();
-            }
-        }
-
-        function addRigRule() {
-            const type = document.getElementById('rigRuleType').value;
-            const s1Id = document.getElementById('rigStudent1').value;
-            
-            if (type === 'area_only') {
-                if (rigSelectedSeats.length === 0) return showToast("Vui lòng chọn ít nhất 1 ghế trên sơ đồ!");
-                rigRulesList.push({ type, s1Id, s1Name: getStudentName(s1Id), seats: [...rigSelectedSeats] });
-                rigSelectedSeats = [];
-                renderMiniClassroom();
-            } else if (isMultiTargetRuleType(type)) {
-                const targets = Array.from(rigSelectedTargets).filter(id => id !== s1Id);
-                if (targets.length === 0) return showToast("Vui lòng tích chọn ít nhất 1 học sinh!");
-                let addedCount = 0;
-                targets.forEach(targetVal => {
-                    // Kiểm tra trùng theo cả 2 chiều
-                    const exists = rigRulesList.some(r => r.type === type && ((r.s1Id === s1Id && r.targetVal === targetVal) || (r.s1Id === targetVal && r.targetVal === s1Id)));
-                    if (!exists) {
-                        rigRulesList.push({ type, s1Id, s1Name: getStudentName(s1Id), targetVal, targetName: getStudentName(targetVal) });
-                        addedCount++;
-                    }
-                });
-                rigSelectedTargets.clear();
-                rigTargetSearchQuery = '';
-                const searchInput = document.getElementById('rigTargetSearchInput');
-                if (searchInput) searchInput.value = '';
-                if (addedCount > 0) {
-                    showToast(`Đã thêm ${addedCount} quy tắc mới!`);
-                } else {
-                    showToast("Các quy tắc đã chọn đều đã tồn tại (kể cả chiều ngược lại)!");
-                }
-            } else {
-                const targetVal = document.getElementById('rigTargetVal').value;
-                if (s1Id === targetVal) return showToast("Không thể chọn cùng 1 người! Vui lòng chọn người khác.");
-                const exists = rigRulesList.some(r => r.type === type && ((r.s1Id === s1Id && r.targetVal === targetVal) || (r.s1Id === targetVal && r.targetVal === s1Id)));
-                if (exists) return showToast("Quy tắc này đã tồn tại rồi!");
-                rigRulesList.push({ type, s1Id, s1Name: getStudentName(s1Id), targetVal, targetName: getStudentName(targetVal) });
-            }
-            refreshRigUI();
-        }
-
-        function clearRigRules() {
-            rigRulesList = [];
-            riggedArrangement = null;
-            refreshRigUI();
-        }
-
-        function getStudentName(id) {
-            const s = students.find(x => x.id === id);
-            return s ? s.name : id;
-        }
-
-        function toggleRigRuleFilter() {
-            rigFilterBySelectedStudent = !rigFilterBySelectedStudent;
-            const btn = document.getElementById('rigFilterSelectedBtn');
-            if (btn) {
-                btn.className = rigFilterBySelectedStudent
-                    ? 'text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-500 bg-indigo-600 text-white transition'
-                    : 'text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition';
-            }
-            renderRigRuleList();
-        }
-
-        function renderRigRuleList() {
-            const list = document.getElementById('rigRuleList');
-            const s1Id = document.getElementById('rigStudent1')?.value;
-            document.getElementById('rigRuleCount').innerText = rigRulesList.length;
-            list.innerHTML = '';
-
-            const items = rigRulesList.map((r, idx) => ({ r, idx })).filter(item => {
-                if (!rigFilterBySelectedStudent || !s1Id) return true;
-                return item.r.s1Id === s1Id || item.r.targetVal === s1Id;
-            });
-
-            if (items.length === 0) {
-                const msg = rigRulesList.length === 0
-                    ? 'Chưa có quy tắc nào. Hãy thêm luật bên trái.'
-                    : 'Học sinh đang chọn chưa có quy tắc nào.';
-                list.innerHTML = `<div class="text-slate-400 italic text-center py-4 bg-white rounded-lg border border-dashed border-slate-300">${msg}</div>`;
-                return;
-            }
-            items.forEach(({ r, idx }) => {
-                let text = '';
-                const name1 = getStudentName(r.s1Id);
-                
-                if (r.type === 'area_only') {
-                    const prevSeat = previousSessionSeats[r.s1Id];
-                    const prevNotice = (prevSeat && r.seats.includes(prevSeat)) 
-                        ? ` <span class="text-[10px] text-amber-600 font-bold bg-amber-50 px-1 py-0.5 rounded border border-amber-200" title="Chỗ cũ: ${formatSeatLabel(prevSeat)}">(Tránh chỗ lần trước)</span>` 
-                        : '';
-                    text = `<span class="text-indigo-700 font-extrabold">${name1}</span> BẮT BUỘC ngồi trong khu vực <span class="font-bold bg-indigo-100 px-1.5 py-0.5 rounded border border-indigo-200">${r.seats.length} ghế đã chọn</span>${prevNotice}`;
-                } else if (r.type === 'separate') {
-                    text = `<span class="text-rose-600 font-extrabold">${name1}</span> KHÔNG ĐƯỢC ngồi cùng bàn với <span class="text-rose-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
-                } else if (r.type === 'together') {
-                    text = `<span class="text-emerald-600 font-extrabold">${name1}</span> BẮT BUỘC ngồi cùng bàn với <span class="text-emerald-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
-                } else if (r.type === 'surround_must') {
-                    text = `<span class="text-amber-600 font-extrabold">${name1}</span> BẮT BUỘC xung quanh phải có <span class="text-amber-600 font-extrabold">${getStudentName(r.targetVal)}</span>`;
-                } else if (r.type === 'surround_not') {
-                    text = `<span class="text-rose-600 font-extrabold">${name1}</span> KHÔNG ĐƯỢC CÓ <span class="text-rose-600 font-extrabold">${getStudentName(r.targetVal)}</span> ở các ghế xung quanh`;
-                }
-                
-                list.innerHTML += `
-                    <div class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm hover:border-indigo-300 transition-colors">
-                        <span class="leading-snug flex-1">- ${text}</span>
-                        <button onclick="removeRigRule(${idx})" class="text-rose-400 hover:text-white hover:bg-rose-500 bg-rose-50 w-7 h-7 rounded flex items-center justify-center transition shrink-0 ml-2 shadow-sm"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
-                    </div>
-                `;
-            });
-        }
-
-        function removeRigRule(idx) {
-            rigRulesList.splice(idx, 1);
-            refreshRigUI();
-        }
-
-        function getSeatCoords(seatId) {
-            if(!seatId) return null;
-            const parts = seatId.split('_'); 
-            const c = parseInt(parts[0].substring(1));
-            const r = parseInt(parts[1].substring(1));
-            const side = parts[2] === 'L' ? 0 : 1;
-            return { x: (c - 1) * 2 + side, y: r - 1 };
-        }
-
-        function isSurrounding(seat1, seat2) {
-            if(!seat1 || !seat2 || seat1 === seat2) return false;
-            const c1 = getSeatCoords(seat1);
-            const c2 = getSeatCoords(seat2);
-            return Math.abs(c1.x - c2.x) <= 1 && Math.abs(c1.y - c2.y) <= 1;
-        }
-
-        function pickFallbackWinner(unassignedList) {
-            if (!unassignedList || unassignedList.length === 0) return null;
-            if (isRigActive && canUseRig() && rigRulesList.length > 0) {
-                const constrainedIds = new Set();
-                rigRulesList.forEach(r => {
-                    if (r.s1Id) constrainedIds.add(r.s1Id);
-                    if (r.targetVal) constrainedIds.add(r.targetVal);
-                });
-                const freeCandidates = unassignedList.filter(s => !constrainedIds.has(s.id));
-                if (freeCandidates.length > 0) {
-                    return freeCandidates[Math.floor(Math.random() * freeCandidates.length)];
-                }
-            }
-            return unassignedList[Math.floor(Math.random() * unassignedList.length)];
-        }
-
-        let lastRigStateCacheKey = '';
-        function buildRigStateCacheKey() {
-            return currentClassName + '|' + activePresetIndex + '|' + students.map(s => s.id + ':' + (s.seatId || '')).join(',') + '|' + JSON.stringify(rigRulesList);
-        }
-
-        function ensureRigArrangementReady(targetSeatId = null) {
-            if (typeof sessionMode !== 'undefined' && sessionMode === 'test') {
-                isRigActive = false;
-                riggedArrangement = null;
-                lastRigStateCacheKey = '';
-                return;
-            }
-            if (!isRigActive || !canUseRig()) return;
-
-            const currentKey = buildRigStateCacheKey();
-            let needsRecalc = !riggedArrangement || (currentKey !== lastRigStateCacheKey);
-            if (!needsRecalc && targetSeatId) {
-                const plannedId = riggedArrangement[targetSeatId];
-                if (plannedId) {
-                    const st = students.find(s => s.id === plannedId);
-                    if (!st || st.seatId) needsRecalc = true;
-                }
-            }
-            if (needsRecalc) {
-                calculateRiggingSilently();
-            }
-        }
-
-        function calculateRiggingSilently() {
-            riggedArrangement = null;
-            if (typeof sessionMode !== 'undefined' && sessionMode === 'test') return;
-            if (!canUseRig() || rigRulesList.length === 0) return;
-
-            let basePlacement = {};
-            let seatedMap = {};
-            students.forEach(s => {
-                if (s.seatId) {
-                    basePlacement[s.seatId] = s.id;
-                    seatedMap[s.id] = s.seatId;
-                }
-            });
-
-            // Lọc bỏ các luật đã lỡ vi phạm hoàn toàn từ trước khi xếp dở (không thể cứu)
-            let salvageableRules = rigRulesList.filter(r => {
-                if (r.type === 'area_only') {
-                    if (seatedMap[r.s1Id]) return false; // Đã ngồi rồi thì giữ nguyên
-                    if (!r.seats.some(seat => !basePlacement[seat])) return false; // Hết ghế trống trong khu vực
-                    return true;
-                }
-                let s1 = seatedMap[r.s1Id];
-                let s2 = seatedMap[r.targetVal];
-                if (r.type === 'separate') {
-                    if (s1 && s2) return false; // Cả 2 đã ngồi thì không sửa được nữa
-                    return true;
-                }
-                if (r.type === 'surround_must') {
-                    if (s1 && s2) return false;
-                    const fixedSeat = s1 || s2;
-                    if (fixedSeat) {
-                        const allSeatsTmp = generateSeatOrderList('random_any');
-                        const hasEmptyNeighbor = allSeatsTmp.some(seat => !basePlacement[seat] && isSurrounding(fixedSeat, seat));
-                        if (!hasEmptyNeighbor) return false;
-                    }
-                    return true;
-                }
-                if (r.type === 'surround_not') {
-                    if (s1 && s2) return false;
-                    return true;
-                }
-                if (r.type === 'together') {
-                    if (s1 && s2) return false;
-                    if (s1 && !s2) {
-                        let base = s1.substring(0, s1.lastIndexOf('_'));
-                        let otherSeat = base + (s1.endsWith('_L') ? '_R' : '_L');
-                        if (basePlacement[otherSeat] && basePlacement[otherSeat] !== r.targetVal) return false;
-                    }
-                    if (s2 && !s1) {
-                        let base = s2.substring(0, s2.lastIndexOf('_'));
-                        let otherSeat = base + (s2.endsWith('_L') ? '_R' : '_L');
-                        if (basePlacement[otherSeat] && basePlacement[otherSeat] !== r.s1Id) return false;
-                    }
-                    return true;
-                }
-                return true;
-            });
-
-            function solveRigSubset(activeRules, maxAttempts, deadlineMs) {
-                let rules = { together: [], separate: [], area_only: [], surround_must: [], surround_not: [] };
-                activeRules.forEach(r => {
-                    if (rules[r.type]) rules[r.type].push(r);
-                });
-
-                let allowedSeatsPerStudent = {};
-                for (let r of rules.area_only) {
-                    let candidateSeats = [...r.seats];
-                    const prevSeat = previousSessionSeats[r.s1Id];
-                    if (prevSeat && candidateSeats.includes(prevSeat) && candidateSeats.length > 1) {
-                        candidateSeats = candidateSeats.filter(s => s !== prevSeat);
-                    }
-                    if (!allowedSeatsPerStudent[r.s1Id]) {
-                        allowedSeatsPerStudent[r.s1Id] = new Set(candidateSeats);
-                    } else {
-                        let current = allowedSeatsPerStudent[r.s1Id];
-                        let next = new Set(candidateSeats);
-                        let inter = new Set([...current].filter(x => next.has(x)));
-                        allowedSeatsPerStudent[r.s1Id] = inter.size > 0 ? inter : current;
-                    }
-                }
-
-                function isValidPartialLayout(testPlacement) {
-                    let reverseMap = {};
-                    for (let seat in testPlacement) reverseMap[testPlacement[seat]] = seat;
-
-                    for (let r of rules.separate) {
-                        let seat1 = reverseMap[r.s1Id], seat2 = reverseMap[r.targetVal];
-                        if (seat1 && seat2 && seat1.substring(0, seat1.lastIndexOf('_')) === seat2.substring(0, seat2.lastIndexOf('_'))) return false;
-                    }
-                    for (let r of rules.together) {
-                        let seat1 = reverseMap[r.s1Id], seat2 = reverseMap[r.targetVal];
-                        if (seat1 && seat2 && seat1.substring(0, seat1.lastIndexOf('_')) !== seat2.substring(0, seat2.lastIndexOf('_'))) return false;
-                        if (seat1 && !seat2) {
-                            let base = seat1.substring(0, seat1.lastIndexOf('_'));
-                            let otherSeat = base + (seat1.endsWith('_L') ? '_R' : '_L');
-                            if (testPlacement[otherSeat] && testPlacement[otherSeat] !== r.targetVal) return false;
-                        }
-                        if (seat2 && !seat1) {
-                            let base = seat2.substring(0, seat2.lastIndexOf('_'));
-                            let otherSeat = base + (seat2.endsWith('_L') ? '_R' : '_L');
-                            if (testPlacement[otherSeat] && testPlacement[otherSeat] !== r.s1Id) return false;
-                        }
-                    }
-                    for (let r of rules.surround_must) {
-                        let seat1 = reverseMap[r.s1Id], seat2 = reverseMap[r.targetVal];
-                        if (seat1 && seat2 && !isSurrounding(seat1, seat2)) return false;
-                    }
-                    for (let r of rules.surround_not) {
-                        let seat1 = reverseMap[r.s1Id], seat2 = reverseMap[r.targetVal];
-                        if (seat1 && seat2 && isSurrounding(seat1, seat2)) return false;
-                    }
-                    return true;
-                }
-
-                let allStudents = students.map(s => s.id);
-                let stScores = allStudents.map(id => {
-                    let score = 0;
-                    if (allowedSeatsPerStudent[id]) score += 100;
-                    rules.together.forEach(r => { if (r.s1Id === id || r.targetVal === id) score += 50; });
-                    rules.surround_must.forEach(r => { if (r.s1Id === id || r.targetVal === id) score += 40; });
-                    rules.separate.forEach(r => { if (r.s1Id === id || r.targetVal === id) score += 10; });
-                    rules.surround_not.forEach(r => { if (r.s1Id === id || r.targetVal === id) score += 10; });
-                    return { id, score };
-                });
-                stScores.sort((a, b) => b.score - a.score);
-
-                let constrainedStudents = stScores.filter(x => x.score > 0).map(x => x.id).filter(id => !Object.values(basePlacement).includes(id));
-                let freeStudents = stScores.filter(x => x.score === 0).map(x => x.id).filter(id => !Object.values(basePlacement).includes(id));
-                let allSeats = generateSeatOrderList('random_any');
-
-                for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                    if (performance.now() > deadlineMs) return null;
-                    let testPlacement = { ...basePlacement };
-                    let seats1to5 = allSeats.filter(id => !id.includes('_B6_')).sort(() => Math.random() - 0.5);
-                    let seats6 = allSeats.filter(id => id.includes('_B6_')).sort(() => Math.random() - 0.5);
-                    let seatList = [...seats1to5, ...seats6];
-
-                    let failedPreplace = false;
-                    for (let r of rules.together) {
-                        let hasS1 = Object.values(testPlacement).includes(r.s1Id);
-                        let hasS2 = Object.values(testPlacement).includes(r.targetVal);
-                        if (hasS1 && hasS2) continue;
-
-                        if (hasS1 && !hasS2) {
-                            let seatA = Object.keys(testPlacement).find(k => testPlacement[k] === r.s1Id);
-                            let base = seatA.substring(0, seatA.lastIndexOf('_'));
-                            let seatB = base + (seatA.endsWith('_L') ? '_R' : '_L');
-                            if (!testPlacement[seatB] && (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(seatB))) {
-                                testPlacement[seatB] = r.targetVal;
-                            } else { failedPreplace = true; break; }
-                            continue;
-                        }
-                        if (hasS2 && !hasS1) {
-                            let seatB = Object.keys(testPlacement).find(k => testPlacement[k] === r.targetVal);
-                            let base = seatB.substring(0, seatB.lastIndexOf('_'));
-                            let seatA = base + (seatB.endsWith('_L') ? '_R' : '_L');
-                            if (!testPlacement[seatA] && (!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(seatA))) {
-                                testPlacement[seatA] = r.s1Id;
-                            } else { failedPreplace = true; break; }
-                            continue;
-                        }
-
-                        let availableDesks = [];
-                        for (let c = 1; c <= COLS; c++) {
-                            for (let row = 1; row <= 5; row++) {
-                                let L = `D${c}_B${row}_L`, R = `D${c}_B${row}_R`;
-                                if (!testPlacement[L] && !testPlacement[R]) {
-                                    if ((!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L)) && (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R))) {
-                                        availableDesks.push({ L, R, order: [r.s1Id, r.targetVal] });
-                                    }
-                                    if ((!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R)) && (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L))) {
-                                        availableDesks.push({ L, R, order: [r.targetVal, r.s1Id] });
-                                    }
-                                }
-                            }
-                        }
-                        if (availableDesks.length === 0) {
-                            for (let c = 1; c <= COLS; c++) {
-                                let L = `D${c}_B6_L`, R = `D${c}_B6_R`;
-                                if (!testPlacement[L] && !testPlacement[R]) {
-                                    if ((!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(L)) && (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(R))) {
-                                        availableDesks.push({ L, R, order: [r.s1Id, r.targetVal] });
-                                    }
-                                    if ((!allowedSeatsPerStudent[r.s1Id] || allowedSeatsPerStudent[r.s1Id].has(R)) && (!allowedSeatsPerStudent[r.targetVal] || allowedSeatsPerStudent[r.targetVal].has(L))) {
-                                        availableDesks.push({ L, R, order: [r.targetVal, r.s1Id] });
-                                    }
-                                }
-                            }
-                        }
-                        if (availableDesks.length === 0) { failedPreplace = true; break; }
-                        let choice = availableDesks[Math.floor(Math.random() * availableDesks.length)];
-                        testPlacement[choice.L] = choice.order[0];
-                        testPlacement[choice.R] = choice.order[1];
-                    }
-                    if (failedPreplace) continue;
-
-                    let unplaced = constrainedStudents.filter(id => !Object.values(testPlacement).includes(id));
-                    let stepCount = 0;
-
-                    function getValidSeatsFor(stId) {
-                        let validSeats = seatList.filter(s => !testPlacement[s]);
-                        if (allowedSeatsPerStudent[stId]) {
-                            validSeats = validSeats.filter(s => allowedSeatsPerStudent[stId].has(s));
-                        }
-                        for (let r of rules.surround_must) {
-                            let partnerId = (r.s1Id === stId) ? r.targetVal : ((r.targetVal === stId) ? r.s1Id : null);
-                            if (partnerId) {
-                                let partnerSeat = Object.keys(testPlacement).find(k => testPlacement[k] === partnerId);
-                                if (partnerSeat) validSeats = validSeats.filter(s => isSurrounding(s, partnerSeat));
-                            }
-                        }
-                        const prevSeat = previousSessionSeats[stId];
-                        if (prevSeat && validSeats.length > 1) {
-                            validSeats.sort((a, b) => (a === prevSeat ? 1 : 0) - (b === prevSeat ? 1 : 0));
-                        }
-                        return validSeats;
-                    }
-
-                    function solveMRV(remList) {
-                        if (stepCount++ > 1000) return false;
-                        if (remList.length === 0) return true;
-                        let bestIdx = 0, bestCands = null;
-                        for (let i = 0; i < remList.length; i++) {
-                            let cands = getValidSeatsFor(remList[i]);
-                            if (cands.length === 0) return false;
-                            if (!bestCands || cands.length < bestCands.length) {
-                                bestCands = cands;
-                                bestIdx = i;
-                                if (cands.length === 1) break;
-                            }
-                        }
-                        let stId = remList[bestIdx];
-                        let nextRem = remList.filter((_, i) => i !== bestIdx);
-                        for (let i = 0; i < bestCands.length; i++) {
-                            let seat = bestCands[i];
-                            testPlacement[seat] = stId;
-                            if (isValidPartialLayout(testPlacement) && solveMRV(nextRem)) return true;
-                            delete testPlacement[seat];
-                        }
-                        return false;
-                    }
-
-                    if (solveMRV(unplaced)) {
-                        let remainingFreeSeats = seatList.filter(s => !testPlacement[s]);
-                        let shuffledFree = [...freeStudents].sort(() => Math.random() - 0.5);
-                        shuffledFree.forEach(stId => {
-                            if (remainingFreeSeats.length === 0) return;
-                            const prev = previousSessionSeats[stId];
-                            let pickIdx = remainingFreeSeats.findIndex(seat => seat !== prev);
-                            if (pickIdx === -1) pickIdx = 0;
-                            const chosenSeat = remainingFreeSeats.splice(pickIdx, 1)[0];
-                            testPlacement[chosenSeat] = stId;
-                        });
-                        return testPlacement;
-                    }
-                }
-                return null;
-            }
-
-            const deadlineMs = performance.now() + 50;
-            // Thử giải toàn bộ các luật còn cứu được (giới hạn tối đa 50ms)
-            let bestPlacement = solveRigSubset(salvageableRules, 150, deadlineMs);
-
-            // Nếu vẫn kẹt do xung đột cục bộ với người đã xếp dở -> Cứu từng luật một (giữ tối đa số luật khả thi)
-            if (!bestPlacement && salvageableRules.length > 0) {
-                let kept = [];
-                const salvageDeadline = performance.now() + 45;
-                for (let rule of salvageableRules) {
-                    if (performance.now() > salvageDeadline) break;
-                    let candidate = solveRigSubset([...kept, rule], 35, salvageDeadline);
-                    if (candidate) {
-                        kept.push(rule);
-                        bestPlacement = candidate;
-                    }
-                }
-            }
-
-            if (bestPlacement) {
-                riggedArrangement = bestPlacement;
-            }
-            lastRigStateCacheKey = buildRigStateCacheKey();
-        }
-
 
         function syncGameContainerHeight() {
             const gc = document.getElementById('gameContainer');
