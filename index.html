@@ -3433,7 +3433,7 @@
             const indicator = document.getElementById('secretRigIndicator');
             const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
             if (indicator) {
-                if (isAdmin && isServerAdminActive) {
+                if (isAdmin && isServerAdminActive && sessionMode === 'submit') {
                     indicator.innerText = "v2.1.";
                     indicator.className = "w-12 text-center text-[11px] font-extrabold text-emerald-600 bg-emerald-100 border border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.55)] px-1 py-0.5 rounded-md tracking-normal select-none transition-all duration-200";
                 } else {
@@ -3631,6 +3631,7 @@
                 });
             } else {
                 sessionMode = 'test';
+                isServerAdminActive = false;
                 submitFileName = '';
                         if (submitBtn) {
                     submitBtn.classList.add('hidden');
